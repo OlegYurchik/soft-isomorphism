@@ -1,0 +1,36 @@
+# .env — локальные секреты и настройки
+.env
+.env.local
+
+# Данные и артефакты
+data/
+results/
+mlruns/
+mlartifacts/
+*.db
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+
+# UV
+.venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Личные настройки агентов
+*.local.*
+CLAUDE.local.md
+.claude/settings.local.json
