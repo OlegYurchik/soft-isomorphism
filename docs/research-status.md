@@ -15,8 +15,11 @@
 | 2 | Cai et al. **"SimGRAG: Leveraging Similar Subgraphs for Knowledge Graphs Driven Retrieval-Augmented Generation"** (Fudan, 2024) | [arXiv:2412.15272](https://arxiv.org/abs/2412.15272) | Полностью | Двухшаговый pipeline: (1) запрос → граф-паттерн (LLM), (2) паттерн → top-k подграфов по Graph Semantic Distance (GSD). Ближайший аналог нашего подхода. **Центральная работа для обзора конкурентов.** |
 | 3 | Liu et al. **"KnowFormer: Revisiting Transformers for Knowledge Graph Reasoning"** (ICML 2024) | [arXiv:2409.12865](https://arxiv.org/abs/2409.12865) | Просмотрена | Reasoning над KG через трансформеры с message-passing; формализует graph isomorphism через биекцию + WL-тест. Полезна для понимания структурной составляющей. |
 | 4 | Chen et al. **"Knowledge Pyramid Construction for Multi-Level Retrieval-Augmented Generation"** (PolyRAG, PolyU HK, 2025) | [arXiv:2407.21276](https://arxiv.org/abs/2407.21276) | Просмотрена | Онтология → KG → сырой текст: каскадный retrieval по уровням. Outperforms 19 SOTA методов на academic и financial QA. Даёт перспективу на многоуровневую организацию знаний, к ядру задачи примыкает косвенно. |
+| 5 | Li et al. **"Simple Is Effective: The Roles of Graphs and Large Language Models in Knowledge-Graph-Based Retrieval-Augmented Generation"** (SubgraphRAG, ICLR 2025) | [arXiv:2410.20724](https://arxiv.org/abs/2410.20724) | Просмотрена | Lightweight MLP скорит тройки параллельно; кодирует directional structural distances; размер подграфа настраивается под запрос и LLM. SOTA на WebQSP и CWQ без fine-tuning. Показывает текущую планку на тех же бенчмарках, что используют SimGRAG. |
+| 6 | Chen et al. **"NGM-RAG: Neural Graph Matching based Retrieval-Augmented Generation"** (2026) | [arXiv:2607.11159](https://arxiv.org/abs/2607.11159) | Просмотрена | Строит граф из данных, матчит через GNN + текстовое сходство с adaptive node weighting, затем генерирует ответ. Превосходит GraphRAG и LightRAG на multi-hop QA и long-context summarization. **Ближайший прямой конкурент** нашего подхода: граф как вход, нейронный matching как ядро. |
+| 7 | Zhang et al. **"A Survey of Graph Retrieval-Augmented Generation for Customized LLMs"** (2025, v3 сен 2025) | [arXiv:2501.13958](https://arxiv.org/abs/2501.13958) | Просмотрена | Систематический обзор Graph RAG: graph indexing → retrieval → structure-aware generation. Охватывает методы, домены, открытые проблемы. Поддерживается Awesome-GraphRAG репозиторием. Закрывает knowledge gap из раздела 3.3. |
 
-> **Пробелы:** нет свежей survey по Graph RAG (2025–2026) и нет бенчмарк-статей с нетривиальными случаями. Это задачи **#3** (критерии данных) и **#8** (обзор сильных методов).
+> **Пробелы:** нет бенчмарк-статей с нетривиальными структурными случаями (не простые QA). Это задача **#3** (критерии данных). Knowledge gap по survey частично закрыт статьёй #7.
 
 ---
 
@@ -87,6 +90,8 @@ Document graph  ←→  Knowledge graph
 | GraphRAG (Edge 2024) | Текст → communities | Нет | Да | Корпус |
 | SimGRAG (Cai 2024) | Текст → паттерн | Да (GSD, частично soft) | Да | ~10M рёбер |
 | KnowFormer (Liu 2024) | KG triplets | Да (WL-тест) | Нет | Inductive KG |
+| SubgraphRAG (Li 2025) | Текст → тройки | Да (structural distances) | Да | WebQSP/CWQ |
+| NGM-RAG (Chen 2026) | Граф данных | Да (GNN matching) | Да | Multi-hop QA |
 | **Наш подход** | **Граф документа** | **Да (soft iso)** | **Да** | TBD |
 
 Ключевая гипотеза (не подтверждена): вход в виде графа документа позволяет точнее задавать структурные ограничения и снижает потери при query-to-pattern шаге.
