@@ -34,3 +34,10 @@ Thumbs.db
 *.local.*
 CLAUDE.local.md
 .claude/settings.local.json
+.context-markers/
+.agent/.nav-temp/
+.agent/.nav-runtime-state.json
+.agent/.nav-runtime-state.lock
+.agent/.nav-rejects.jsonl
+.agent/.nav-config.local.json
+.agent/onboarding/
