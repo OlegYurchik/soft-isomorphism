@@ -1,6 +1,6 @@
 # Научный статус проекта
 
-> Последнее обновление: 2026-10-24  
+> Последнее обновление: 2026-10-29  
 > Состояние репозитория на момент проверки 05.10.2026: только каркас LightRAG (commit `06f2776`), экспериментальных артефактов нет.
 
 ---
@@ -19,7 +19,14 @@
 | 6 | Chen et al. **"NGM-RAG: Neural Graph Matching based Retrieval-Augmented Generation"** (2026) | [arXiv:2607.11159](https://arxiv.org/abs/2607.11159) | Просмотрена | Строит граф из данных, матчит через GNN + текстовое сходство с adaptive node weighting, затем генерирует ответ. Превосходит GraphRAG и LightRAG на multi-hop QA и long-context summarization. **Ближайший прямой конкурент** нашего подхода: граф как вход, нейронный matching как ядро. |
 | 7 | Zhang et al. **"A Survey of Graph Retrieval-Augmented Generation for Customized LLMs"** (2025, v3 сен 2025) | [arXiv:2501.13958](https://arxiv.org/abs/2501.13958) | Просмотрена | Систематический обзор Graph RAG: graph indexing → retrieval → structure-aware generation. Охватывает методы, домены, открытые проблемы. Поддерживается Awesome-GraphRAG репозиторием. Закрывает knowledge gap из раздела 3.3. |
 
-> **Пробелы:** нет бенчмарк-статей с нетривиальными структурными случаями (не простые QA). Это задача **#3** (критерии данных). Knowledge gap по survey частично закрыт статьёй #7.
+| 8 | Luo et al. **"GFM-RAG: Graph Foundation Model for Retrieval Augmented Generation"** (NeurIPS 2025) | [arXiv:2502.01113](https://arxiv.org/abs/2502.01113) | Просмотрена | GNN-ретривер (~8M параметров), предобучен на 60 KG и 14M троек; query-dependent retrieval по KG-индексу без fine-tuning. SOTA на 3 multi-hop QA + 7 domain-specific датасетах. Прямой конкурент: структурный ретривал из KG без явного graph matching. |
+| 9 | Wang et al. **"GPR: Empowering Generation with Graph-Pretrained Retriever"** (EMNLP 2025) | [arXiv:2506.00261](https://arxiv.org/abs/2506.00261) | Просмотрена | Graph-pretrained retriever: синтетические вопросы из троек (masked triplet prompting) + structure-aware objective. Улучшает retrieval на WebQSP и CWQ vs text-pretrained. Конкурент на retrieval-side; показывает ценность graph-специфичного pretraining. |
+| 10 | Kim et al. **"FactKG: Fact Verification via Reasoning on Knowledge Graphs"** (ACL 2023) | [arXiv:2305.06590](https://arxiv.org/abs/2305.06590) | Просмотрена | 108k claims из DBpedia; 5 типов reasoning (One-hop, Conjunction, Existence, Multi-hop, Negation); fact verification. **Кандидат датасет**: document→KG mapping, multi-hop структуры, открытая лицензия. |
+| 11 | Ho et al. **"Constructing A Multi-hop QA Dataset for Comprehensive Evaluation of Reasoning Steps"** (2WikiMultiHopQA, COLING 2020) | [arXiv:2011.01060](https://arxiv.org/abs/2011.01060) | Просмотрена | Wikipedia + Wikidata; шаблоны + логические правила; каждый пример содержит явный reasoning path. Требует multi-hop reasoning. **Кандидат датасет**: Wikidata как KG, structured reasoning paths. |
+| 12 | Tan et al. **"Revisiting DocRED – Addressing the False Negative Problem in Relation Extraction"** (Re-DocRED, EMNLP 2022) | [arXiv:2205.12696](https://arxiv.org/abs/2205.12696) | Просмотрена | Переразметка 4053 DocRED-документов: восстановлены пропущенные relation triples, исправлены coreference ошибки. +13 F1 vs оригинала. **Кандидат датасет**: document-level extraction с KG (Wikidata), нетривиальные структуры. |
+| 13 | Raj et al. **"Charting the Design Space of Neural Graph Representations for Subgraph Matching"** (ICLR 2025) | [arXiv:2510.22897](https://arxiv.org/abs/2510.22897) | Просмотрена | Систематика нейронных subgraph matching: early vs late interaction, node/edge embeddings. Показывает, что схема взаимодействия критична для качества. **Теоретическая база**: систематика для разработки нашей soft iso метрики. |
+
+> **Пробелы:** ~~нет бенчмарк-статей~~ — закрыто (#10–#12). Теоретическая база subgraph matching закрыта (#13). Остаётся: проверить FactKG, 2WikiMultiHopQA и Re-DocRED на соответствие must-have критериям из `data-requirements.md` (задача **#6**).
 
 ---
 
@@ -98,7 +105,7 @@ Document graph  ←→  Knowledge graph
 
 ### 3.3 Открытые вопросы
 
-- **Knowledge gap:** не найдена свежая survey (2025–2026) по Graph RAG — неизвестно, есть ли уже аналогичный подход, насколько SimGRAG является SOTA.
+- **Knowledge gap:** ~~не найдена survey~~ — закрыто: Zhang et al. 2025 (#7) + GFM-RAG (NeurIPS 2025, #8) и GPR (EMNLP 2025, #9) — актуальный ландшафт методов.
 - **Данные:** какой KG использовать (Freebase/Wikidata/домен)? Какие документы как источник графов? Какой benchmark позволяет измерить улучшение? Нет ответа.
 - **Метрика:** GSD из SimGRAG — прямой кандидат, но нужно проверить, работает ли он при входе из графа документа (не из текстового паттерна).
 - **Стоимость поиска:** ограниченный поиск отображения нужен, чтобы задача не была NP-полной в явном виде.
