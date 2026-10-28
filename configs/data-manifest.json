@@ -1,0 +1,58 @@
+{
+  "description": "Источники данных, версии и контрольные суммы для пилотного эксперимента (О7)",
+  "updated": "2026-10-29",
+  "datasets": {
+    "gtsqa": {
+      "role": "primary",
+      "source": "huggingface",
+      "name": "Graphcore/GTSQA",
+      "config": "gtsqa-with-graphs",
+      "url": "https://huggingface.co/datasets/Graphcore/GTSQA",
+      "license": "CC-BY-4.0",
+      "access_date": null,
+      "commit": null,
+      "checksums": "NOT_DOWNLOADED",
+      "splits": {
+        "train": {"size": 30477, "file": "gtsqa-with-graphs/train/0000.parquet"},
+        "test":  {"size": 1622,  "file": "gtsqa-with-graphs/test/0000.parquet"}
+      },
+      "derived_splits": {
+        "train-fit": {"size": "~27429", "seed": 42, "index_file": "configs/splits/gtsqa_dev_indices.json"},
+        "train-dev":  {"size": "~3048",  "seed": 42, "index_file": "configs/splits/gtsqa_dev_indices.json"}
+      },
+      "notes": "dev-split создаётся stratified по graph_isomorphism, 90/10, seed=42"
+    },
+    "factkg": {
+      "role": "secondary",
+      "source": "github",
+      "url": "https://github.com/jiho283/FactKG",
+      "commit": null,
+      "license": "CC BY-NC-SA 4.0",
+      "access_date": null,
+      "checksums": "NOT_DOWNLOADED",
+      "splits": {
+        "train": {"size": 86939, "file": "data/factkg_train.json"},
+        "dev":   {"size": 10867, "file": "data/factkg_dev.json"},
+        "test":  {"size": 10868, "file": "data/factkg_test.json", "note": "В тесте нет поля graph; в пилоте не используется"}
+      },
+      "notes": "Академическое использование допустимо; не публиковать производные данные коммерчески"
+    },
+    "re_docred": {
+      "role": "reserve",
+      "source": "github",
+      "url": "https://github.com/tonytan48/Re-DocRED",
+      "huggingface_url": "https://huggingface.co/datasets/tonytan48/Re-DocRED",
+      "commit": null,
+      "license": "MIT (не подтверждено — проверить LICENSE файл)",
+      "access_date": null,
+      "checksums": "NOT_DOWNLOADED",
+      "blocking_issue": "Лицензия не подтверждена прямым чтением LICENSE файла в репозитории",
+      "splits": {
+        "train": {"size": 3053, "file": "data/re-docred/train_revised.json"},
+        "dev":   {"size": null, "file": "data/re-docred/dev_revised.json"},
+        "test":  {"size": null, "file": "data/re-docred/test_revised.json"}
+      },
+      "notes": "Использовать только после подтверждения лицензии; нужна сборка Wikidata-подграфа по QIDs (2–3 ч)"
+    }
+  }
+}
