@@ -1,0 +1,30 @@
+{
+  "Murda Beatz is a record producer.": {
+    "label": true,
+    "type": "One-hop",
+    "graph": {
+      "Murda_Beatz": [["occupation", "record_producer"]]
+    },
+    "entities": ["Murda_Beatz"]
+  },
+  "The Eiffel Tower is located in Berlin and was built in 1889.": {
+    "label": false,
+    "type": "Conjunction",
+    "graph": {
+      "Eiffel_Tower": [
+        ["location", "Paris"],
+        ["inception", "1889"]
+      ]
+    },
+    "entities": ["Eiffel_Tower"]
+  },
+  "Barack Obama was born in Hawaii and served as US president.": {
+    "label": true,
+    "type": "Multi-hop",
+    "graph": {
+      "Barack_Obama": [["place_of_birth", "Hawaii"]],
+      "Hawaii": [["country", "United_States"]]
+    },
+    "entities": ["Barack_Obama", "Hawaii"]
+  }
+}

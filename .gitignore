@@ -2,8 +2,9 @@
 .env
 .env.local
 
-# Данные и артефакты
+# Данные и артефакты (исходные файлы датасетов)
 data/
+!src/**/data/
 results/
 mlruns/
 mlartifacts/

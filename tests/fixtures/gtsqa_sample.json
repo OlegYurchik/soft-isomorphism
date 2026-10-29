@@ -1,0 +1,26 @@
+[
+  {
+    "id": "gtsqa-0001",
+    "question": "What is the capital of France?",
+    "answer": "Paris",
+    "graph": [["Q142", "P36", "Q90"]],
+    "graph_isomorphism": "single-hop",
+    "n_hops": 1
+  },
+  {
+    "id": "gtsqa-0002",
+    "question": "Who directed the film Inception?",
+    "answer": "Christopher Nolan",
+    "graph": [["Q25188", "P57", "Q25191"], ["Q25188", "P495", "Q30"]],
+    "graph_isomorphism": "two-hop-chain",
+    "n_hops": 2
+  },
+  {
+    "id": "gtsqa-0003",
+    "question": "What is the currency of Japan?",
+    "answer": "Japanese yen",
+    "graph": {"edges": [{"head": "Q17", "rel": "P38", "tail": "Q8146"}]},
+    "graph_isomorphism": "single-hop",
+    "n_hops": 1
+  }
+]
