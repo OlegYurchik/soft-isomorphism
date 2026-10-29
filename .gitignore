@@ -5,7 +5,8 @@
 # Данные и артефакты (исходные файлы датасетов)
 data/
 !src/**/data/
-results/
+results/*
+!results/*.md
 mlruns/
 mlartifacts/
 *.db
