@@ -8,7 +8,13 @@
 
 ---
 
-## Коррекция после замечаний руководителя (05.11.2026)\n\nВ предыдущей таблице перепутаны назначение GTSQA `graph` и gold. В конфигурации `gtsqa-with-graphs`, `graph` — question-specific candidate/search graph (до 30k рёбер), а gold для этого KG — `all_answers_wikikg2` и `full_answer_subgraph_wikikg2`. Вопрос остаётся текстовым; отдельный независимый query graph не дан. Использование любого gold subgraph как input утечёт целевую структуру. Сверить exact columns/serialization по скачанному pinned revision до запуска.\n\nHotpotQA имеет benchmark overlap с NGM-RAG (500 вопросов в статье) и официальная карточка сообщает CC BY-SA 4.0; MetaQA пересекается с SimGRAG. Но ни один из этих файлов ещё не скачан в проекте, а MetaQA terms и фактические splits требуется подтвердить. Статьи/README подтверждают benchmark use и команду SimGRAG для MetaQA, не локальную feasibility.\n\n## 1. Методология
+## Коррекция после замечаний руководителя (05.11.2026)
+
+В предыдущей таблице перепутаны назначение GTSQA `graph` и gold. В конфигурации `gtsqa-with-graphs`, `graph` — question-specific candidate/search graph (до 30k рёбер), а gold для этого KG — `all_answers_wikikg2` и `full_answer_subgraph_wikikg2`. Вопрос остаётся текстовым; отдельный независимый query graph не дан. Использование любого gold subgraph как input утечёт целевую структуру. Сверить exact columns/serialization по скачанному pinned revision до запуска.
+
+HotpotQA имеет benchmark overlap с NGM-RAG (500 вопросов в статье) и официальная карточка сообщает CC BY-SA 4.0; MetaQA пересекается с SimGRAG. Но ни один из этих файлов ещё не скачан в проекте, а MetaQA terms и фактические splits требуется подтвердить. Статьи/README подтверждают benchmark use и команду SimGRAG для MetaQA, не локальную feasibility.
+
+## 1. Методология
 
 Проверка выполнена в два слоя:
 
