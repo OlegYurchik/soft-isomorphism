@@ -1,5 +1,7 @@
 # Аналитическое сравнение датасетов
 
+> **Актуализация 05.11.2026:** предыдущий shortlist GTSQA + FactKG не является подтверждённым выбором. Критерии таблицы нужно дополнить совместимостью с конкретным входом метода и benchmark overlap с выбранными работами. Ниже зафиксированы HotpotQA/MetaQA как дополнительные кандидаты для feasibility; исходные данные локально не скачаны.
+
 > Последнее обновление: 2026-10-29  
 > Контекст: задача О5; входы — [О3](data-requirements.md) (критерии), [О4](dataset-search.md) (журнал поиска).  
 > Источники: авторские описания из публикаций и страниц датасетов; собственная оценка помечена *(оценка)*; неизвестное — **н/д**.  
@@ -80,7 +82,7 @@ Must-have критерии из О3:
 | **FactKG** | GEAR, KGT5, ClaimPKG, PGRL | F1, Accuracy; лучший ~85% F1 (из вторичных источников) |
 | **FactNet-MFC** | н/д | н/д |
 | **Re-DocRED** | ATLOP, DocuNet, DREEAM | F1; ~65–67% F1 (из вторичных источников) |
-| **2WikiMultiHopQA** | GFM-RAG, NGM-RAG, SubgraphRAG, SimGRAG | F1, EM; GFM-RAG ~57% F1 (из вторичных источников) |
+| **2WikiMultiHopQA** | GFM-RAG, SubgraphRAG, SimGRAG | F1, EM; GFM-RAG ~57% F1 (из вторичных источников) |
 
 > Все цифры SOTA из вторичных источников — верифицировать по первичным перед использованием в работе.
 
@@ -147,3 +149,14 @@ Must-have критерии из О3:
 | Subgraph в test FactKG | FactKG | Проверить test-файл: есть ли поле `graph` |
 | Dev-split GTSQA | GTSQA | Проверить HuggingFace dataset card |
 | Структурная сложность KGQAGen-10k | KGQAGen-10k | Скачать sample, проверить hop-глубину SPARQL |
+
+
+## 6. Проверка benchmark overlap после замечаний руководителя
+
+| Benchmark | Работа с пересечением | Вход / gold | Метрики | Что требует feasibility |
+|---|---|---|---|---|
+| HotpotQA | NGM-RAG (500-вопросная выборка) | Question + paragraphs + supporting facts; отдельный corpus graph надо построить | Answer EM/F1, supporting-fact P/R/F1 | Официальная версия/license, subset IDs, graph construction cost; NGM code/full pipeline не найден |
+| MetaQA | SimGRAG (есть команда в README) | Question + movie KG + answers | Hits@1/Hits@k; evidence retrieval metrics отдельно при валидной gold evidence | Dataset/KG version, split, license; query graph нельзя извлекать из gold path |
+
+
+**Вывод на этом этапе:** HotpotQA и MetaQA — кандидаты на основной и дополнительный benchmark, а не выбранные наборы. Они дают benchmark overlap с разными работами, но не создают прямого сравнения NGM-RAG и SimGRAG между собой. Сначала проверить исходные файлы, официальные split, условия использования, разметку и стоимость graph construction. Для GTSQA сохранить роль текстового KGQA/retrieval кандидата, но не заявлять независимый document/query graph.
