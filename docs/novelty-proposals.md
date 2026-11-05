@@ -1,71 +1,32 @@
-# Предложение первого эксперимента и возможного вклада
+# E1: согласованность extraction как вес структурных ограничений
 
-> Обновлено после замечаний руководителя 05.11.2026. Ниже — проверяемый дизайн-кандидат для темы 2.6, а не утверждённая новизна и не отчёт о выполненных запусках. Пользователь подтвердил направление мягкого сопоставления графа документа с графом знаний; смена темы сейчас не рассматривается. Прежние формулировки на GTSQA/FactKG и прямое сравнение с NGM-RAG были преждевременными.
+Тема подтверждена: мягкое сопоставление графа документа с KG. Основной benchmark FactKG,
+дополнительный HotpotQA. Это заменяет предыдущий вариант «partial matching + dropout».
 
-## 1. Что уже делают ближайшие работы
+**Вопрос:** помогает ли agreement трёх фиксированных extraction prompts взвешивать
+рёбра графа короткого документа при поиске KG evidence лучше одинаковых весов?
+Метод допускает неполное структурное соответствие; дополнительным KG-рёбрам штраф не начисляется.
+Главное сравнение — E1 vs B3 (тот же soft matcher, все веса=1), а не только E1 vs VF2/BM25.
 
-- **SimGRAG**: из текстового вопроса LLM строит граф-паттерн, затем Graph Semantic Distance ранжирует соответствующие структуры KG. Основные benchmarks: MetaQA, PQ, WC2014, FactKG; официальный репозиторий даёт команды как минимум для MetaQA и FactKG.
-- **NGM-RAG**: строит query/target graphs из вопроса и корпуса, совмещает Levenshtein, BM25 и GNN node representations; оценка на HotpotQA, MultiHop-RAG (по 500 вопросов) и UltraDomain. Официальный код при проверке не найден.
-- Поэтому недостатки «предыдущие методы не используют графы», «GSD = простой graph edit distance» и «NGM-RAG не имеет весов» нельзя использовать как обоснование новизны.
+Конкретная формула, beam search, candidate generation, prompts, пример реального claim,
+метрики, split IDs и блок-схемы находятся в единственном нормативном документе:
+[полный дизайн E1](https://github.com/OlegYurchik/soft-isomorphism/blob/docs/issue-7-protocol/docs/experiment-design-v2.md).
 
-## 2. Вариант первого эксперимента
+**Гипотеза:** E1 повышает FactKG Accuracy относительно B3 при одинаковых cached Q,
+candidate pools, reader и evidence budget. Paired 95% bootstrap CI для разницы должен
+иметь нижнюю границу выше нуля. UNKNOWN и failures считаются ошибками, сохраняются в denominator.
 
-**Исследовательский вопрос.** Снижает ли частичное soft matching потерю качества при контролируемой неполноте query graph по сравнению с exact subgraph matching и GSD-подходом?
+Noise experiments — дополнительная диагностика: deletion/insertion/substitution/reversal
+раздельно, p=0/0.1/0.25/0.5, seeds=17/42/73. Удаление query edge может облегчать
+non-induced matching, поэтому исходное обещание неизбежной деградации VF2 снято.
+Новые веса не кодируют известную экспериментатору метку corruption. Переставленные c — обязательный ablation.
 
-**Предварительная гипотеза.** При удалении рёбер из query graph частичное отображение с отдельными штрафами за пропущенные и несогласованные рёбра сохраняет retrieval/QA качество лучше VF2; на исходных запросах оно не должно заметно уступать SimGRAG. Эта гипотеза требует проверки новизны по NeMa, approximate subgraph matching и graph edit distance до заявления вклада.
+**Научный статус:** NeMa, noisy subgraph matching и learned GED costs уже существуют.
+Agreement-weighted document matching — кандидат на прикладной/эмпирический вклад;
+его мировая новизна не установлена. Обзор и границы утверждений:
+[сравнение работ](https://github.com/OlegYurchik/soft-isomorphism/blob/docs/issue-8-methods-review/docs/literature-review.md).
+Если аналогичная постановка найдена или E1 не лучше B3, заявление об улучшении снимается.
+Это соответствует разрешённому руководителем варианту: проработанный обзор и обсуждаемый эксперимент,
+без выдуманного доказательства новизны.
 
-### Поток данных
-
-```
-вопрос + KG/корпус benchmark
-          │
-фиксированный query-to-graph extractor (prompt/model/version)
-          │
-     query graph Gq
-          ├── controlled edge dropout p = 0, 0.1, 0.2, 0.4
-          │
-одинаковый candidate pool для сравниваемых методов
-          ├── B0 BM25 по текстовым фактам (без топологии)
-          ├── B1 VF2 exact matching
-          ├── B2 SimGRAG/GSD (только на совместимом benchmark)
-          └── proposed partial mapping + explicit edit penalties
-                         │
-               evidence / answer ranking
-                         │
-     retrieval metrics + QA metrics + latency / coverage
-```
-
-### Детали протокола
-
-1. Выбрать test split и зафиксировать sample IDs, версии файлов и checksum. Query graph строить только из вопроса и доступного текста-контекста; gold answer/path/evidence используется только evaluator.
-2. Один и тот же extractor, его prompt, output schema и candidate-generation step использовать для B1/B2/proposed. Сохранить извлечённые графы и ошибки extractor; отдельно дать end-to-end и conditional matching результаты.
-3. Построить общий candidate pool: top-M entity/relation candidates из одного lexical index и ограниченные связные окрестности KG. Значение M и budget поиска выбрать на dev и заморозить до test.
-4. Для proposed метода найти ограниченное частичное инъективное отображение query nodes → KG nodes. Стоимость: semantic distance узлов/отношений + штраф пропущенного query edge + штраф лишнего/несовместимого candidate edge. Оптимизация — beam search с фиксированным budget. Весы подбирать только на dev.
-5. Создать corrupted queries детерминированным удалением рёбер с фиксированными seeds. Отдельно измерить исходные графы и каждый dropout уровень; не менять gold.
-6. Report coverage (доля запросов с непустым извлечённым/сопоставленным графом), retrieval recall/precision/F1 по evidence, QA Hits@1/EM/F1 и latency. На HotpotQA дополнительно supporting-fact recall; на MetaQA — Hits@1 по gold answers. Считать paired bootstrap CI на одних и тех же примерах.
-
-## 3. Бенчмарки и сравнения
-
-| Benchmark | Зачем | Что сравнивать | Ограничения |
-|---|---|---|---|
-| **MetaQA** | SimGRAG использует его; авторский код содержит команду запуска | BM25, VF2, SimGRAG GSD, proposed — при едином candidate pool и разделении extractor/matcher | Придётся сгенерировать query graph из вопроса; не подавать gold path/answer на вход |
-| **HotpotQA** | Benchmark NGM-RAG и рекомендация руководителя для потенциального пересечения | BM25 и наши методы; NGM-RAG — только при доступном/reproduced full pipeline | NGM использовал 500 вопросов; нужен заранее фиксированный общий subset и соответствующий контекстный corpus |
-| **FactKG** | SimGRAG benchmark; локальный адаптер уже есть | Возможная отдельная проверка fact verification | Не считать его универсальной заменой KGQA: test evidence graph не подтверждён локальным аудитом, а основная метрика статьи — accuracy |
-
-**Рабочая рекомендация:** подготовить feasibility для пары HotpotQA + MetaQA: HotpotQA покрывает сопоставление с постановкой NGM-RAG, MetaQA даёт практическую площадку SimGRAG. До проверки данных/ресурсов это shortlist, не окончательно выбранная пара. Не сравнивать published scores разных benchmarks напрямую; NGM-RAG пока related work, а не baseline.
-
-## 4. Критерии результата и фальсификации
-
-- H1 поддерживается, если при dropout proposed method статистически значимо превосходит VF2 по QA/evidence метрике и не теряет покрытие; опубликованные SimGRAG числа сами по себе не являются контрольной группой.
-- Если преимущество исчезает при одинаковом extractor/candidate pool, либо достигается только после подбора на test, гипотеза не подтверждена.
-- Сравнение с SimGRAG называется head-to-head только при общем benchmark, одинаковой выборке, candidate KG, extractor/LLM settings и evaluator. Иначе это адаптация/сравнение опубликованного контекста с оговорками.
-- Сравнение с NGM-RAG — только при полном воспроизведении его graph construction, weights, GNN, sampling и evaluation; запуск LightGCN/GINE-компоненты не достаточен.
-
-## 5. Следующие решения эксперимента
-
-1. Рабочая пара — HotpotQA (основной по рекомендации руководителя) + MetaQA (KGQA benchmark SimGRAG); подтвердить реальные файлы, splits и стоимость graph construction.
-2. Проверить новизну partial soft matching по NeMa, approximate subgraph matching и graph edit distance.
-3. Зафиксировать extractor, candidate-pool budget, primary metric и режим сравнения отдельно для каждого набора.
-4. С SimGRAG заявлять head-to-head только при сопоставимых входе, KG, генераторе и evaluator; NGM-RAG не включать в baseline до воспроизведения полного pipeline.
-
-Собственных прогонов нет; текущий локальный аудит адаптеров охватывает только fixtures, а реальные исходные наборы не загружены.
+Baseline claim-only уже запущен на FactKG dev. Графовый эксперимент и репликации SimGRAG/NGM-RAG не выполнены.
