@@ -339,3 +339,10 @@ print("Wikidata field:", sample["labels"][0].get("Wikidata", "ABSENT"))
 
 
 **Вывод:** дистанционная feasibility не является результатом файлового аудита. До скачивания и трассировки 10–20 реальных examples recommendation HotpotQA + MetaQA остаётся conditional.
+
+
+### MetaQA — предварительная проверка источников
+
+Официальный README сообщает, что vanilla datasets состоят из QA текстовых файлов и knowledge base `kb.txt` с triple schema `subject|relation|object`; каждый 1/2/3-hop вариант имеет train/dev/test. Официальный LICENSE — CC BY 3.0; README просит проверить лицензию MovieQA/WikiMovies, откуда частично происходит 1-hop набор. Размеры split записаны в сравнительной таблице О5. Файлы находятся по Google Drive ссылке, в локальной копии их нет. Поэтому наличие доступной ссылки не равно проверенному локальному доступу.
+
+HotpotQA official repository указывает CC BY-SA 4.0; однако формат — paragraphs + question + supporting facts, не candidate KG. Перед включением его в graph-matching experiment нужен прототип candidate graph construction и оценка объёма/качества extraction. NGM-RAG overlap не снимает это ограничение.
