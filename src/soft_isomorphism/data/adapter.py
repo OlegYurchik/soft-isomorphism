@@ -85,7 +85,9 @@ def load_gtsqa(data_dir: str | Path, split: Split) -> list[Example]:
                 text=str(row["question"]),
                 gold_edges=gold_edges,
                 metadata={
-                    "answer": row.get("answer"),
+                    "answer": row.get("answer_node"),
+                    "answers": row.get("all_answers_wikikg2", []),
+                    "candidate_graph_available": row.get("graph") is not None,
                     "graph_isomorphism": row.get("graph_isomorphism"),
                     "n_hops": row.get("n_hops"),
                 },
