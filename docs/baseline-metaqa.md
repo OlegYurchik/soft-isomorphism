@@ -1,3 +1,5 @@
+> Archived prototype: E1-v2 selects FactKG + HotpotQA. The active B0 is [FactKG BM25-kNN](baseline-factkg.md). MetaQA is a reserve and has no reported run.
+
 # B0 baseline: BM25 over MetaQA triples
 
 > First implementation step for issue #13. This is a text-only lower bound, not a graph matching method and not an experiment result.
