@@ -3,10 +3,16 @@
 > Последнее обновление: 2026-10-29  
 > Контекст: задача О6; входы — [О5](dataset-selection.md) (shortlist), [О3](data-requirements.md) (критерии).  
 > Методология: дистанционная проверка через официальные репозитории, dataset cards и публикации.  
-> Файловая проверка (команды загрузки и 10–20 примеров) — **документирована как следующий шаг** ниже.  
+> Фактический статус: реальные данные в workspace не скачаны; fixtures из тестов не являются 10–20 примерами benchmark. До загрузки есть только дистанционная проверка карточек/статей.  
 > (Папки `results/` и `data/` в .gitignore — отчёт хранится в docs/.)
 
 ---
+
+## Коррекция после замечаний руководителя (05.11.2026)
+
+В предыдущей таблице перепутаны назначение GTSQA `graph` и gold. В конфигурации `gtsqa-with-graphs`, `graph` — question-specific candidate/search graph (до 30k рёбер), а gold для этого KG — `all_answers_wikikg2` и `full_answer_subgraph_wikikg2`. Вопрос остаётся текстовым; отдельный независимый query graph не дан. Использование любого gold subgraph как input утечёт целевую структуру. Сверить exact columns/serialization по скачанному pinned revision до запуска.
+
+HotpotQA имеет benchmark overlap с NGM-RAG (500 вопросов в статье) и официальная карточка сообщает CC BY-SA 4.0; MetaQA пересекается с SimGRAG. Но ни один из этих файлов ещё не скачан в проекте, а MetaQA terms и фактические splits требуется подтвердить. Статьи/README подтверждают benchmark use и команду SimGRAG для MetaQA, не локальную feasibility.
 
 ## 1. Методология
 
@@ -52,7 +58,9 @@ ds_graphs = load_dataset("Graphcore/GTSQA", "gtsqa-with-graphs")
 | `graph_isomorphism` | str | Тип изоморфизма answer-subgraph (27 типов) |
 | `minimal_graph_isomorphism` | str | Тип без избыточных путей |
 | `minimal_seeds_and_queries` | list | Минимальные seed-сущности + SPARQL-запрос |
-| `graph` | list[dict] | Тройки answer-subgraph: {head_qid, rel_pid, tail_qid} (только в gtsqa-with-graphs) |
+| `graph` | question-specific candidate graph (up to 30k edges) | Пространство поиска, не gold |
+| `full_answer_subgraph_wikikg2` | list[triple] | Gold evidence для KG2 |
+| `all_answers_wikikg2` | list[entity ID] | Допустимые ответы для answer scoring |
 
 ### 2.3 Статистика
 
@@ -81,7 +89,8 @@ ds_graphs = load_dataset("Graphcore/GTSQA", "gtsqa-with-graphs")
 
 - **Нет dev-split** — при обучении нужно самостоятельно стратифицированно разбить train (рекомендуется по `graph_isomorphism`)
 - **KG 2015 года** — ogbl-wikikg2 не совпадает с актуальной Wikidata; возможны расхождения при проверке SPARQL на wikidata.org
-- **Синтетика** — все вопросы сгенерированы из KG-структур; нет лингвистического разнообразия реальных документов
+- **Синтетика** — вопросы сгенерированы из KG-структур; нет лингвистического разнообразия реальных документов
+- **Нет query graph** — для graph-query experiment нужен отдельный extraction method из question; gold graph/path запрещён как query
 - **Subgraph = дерево** — answer-subgraphs ограничены деревьями (connected, acyclic); DAG/циклические структуры не представлены
 
 ### 2.6 Команды для файловой проверки
@@ -319,3 +328,14 @@ print("Wikidata field:", sample["labels"][0].get("Wikidata", "ABSENT"))
 | Колонки parquet файла | GTSQA | `ds["test"].column_names` |
 | Реальное hop-распределение test | GTSQA | `ds["test"]["n_hops"]` value_counts |
 | Лицензия (LICENSE файл) | Re-DocRED | `cat Re-DocRED/LICENSE` |
+
+
+## 6. Дополнительная feasibility HotpotQA / MetaQA
+
+| Benchmark | Подтверждено по первичному источнику | Не подтверждено локально / следующий шаг |
+|---|---|---|
+| HotpotQA | Официальный GitHub описывает dataset, distractor/fullwiki resources и CC BY-SA 4.0; NGM-RAG сообщает sample 500 | Не скачаны; выбрать точный setting/split и sample IDs; построить query/target graphs; NGM-RAG code не найден |
+| MetaQA | SimGRAG article includes MetaQA; author README includes run command | Не скачаны; проверить original dataset/KG version, split IDs, terms/license, installation/runtime; graph query должен строиться без gold path |
+
+
+**Вывод:** дистанционная feasibility не является результатом файлового аудита. До скачивания и трассировки 10–20 реальных examples recommendation HotpotQA + MetaQA остаётся conditional.
