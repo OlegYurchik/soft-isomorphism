@@ -1,42 +1,45 @@
-# Сравнение бенчмарков и предварительная рекомендация
+# Выбор данных для первого эксперимента
 
-> Обновлено 05.11.2026 по замечаниям научного руководителя. Ветки/PR #4–#6 содержали shortlist GTSQA + FactKG как будто это выбранные данные. Это решение преждевременно: GTSQA даёт gold answer_subgraph, но не независимый query graph; FactKG решает claim verification, а test evidence graph в локальном аудите не подтверждён. Исходные датасеты в рабочую копию не загружены.
+Решение от 05.11.2026: **FactKG основной, HotpotQA distractor второй**.
+Это замещает прежние пары GTSQA+FactKG и HotpotQA+MetaQA.
+FactKG выбран по соответствию короткий документ→внешний KG и пересечению с SimGRAG.
+MetaQA дешевле по подготовке KG, но его вход — вопрос, а не документальное утверждение.
+Выбор FactKG не означает, что DBpedia легче в обработке: загрузка light snapshot остаётся обязательной.
 
-## Критерии выбора
+| Набор | Текст / KG / оценка | Решение |
+|---|---|---|
+| FactKG | Claims, DBpedia 2015, binary Label; train/dev Evidence задаёт пути, test без Evidence | Основной. Файлы всех splits локально, CPU baseline выполнен. KG light ещё нужен |
+| HotpotQA distractor | Вопросы, 10 contexts, supporting facts, ответы; KG строится из contexts | Второй, по рекомендации руководителя. 7 405 validation записей скачаны; NGM-RAG — related work |
+| MetaQA | Movie KG и QA 1/2/3-hop; исходных документов нет | Резерв для более дешёвого query-graph пилота. Код предыдущего BM25 prototype сохранён, но не главный B0 |
+| PathQuestions (PQ) | Компактный KG и path questions; в SimGRAG используется для структуры запросов | Не выбран: QA-постановка и дополнительная подготовка не решают документальный вход |
+| WC2014 | Football KG; single-relation, path и conjunctive QA | Не выбран по той же причине, перенос домена сейчас не нужен |
+| GTSQA | Локальный candidate KG + answer subgraph, вход — вопрос | Диагностический архив. Не третий benchmark и не документальный gold |
+| Re-DocRED | Реальные документы, mention clusters, отношения PID; в проверенном dev нет entity QID | Не выбран: отдельное entity linking и KG snapshot без утечки значительно расширяют работу |
 
-Для задачи «графовый запрос → retrieval подграфа KG» benchmark должен содержать или позволять независимо получить:
+Для FactKG документ — короткое утверждение. Для длинных документов обобщение не заявляется.
+Для HotpotQA query graph из вопроса — перенос алгоритма в QA; это не тот же вход, что FactKG.
 
-1. Текст вопроса/документа как источник query graph.
-2. KG или corpus, из которого строятся кандидаты.
-3. Gold answer/evidence, доступный только evaluator.
-4. Непересекающиеся train/dev/test или фиксированный официальный split.
-5. Метрики, соответствующие заявленной задаче; benchmark-specific QA score отдельно от retrieval quality.
+## Подтверждённая доступность
 
-Наличие gold answer_subgraph не доказывает наличие query graph. Использовать gold ответ/путь как вход matching нельзя, кроме отдельного искусственного corruption stress test, который явно не выдаётся за end-to-end результат.
+Локальный аудит FactKG: train=86 367, dev=13 266, test=9 041.
+Только train/dev содержат Evidence. Локальный полный dev baseline использовал только train texts/labels.
+HotpotQA validation parquet: 7 405 строк; download 05.11.2026, namespace hotpotqa/hotpot_qa.
+Re-DocRED dev: проверены все 500 документов, поля mentions name/type/pos/sent_id/global_pos/index;
+отношения h/t/r/evidence. Готового global entity-ID поля нет.
 
-## Сравнение приоритетных вариантов
+Сырые данные не коммитятся. Хеши, поля, состояния недостающих артефактов и выбранные IDs:
+[manifest и protocol](https://github.com/OlegYurchik/soft-isomorphism/tree/docs/issue-7-protocol/configs).
 
-| Benchmark | Связь с работами | Вход / gold | Метрики | Преимущества | Риски и проверка |
-|---|---|---|---|---|---|
-| **HotpotQA** | Использован NGM-RAG (500-question sample) | Вопрос + paragraphs/supporting facts; KG нужно строить отдельно | Answer EM/F1; supporting-fact precision/recall | Прямое пересечение benchmark с NGM-RAG; руководитель рекомендует проверить | NGM-RAG code не найден; corpus graph extraction нужно реализовать; согласовать subset/split |
-| **MetaQA** | SimGRAG; код содержит команду запуска | Вопрос + movie KG + gold answers | Hits@1/Hits@k по ответам; graph retrieval metrics отдельно | Практичный второй набор с опубликованной базовой точкой SimGRAG | Query graph не дан: строить из вопроса, не из answer path; проверить реальные файлы и license |
-| **FactKG** | SimGRAG | Текст claim + DBpedia; classification labels | Accuracy/F1 для verification; retrieval metrics требуют evidence gold | Локальный parser уже есть; reasoning categories | Test evidence graph не подтверждён; не называть текущий адаптер тестом retrieval |
-| **GTSQA** | KGQA | Вопрос + full search graph + gold answer_subgraph | QA/retrieval score по gold | Подграфовый gold удобен для evaluator | Отдельный независимый query graph отсутствует; нельзя подавать answer_subgraph как query |
-| **PQ / WC2014** | SimGRAG | KGQA и KG | Hits@1 | Два дополнительных benchmark SimGRAG | README авторского кода не документирует команды; адаптацию оценить после проверки данных |
+## Источники и права
 
-## Рабочий выбор после обсуждения 05.11.2026
+- [FactKG README](https://github.com/jiho283/FactKG): CC BY-NC-SA 4.0; файл KG light скачивать из авторского ресурса.
+- [HotpotQA README](https://github.com/hotpotqa/hotpot): CC BY-SA 4.0 для данных, Apache 2.0 для кода.
+- [MetaQA](https://github.com/yuyuz/MetaQA): официальный download и формат KG/QA.
+- [SimGRAG appendix](https://aclanthology.org/2025.findings-acl.163.pdf): MetaQA/PQ/WC2014/FactKG и их роль в экспериментах.
+- [Re-DocRED](https://github.com/tonytan48/Re-DocRED): проверен data/dev_revised.json, а не только abstract.
 
-Пользователь подтвердил тему 2.6: мягкое сопоставление графа документа с графом знаний. Рабочий выбор для дальнейшей feasibility — **HotpotQA (основной по рекомендации руководителя) + MetaQA (второй, с готовым KG и SimGRAG-run commands)**. Это не обещание прямого сравнения с NGM-RAG: его полный код/пipeline не найден.
+## Критерий готовности к graph experiment
 
-Роли различаются:
-- **HotpotQA** пересекается по benchmark с NGM-RAG и имеет supporting-fact gold, но это корпус paragraphs, не готовый KG. Для graph retrieval ещё требуется определить и зафиксировать построение candidate graph/KG; если это не удастся, HotpotQA останется отдельным BM25 QA/retrieval benchmark, не доказательством graph-to-KG matching.
-- **MetaQA** даёт явный movie KG и QA splits, удобен для первого BM25 baseline и проверки matcher-ов на KGQA. Он принимает текстовый вопрос, а не готовый document graph; query graph надо строить из вопроса без gold path.
-
-Первым реализуется B0 на MetaQA, затем проводится оценка затрат HotpotQA graph construction. На обоих наборах результаты и метрики отчётно разделять. Перед полноценным запуском проверить pinned files/splits, license, hashes и 10–20 реальных примеров; локальные данные пока не скачаны.
-
-## Что уже есть локально
-
-- Адаптеры GTSQA/FactKG и schema из задачи #10.
-- Fixtures — только несколько примеров для проверки парсинга; это не реальные данные и не feasibility аудит.
-- Manifest отмечает реальные данные как `NOT_DOWNLOADED`.
-- Поэтому сейчас нет результатов скачивания, checksum, статистики полной выборки или экспериментальных метрик.
+Нужны проверенный DBpedia light с checksum, зафиксированный Qwen checkpoint, extraction cache,
+реализованные matcher/reader и оценки на фиксированных splits. Пока выполнены аудит файлов,
+фиксация дизайна и CPU baseline. Выбор benchmark уже сделан; графовый запуск ещё не выполнен.
