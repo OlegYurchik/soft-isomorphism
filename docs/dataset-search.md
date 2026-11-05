@@ -7,7 +7,7 @@
 
 ## 1. Журнал поиска
 
-> **Дополнение 05.11.2026:** по замечанию руководителя добавлены бенчмарки, пересекающиеся с SimGRAG/NGM-RAG. Указание «используется в статье» не означает, что у нас есть локальный запуск или скачанные файлы.
+ > **Дополнение 05.11.2026:** по замечанию руководителя добавлены бенчмарки с пересечением SimGRAG/NGM-RAG. MetaQA README сообщает прямую Google Drive загрузку, vanilla KG `kb.txt`, 1/2/3-hop splits и CC BY 3.0 (проверить upstream MovieQA terms); HotpotQA официальный repo указывает CC BY-SA 4.0 и supporting facts. Ни один датасет локально не скачан.
 
 | # | Запрос | Площадка | Результат |
 |---|--------|----------|-----------|
@@ -19,7 +19,7 @@
 | 6 | `FactNet billion-scale knowledge graph multilingual factual grounding benchmark arXiv 2602.03417` | WebSearch | FactNet-Bench (полное описание) |
 | 7 | `OpenEA DBP2.0 entity alignment knowledge graph dataset paper arXiv` | WebSearch | OpenEA/DBP2.0 — задача entity alignment, не наша |
 | 8 | `MuSiQue multistep question answering dataset reasoning 2022 arXiv` | WebSearch | MuSiQue — нет KG-backing, исключён |
-| 9 | `NGM-RAG benchmark HotpotQA datasets graph matching` | Статья NGM-RAG / official benchmark | HotpotQA и MultiHop-RAG (по 500 вопросов), UltraDomain; HotpotQA — потенциальное пересечение с NGM-RAG, код метода не найден |
+| 9 | `NGM-RAG benchmark HotpotQA datasets graph matching` | Статья NGM-RAG / official benchmark | HotpotQA и MultiHop-RAG (по 500 вопросов), UltraDomain; HotpotQA — benchmark overlap, код метода не найден |
 | 10 | `SimGRAG benchmark MetaQA PathQuestions WC2014 FactKG code` | SimGRAG paper / README | MetaQA, PQ, WC2014, FactKG; README документирует запуск MetaQA и FactKG |
 
 ---
@@ -90,12 +90,14 @@
 ---
 
 #### HotpotQA
-- **Публикация/данные:** https://hotpotqa.github.io/ (проверить official release и лицензию перед загрузкой).
+- **Публикация/данные:** [официальный repository](https://github.com/hotpotqa/hotpot), CC BY-SA 4.0; distractor/fullwiki data и supporting-fact annotations.
 - **Задача:** multi-hop QA по Wikipedia paragraphs с supporting-fact annotations.
 - **Связь с аналогами:** NGM-RAG сообщает эксперимент на 500 вопросах HotpotQA; это benchmark overlap, но не означает доступность его кода.
 - **Что проверять:** exact subset/split, supporting facts, corpus version, стоимость построения graph.
 
 #### MetaQA
+- **Источник/лицензия:** официальный [репозиторий](https://github.com/yuyuz/MetaQA), Google Drive; LICENSE = CC BY 3.0, с отдельной оговоркой про upstream MovieQA/WikiMovies.
+- **Файлы:** `kb.txt` triples `subject|relation|object`; vanilla question/answer txt; train/dev/test для каждого из 1/2/3 hops.
 - **Задача:** multi-hop KGQA по movie knowledge graph.
 - **Связь с аналогами:** SimGRAG benchmark; команда запуска описана в официальном README https://github.com/YZ-Cai/SimGRAG.
 - **Что проверять:** источник/версия KG, splits, license и генерацию query graph только из вопроса.
