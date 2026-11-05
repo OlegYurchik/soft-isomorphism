@@ -1,112 +1,32 @@
 # Методы сравнения (бейзлайны)
 
-> Создан: 2026-10-29  
-> Контекст: задача О9; входы — [О7](evaluation-protocol.md), [О8](research-status.md), [novelty-proposals.md](novelty-proposals.md).  
-> Статус: выбор методов предварительный, подтверждается вместе с выбором вклада (см. §5 в `novelty-proposals.md`).
+> Пересмотрено 05.11.2026 по замечаниям руководителя. Это план-кандидат для О9, не отчёт запусков. Выбор benchmark и научного вопроса пока открыт.
 
----
+## Сводка
 
-## 1. Обзор бейзлайнов
+| ID | Метод | Что контролирует | Условия |
+|---|---|---|---|
+| B0 | BM25 по текстовым фактам/абзацам | Поиск без топологии | Обязателен на том же sample и corpus |
+| B1 | VF2 exact subgraph match | Эффект строгих структурных ограничений | Только если query graph строится независимо от gold; тот же candidate pool |
+| B2 | SimGRAG / GSD | Мягкий graph-pattern retrieval аналог | Кандидат на MetaQA или FactKG; проверить совместимость кода/условий |
+| R1 | NGM-RAG | Связанная работа по neural graph matching | Не выбранный baseline: нужны HotpotQA/MultiHop-RAG и полный воспроизводимый pipeline |
 
-| ID | Название | Тип | Реализация | Приоритет |
-|----|----------|-----|------------|-----------|
-| B0 | Text-only retrieval | Текстовое сходство без графа | BM25 или DPR (off-the-shelf) | Обязательный |
-| B1 | Exact graph matching | Строгий изоморфизм | VF2 algorithm (networkx) | Обязательный |
-| B2 | SimGRAG (GSD) | Text query + GSD matching | GitHub (авторский код) | Обязательный |
-| B3 | NGM-RAG | Graph query + GNN matching | Условный (зависит от кода) | Условный |
+## B0 — BM25
 
----
+Индексировать каждую тройку KG как `head label — relation label — tail label` (или абзацы HotpotQA отдельным вариантом). Для каждого вопроса ранжировать факты по BM25, агрегировать их score для ответа/evidence. Фиксировать tokenizer, top-k, tie-breaking и corpus snapshot. Считать benchmark-native метрики; для HotpotQA — answer EM/F1 и supporting-fact recall, для MetaQA — Hits@1. Не использовать gold path/evidence как query.
 
-## 2. B0 — Text-only retrieval
+## B1 — VF2
 
-**Зачем:** нижняя граница — подход без какой-либо структуры; показывает, что задача не решается pure retrieval.
+Строить directed labeled query graph из тех же независимо полученных query patterns, которые доступны proposed matcher. Ограничивать поиск тем же candidate pool и лимитом времени/кандидатов; записывать coverage и timeout. VF2 не является «верхней границей precision» гарантированно: report фактические precision/recall и долю запросов без exact match. NetworkX VF2 применим как простой прототип на ограниченном pool.
 
-**Метод:** BM25 (или dense retrieval, например DPR) по текстовому представлению вопроса/документа, без использования KG-структуры. Ранжирование сущностей KG по текстовому сходству с запросом.
+## B2 — SimGRAG
 
-**Ресурсы:**
-- `rank_bm25` (Python) или `faiss` + sentence-transformers
-- Нет GPU требований для BM25; DPR — опционально
+SimGRAG не запускался. Авторский README документирует команды MetaQA и FactKG; опубликованная конфигурация использует Llama 3 70B/Ollama, Nomic embeddings и Milvus. Замена extractor/backbone или candidate KG — адаптация, а не точное воспроизведение статьи. Сначала проверить время установки и совместимость данных; сравнение только при общих split, candidate KG, query patterns и evaluator.
 
-**Адаптация под GTSQA:** 
-- Запрос: текстовое поле вопроса
-- Кандидаты: узлы KG (Wikidata entity labels)
-- Метрика: Edge Precision@k (считать, сколько рёбер answer-subgraph попало в top-k retrieved сущностей)
+## NGM-RAG
 
-**Адаптация под FactKG:**
-- Запрос: текст claim
-- Кандидаты: DBpedia entity labels из поля `graph`
-- Метрика: F1 по тройкам
+NGM-RAG статья использует HotpotQA, MultiHop-RAG (по 500 вопросов) и UltraDomain. Официальная ссылка на код не найдена при проверке 05.11.2026. В статье query/target graphs строятся из текста, затем используются Levenshtein, BM25, BGE и LightGCN/GINE representations с weighted scoring. Не включать как реализуемый baseline, пока не подтверждён код/полное описание и бюджет. Можно цитировать как related work и как мотиватор общего benchmark HotpotQA.
 
----
+## Сравнимость
 
-## 3. B1 — Exact graph matching (строгий изоморфизм)
-
-**Зачем:** верхняя структурная граница при идеальных данных; показывает предел точного matching. Также демонстрирует проблему: exact match на реальных данных даёт много false negatives (вариации меток, неполный KG).
-
-**Метод:** VF2 algorithm (Ullmann variant) для subgraph isomorphism. Matching document graph → KG subgraph с требованием точного соответствия меток рёбер.
-
-**Ресурсы:**
-- `networkx.algorithms.isomorphism.DiGraphMatcher`
-- Вычислительная стоимость: NP-полный алгоритм, ограничить поиском по candidate pool (top-100 сущностей от B0)
-
-**Ожидаемое поведение:** низкий recall (много пропусков из-за строгости), высокий precision на найденных случаях. Это мотивирует soft approach.
-
----
-
-## 4. B2 — SimGRAG (GSD)
-
-**Зачем:** ближайший аналог — soft matching из текстового запроса. Прямой конкурент для Варианта 1 нашего вклада.
-
-**Метод:** двухшаговый pipeline:
-1. Текстовый запрос → граф-паттерн (LLM)
-2. Граф-паттерн → top-k подграфов по Graph Semantic Distance (GSD)
-
-**GSD:** `GSD(G_q, G_s) = w₁ · struct_dist(G_q, G_s) + w₂ · sem_dist(G_q, G_s)`
-
-**Ресурсы:**
-- Код: авторский репозиторий (GitHub, ссылка из arXiv:2412.15272)
-- LLM для text→pattern: минимальный вариант — GPT-4o-mini или open-source (Llama 3.1)
-- GPU: нужен для embedding шага
-
-**Адаптация под GTSQA:**
-- Заменить text-query на вопрос из GTSQA поля `question`
-- Использовать авторский KG (Wikidata-совместимый) или адаптировать под GTSQA KG
-
-**Ключевое:** именно этот бейзлайн показывает разницу между «text→pattern→KG» и «document graph→KG».
-
----
-
-## 5. B3 — NGM-RAG (условный)
-
-**Зачем:** ближайший конкурент для Варианта 1 и 2 — использует граф на входе и нейронный matching. Если код доступен, даёт сильную точку сравнения.
-
-**Метод:** граф данных → GNN encoding → adaptive node weighting + text similarity → генерация.
-
-**Условие включения:**
-- [ ] Авторский код опубликован (проверить: arXiv:2607.11159, GitHub)
-- [ ] Код адаптируем под GTSQA в рамках ≤4 ч
-
-Если код недоступен — B3 исключается из пилота, результаты сравниваются только с B0, B1, B2.
-
----
-
-## 6. Расписание адаптации
-
-| Бейзлайн | Предварительная оценка | Зависимость |
-|----------|------------------------|-------------|
-| B0 | ~2 ч (BM25 off-the-shelf) | Нет |
-| B1 | ~3 ч (VF2 + candidate pool) | B0 для candidate pool |
-| B2 | ~4–8 ч (авторский код + адаптация) | LLM access, KG загрузка |
-| B3 | ~4–8 ч (если код доступен) | Доступность кода NGM-RAG |
-
-Итого при B0+B1+B2: ~9–13 ч. Вписывается в бюджет задачи О10 (адаптер + бейзлайны).
-
----
-
-## 7. Связь с задачами О12–О18
-
-- **О12** (оценщик и MLflow): реализует метрику Edge Precision/Recall@k для всех бейзлайнов
-- **О13** (B0): text-only candidate search + пофактный B0
-- **О17** (B1): exact matching (строгий аналог)
-- **О18** (B3): NGM-RAG-style soft matching (если применимо)
-- **О15–О16** (наш метод): soft iso cost function, ограниченный поиск отображения
+Результаты должны использовать одну и ту же выборку, corpus/KG snapshot, gold definition, extractor и candidate generator. Если отличается один из этих пунктов, называть это адаптацией или отдельным экспериментом, а не head-to-head. Метрики разных benchmark не агрегировать.
