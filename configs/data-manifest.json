@@ -1,59 +1,29 @@
 {
-  "description": "Источники и статусы datasets для обсуждаемого пилота; candidate ≠ выбранный набор",
   "updated": "2026-11-05",
-  "selection_status": "WORKING_CHOICE_PENDING_LOCAL_FILE_AUDIT",
+  "selection_status": "SELECTED_PENDING_KG_AND_MODEL",
+  "active_manifest": "configs/experiment-v2.json",
   "datasets": {
-    "hotpotqa": {
-      "role": "primary_working_benchmark",
-      "source": "official_dataset",
-      "name": "HotpotQA distractor setting",
-      "url": "https://hotpotqa.github.io/",
-      "related_work": [
-        "NGM-RAG"
-      ],
-      "license": "CC BY-SA 4.0 (official repository)",
-      "access_date": null,
-      "version": null,
-      "checksums": "NOT_DOWNLOADED",
-      "splits": {},
-      "notes": "Рабочий основной benchmark по рекомендации руководителя и пересечению с NGM-RAG. Текстовый multi-hop QA; не содержит prebuilt KG. Graph retrieval зависит от отдельной feasibility candidate graph construction. Точные subset/split IDs пока не закреплены."
-    },
-    "metaqa": {
-      "role": "secondary_working_benchmark",
-      "source": "SimGRAG_author_repository",
-      "name": "MetaQA",
-      "url": "https://github.com/YZ-Cai/SimGRAG",
-      "related_work": [
-        "SimGRAG"
-      ],
-      "license": "CC BY 3.0 (official LICENSE.txt); verify upstream MovieQA/WikiMovies terms",
-      "access_date": null,
-      "version": null,
-      "checksums": "NOT_DOWNLOADED",
-      "splits": {},
-      "notes": "Рабочий второй benchmark: SimGRAG содержит run commands; официальный README даёт movie KG, 1/2/3-hop vanilla QA split. Первичный B0 реализован в PR #31; query graph отсутствует и не извлекать из gold path."
-    },
-    "gtsqa": {
-      "role": "legacy_candidate_not_selected",
-      "source": "huggingface",
-      "name": "Graphcore/GTSQA",
-      "config": "gtsqa-with-graphs",
-      "url": "https://huggingface.co/datasets/Graphcore/GTSQA",
-      "license": "CC-BY-4.0",
-      "access_date": null,
-      "commit": null,
-      "checksums": "NOT_DOWNLOADED",
-      "notes": "Есть full search graph и gold answer_subgraph, отдельный query graph не подтверждён. Gold answer_subgraph нельзя подавать matcher-у."
-    },
     "factkg": {
-      "role": "legacy_candidate_not_selected",
-      "source": "github",
+      "role": "primary",
       "url": "https://github.com/jiho283/FactKG",
-      "commit": null,
-      "license": "CC BY-NC-SA 4.0 (verify repository terms)",
-      "access_date": null,
-      "checksums": "NOT_DOWNLOADED",
-      "notes": "Claim verification benchmark; локальный test gold evidence graph не подтверждён. Не считать автоматическим retrieval benchmark."
+      "splits_locally_audited": true,
+      "kg_status": "dbpedia_2015_undirected_light.pickle not downloaded",
+      "gold": "binary label; relation paths in train/dev only"
+    },
+    "hotpotqa": {
+      "role": "secondary",
+      "url": "https://huggingface.co/datasets/hotpotqa/hotpot_qa",
+      "split": "distractor validation",
+      "locally_audited": true,
+      "rows": 7405,
+      "kg_status": "corpus extraction not run"
     }
-  }
+  },
+  "not_selected": [
+    "MetaQA",
+    "GTSQA",
+    "Re-DocRED",
+    "PQ",
+    "WC2014"
+  ]
 }
