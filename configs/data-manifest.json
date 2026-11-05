@@ -1,9 +1,36 @@
 {
-  "description": "Источники данных, версии и контрольные суммы для пилотного эксперимента (О7)",
-  "updated": "2026-10-29",
+  "description": "Источники и статусы datasets для обсуждаемого пилота; candidate ≠ выбранный набор",
+  "updated": "2026-11-05",
+  "selection_status": "PENDING_FEASIBILITY_AND_SUPERVISOR",
   "datasets": {
+    "hotpotqa": {
+      "role": "candidate_primary",
+      "source": "official_dataset",
+      "name": "HotpotQA distractor setting",
+      "url": "https://hotpotqa.github.io/",
+      "related_work": ["NGM-RAG"],
+      "license": "VERIFY_FROM_OFFICIAL_SOURCE",
+      "access_date": null,
+      "version": null,
+      "checksums": "NOT_DOWNLOADED",
+      "splits": {},
+      "notes": "Проверить 500-question protocol from NGM-RAG, supporting facts, доступность paragraphs и оценить стоимость построения query/target graph."
+    },
+    "metaqa": {
+      "role": "candidate_secondary",
+      "source": "SimGRAG_author_repository",
+      "name": "MetaQA",
+      "url": "https://github.com/YZ-Cai/SimGRAG",
+      "related_work": ["SimGRAG"],
+      "license": "VERIFY_DATASET_TERMS",
+      "access_date": null,
+      "version": null,
+      "checksums": "NOT_DOWNLOADED",
+      "splits": {},
+      "notes": "SimGRAG README содержит команду запуска. Проверить исходные файлы/splits/KG и не использовать gold answer path для создания query graph."
+    },
     "gtsqa": {
-      "role": "primary",
+      "role": "legacy_candidate_not_selected",
       "source": "huggingface",
       "name": "Graphcore/GTSQA",
       "config": "gtsqa-with-graphs",
@@ -12,47 +39,17 @@
       "access_date": null,
       "commit": null,
       "checksums": "NOT_DOWNLOADED",
-      "splits": {
-        "train": {"size": 30477, "file": "gtsqa-with-graphs/train/0000.parquet"},
-        "test":  {"size": 1622,  "file": "gtsqa-with-graphs/test/0000.parquet"}
-      },
-      "derived_splits": {
-        "train-fit": {"size": "~27429", "seed": 42, "index_file": "configs/splits/gtsqa_dev_indices.json"},
-        "train-dev":  {"size": "~3048",  "seed": 42, "index_file": "configs/splits/gtsqa_dev_indices.json"}
-      },
-      "notes": "dev-split создаётся stratified по graph_isomorphism, 90/10, seed=42"
+      "notes": "Есть full search graph и gold answer_subgraph, отдельный query graph не подтверждён. Gold answer_subgraph нельзя подавать matcher-у."
     },
     "factkg": {
-      "role": "secondary",
+      "role": "legacy_candidate_not_selected",
       "source": "github",
       "url": "https://github.com/jiho283/FactKG",
       "commit": null,
-      "license": "CC BY-NC-SA 4.0",
+      "license": "CC BY-NC-SA 4.0 (verify repository terms)",
       "access_date": null,
       "checksums": "NOT_DOWNLOADED",
-      "splits": {
-        "train": {"size": 86939, "file": "data/factkg_train.json"},
-        "dev":   {"size": 10867, "file": "data/factkg_dev.json"},
-        "test":  {"size": 10868, "file": "data/factkg_test.json", "note": "В тесте нет поля graph; в пилоте не используется"}
-      },
-      "notes": "Академическое использование допустимо; не публиковать производные данные коммерчески"
-    },
-    "re_docred": {
-      "role": "reserve",
-      "source": "github",
-      "url": "https://github.com/tonytan48/Re-DocRED",
-      "huggingface_url": "https://huggingface.co/datasets/tonytan48/Re-DocRED",
-      "commit": null,
-      "license": "MIT (не подтверждено — проверить LICENSE файл)",
-      "access_date": null,
-      "checksums": "NOT_DOWNLOADED",
-      "blocking_issue": "Лицензия не подтверждена прямым чтением LICENSE файла в репозитории",
-      "splits": {
-        "train": {"size": 3053, "file": "data/re-docred/train_revised.json"},
-        "dev":   {"size": null, "file": "data/re-docred/dev_revised.json"},
-        "test":  {"size": null, "file": "data/re-docred/test_revised.json"}
-      },
-      "notes": "Использовать только после подтверждения лицензии; нужна сборка Wikidata-подграфа по QIDs (2–3 ч)"
+      "notes": "Claim verification benchmark; локальный test gold evidence graph не подтверждён. Не считать автоматическим retrieval benchmark."
     }
   }
 }

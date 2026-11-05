@@ -1,189 +1,75 @@
-# Протокол пилотного эксперимента
+# Протокол пилота: кандидат для проверки
 
-> Создан: 2026-10-29  
-> Контекст: задача О7; входы — [О3](data-requirements.md), [О5](dataset-selection.md), [О6](dataset-feasibility.md).  
-> Статус решения руководителя: **ОЖИДАЕТ РАССМОТРЕНИЯ** — см. §7.
+> Обновлено 05.11.2026. Это конкретный экспериментальный дизайн-кандидат по теме 2.6, а не утверждённая постановка и не описание проведённого запуска. См. benchmark сравнение в [dataset-selection.md](dataset-selection.md).
 
----
+## 1. Вопрос и гипотеза
 
-## 1. Цель пилота
+**Вопрос:** помогает ли частичное soft subgraph matching сохранить качество retrieval при неполном query graph по сравнению с exact matching и SimGRAG GSD?
 
-Проверить, находит ли мягкое структурное сопоставление (soft isomorphism между graph-запросом и KG) правильные подграфы точнее, чем text-only поиск и строгое изоморфное сопоставление.
+**Гипотеза-кандидат:** при controlled edge dropout предложенный matcher с явной ценой пропущенного и лишнего ребра деградирует медленнее VF2; на исходных графах не уступает GSD-подобному методу более заданного порога. Сама новизна не установлена: до заявления проверить NeMa, approximate subgraph matching и graph edit distance.
 
-**Q1** — Когда soft iso превосходит базисы B0 (text-only) и B1 (exact match)?  
-**Q2** — Какой тип структуры делает случай «нетривиальным»?
+## 2. Бенчмарк и выбор данных
 
-Пилот ограничен оценкой качества subgraph retrieval, не downstream-задачами (QA-accuracy, fact-verification F1).
+Предварительный shortlist: **HotpotQA + MetaQA**. HotpotQA совпадает с одной из оценок NGM-RAG; MetaQA — benchmark SimGRAG с командой в авторском README. Реальные файлы ещё не скачаны и выбор требует feasibility/ресурсной проверки.
 
----
+- MetaQA: один и тот же KG snapshot, official split, Hits@1 по gold answers; дополнительно retrieval evidence metrics только если однозначно определён gold evidence.
+- HotpotQA: official distractor setting, фиксированный question subset и paragraphs; answer EM/F1 + supporting-fact precision/recall/F1. NGM-RAG сравним только при воспроизведении полного pipeline на тех же 500 вопросах и контексте.
+- GTSQA answer_subgraph нельзя подавать как query graph. GTSQA остаётся пригодным только для текстового KGQA baseline или отдельного controlled corruption эксперимента, где это ограничение явно указано.
 
-## 2. Данные
+После получения данных зафиксировать URL, license, version/commit, split, checksum, IDs subset и исключения в manifest. До этого статистические размеры/метрики считаются сведениями источников, не локально проверенными фактами.
 
-### 2.1 Основной датасет — GTSQA
-
-| Параметр | Значение |
-|----------|----------|
-| Источник | HuggingFace `Graphcore/GTSQA`, конфигурация `gtsqa-with-graphs` |
-| Лицензия | CC-BY-4.0 (подтверждена, §2 в [dataset-feasibility.md](dataset-feasibility.md)) |
-| Версия | не скачан; привязать по дате первой загрузки (см. data-manifest.json) |
-| Единица оценки | answer-subgraph: граф из троек `{head_qid, rel_pid, tail_qid}` |
-| Эталон | поле `graph` из `gtsqa-with-graphs` — фиксированный answer-subgraph |
-
-**Разбиение:**
-
-| Split | Размер | Роль |
-|-------|--------|------|
-| `train` (оригинальный) | 30 477 | Обучение / настройка |
-| `train-dev` (выделить из train) | ~3 048 (10%) | Настройка гиперпараметров |
-| `train-fit` | ~27 429 (90%) | Обучение |
-| `test` | 1 622 | Независимая оценка |
-
-**Процедура создания dev-split:**
-- Stratified split по полю `graph_isomorphism` (27 типов), 90/10
-- `random_state = 42`
-- Сохранить индексы в `configs/splits/gtsqa_dev_indices.json`
-- Примеры, просмотренные при отладке и настройке, не выдавать за независимый тест
-
-**Объём пилота:**
-- Оценка на всём `test` (1 622 примера)
-- При нехватке ресурсов — стратифицированная выборка 500 примеров из `test` по `graph_isomorphism`, seed=42
-
-### 2.2 Дополнительный датасет — FactKG
-
-| Параметр | Значение |
-|----------|----------|
-| Источник | GitHub `jiho283/FactKG` |
-| Лицензия | CC BY-NC-SA 4.0 (академическое использование допустимо) |
-| Версия | не скачан; привязать по SHA коммита при клонировании |
-| Единица оценки | claim → KG-подграф (тройки из поля `graph`) |
-| Эталон | поле `graph` из train/dev-файлов; test-сет не использовать в пилоте (нет subgraph) |
-
-**Роль дополнительного датасета:** проверка Q2 — разбивка результатов по 5 типам reasoning (One-hop, Conjunction, Existence, Multi-hop, Negation). GTSQA не поддерживает типизированный reasoning; FactKG позволяет изолировать вклад структуры.
-
-**Разбиение:**
-
-| Split | Размер | Роль |
-|-------|--------|------|
-| `train` | ~86 939 | Обучение |
-| `dev` | ~10 867 | Оценка (primary evaluation split) |
-| `test` | ~10 868 | Не использовать в пилоте |
-
-**Объём пилота:** оценка на всём `dev` (~10 867 примеров); при нехватке — стратифицированная выборка 500 примеров по `type`, seed=42.
-
----
-
-## 3. Метрики
-
-### 3.1 Основные метрики (Q1 — subgraph retrieval)
-
-| Метрика | Описание | Применяется к |
-|---------|----------|---------------|
-| **Edge Precision@k** | Доля правильных рёбер среди всех рёбер в top-k retrieved подграфах | GTSQA test, FactKG dev |
-| **Edge Recall@k** | Доля правильных рёбер эталона, покрытых top-k | GTSQA test, FactKG dev |
-| **MRR** | Mean Reciprocal Rank — ранг первого правильного подграфа | GTSQA test |
-| **Hits@k** (k=1,3,10) | Доля примеров, где правильный подграф входит в top-k | GTSQA test |
-
-Значение `k` фиксируется до запуска эксперимента: `k ∈ {1, 3, 5, 10}`.
-
-### 3.2 Метрики по категориям (Q2)
-
-| Метрика | Описание |
-|---------|----------|
-| **Precision@1 по `graph_isomorphism`** | Разбивка по 27 типам структур (GTSQA) |
-| **Precision@1 по `type`** | Разбивка по 5 типам reasoning (FactKG) |
-| **Precision@1 по `n_hops`** | Разбивка по глубине (1–5 hops, GTSQA) |
-
-### 3.3 Метрика субграфного совпадения
-
-Для подграфа считаем совпадение на уровне множеств рёбер:
+## 3. Дизайн обработки
 
 ```
-precision = |retrieved_edges ∩ gold_edges| / |retrieved_edges|
-recall    = |retrieved_edges ∩ gold_edges| / |gold_edges|
+question + benchmark context/KG
+       │
+fixed query graph extractor (versioned prompt/model)
+       │
+save Gq; no gold answer/path/evidence in method input
+       ├── original Gq
+       └── edge dropout p ∈ {0, .1, .2, .4}, fixed seeds
+                │
+same candidate pool (top-M text index + bounded KG neighborhoods)
+       ├── B0 BM25
+       ├── B1 VF2 exact match
+       ├── B2 SimGRAG/GSD (MetaQA if compatible)
+       └── proposed partial mapping + edit penalties
+                │
+ranked evidence/answer → evaluator-only gold
 ```
 
-Рёбра сравниваются как тройки `(head_qid, rel_pid, tail_qid)` — без label-нормализации, только по ID.
+1. Query graph строится только из question/context зафиксированным extractor-ом; сохраняются prompt, model version, raw output, parsed graph и ошибки. Никакой gold path/evidence/answer ID не передаётся.
+2. Candidate pool формируется одним зафиксированным entity/relation index; top-M и размер окрестности выбираются на dev. Все graph matchers получают одни кандидаты.
+3. B1 использует exact directed relation labels через VF2; логировать coverage, timeout и пустой результат.
+4. Proposed matcher ищет ограниченное partial injective mapping query nodes → KG nodes. Стоимость:
+   `C = λ_v C_node + λ_r C_relation + λ_m C_missing-edge + λ_x C_extra/incompatible-edge`.
+   Label similarities — lexical/embedding distance; веса и search budget подбирать только на dev. Реализация-кандидат: beam search с фиксированными M/beam width и timeout.
+5. Контролируемое выпадение рёбер создаётся после extraction из сохранённого Gq с заранее заданными seeds и p уровнями. Это stress test, отдельно от end-to-end основной оценки.
 
----
+## 4. Baselines
 
-## 4. Базисные методы
+- **B0 BM25:** ранжировать сериализованные triples/paragraphs; без topology. На MetaQA ответ ранжируется агрегацией score связанных сущностей; на HotpotQA — retrieved paragraphs.
+- **B1 VF2:** строгий match на том же query graph/candidate pool.
+- **B2 SimGRAG:** только совместимый benchmark (первый кандидат MetaQA); авторские результаты с другим extractor/настройками не выдавать за локальный head-to-head.
+- **NGM-RAG:** related work. Прямой baseline только при доступности/воспроизводимости полного graph building, GNN, weights и evaluation; локальная GNN-компонента не равна NGM-RAG.
 
-| Базис | Описание | Где оценивается |
-|-------|----------|----------------|
-| **B0 (text-only)** | Поиск подграфа по схожести сущностей/текста без учёта структуры | GTSQA test, FactKG dev |
-| **B1 (exact match)** | Строгое изоморфное сопоставление; подграф принимается только при полном совпадении | GTSQA test, FactKG dev |
-| **Proposed (soft iso)** | Мягкое структурное сопоставление — основной метод | GTSQA test, FactKG dev |
+## 5. Метрики и отчёт
 
-Все три метода применяются к одному и тому же разбиению; никакой настройки на test-сете.
+**MetaQA:** Hits@1/Hits@k по answer entities, graph-retrieval evidence P/R/F1 при наличии корректного gold; отдельно coverage и latency.
 
----
+**HotpotQA:** answer EM/F1, supporting-fact P/R/F1/Recall, coverage, latency. Все методы используют одинаковые paragraphs, sample IDs и генератор ответа либо сравнение ограничивается retrieval-only.
 
-## 5. Оценка ресурсов
+Отчёт содержит original-query и каждую dropout severity отдельно. Сравнения paired по одним sample IDs; confidence interval — paired bootstrap на test. Параметры замораживаются до test. Не усреднять метрики разных benchmarks в один score.
 
-### 5.1 Адаптация данных
+## 6. Что считается подтверждением/опровержением
 
-| Шаг | Датасет | Оценка |
-|-----|---------|--------|
-| Загрузка + dev-split | GTSQA | < 1 ч |
-| Загрузка + проверка JSON | FactKG | < 1 ч |
-| Проверка LICENSE + клонирование | Re-DocRED (резерв) | < 30 мин |
-| SPARQL для FactKG test subgraph | FactKG (если нужно) | 2–4 ч |
+Поддержка гипотезы требует улучшения retrieval/answer robustness на corruption levels при фиксированном extractor/candidate pool и без недопустимого падения качества на исходных запросах. Если выигрыш пропадает при общей генерации графа либо существует только на synthetic corruption, вывод ограничивается robustness к контролируемой неполноте, а не реальным document-graph retrieval.
 
-**Итого на пилот:** < 2 ч подготовки данных (без SPARQL для test).
+## 7. Открытые решения
 
-### 5.2 Вычисления
+1. Подтвердить тему 2.6 или вернуться к исходной теме алгоритмов изоморфизма/обновления.
+2. Подтвердить основной benchmark после feasibility HotpotQA/MetaQA.
+3. Утвердить graph extractor, primary metric, candidate budget и baseline scope.
+4. До решения не переименовывать текущие адаптеры в реализацию этого эксперимента и не заявлять результаты.
 
-| Параметр | Оценка |
-|----------|--------|
-| GPU | Не требуется для B0/B1; soft iso — уточнить по реализации |
-| VRAM | ≤ 24 GB (если используется LLM-энкодер) |
-| Хранилище | GTSQA ~50 MB (parquet); FactKG ~200 MB (JSON) |
-| Время прогона | < 4 ч на пилотную выборку (500 примеров) на CPU |
-
-### 5.3 Модели
-
-- Энкодеры: только открытые (HuggingFace); GPT-4+ не используется как обязательный компонент
-- KG-снимки: ogbl-wikikg2 (Wikidata 2015) для GTSQA; DBpedia 2015 для FactKG — не обновлять в пилоте
-
----
-
-## 6. Непроверяемые гипотезы в пилоте
-
-| Гипотеза | Почему не покрыта |
-|----------|------------------|
-| H1–H3 из семестрового roadmap | Требуют полной реализации + многомодального сравнения; не пилот |
-| Downstream fact-verification F1 | Пилот ограничен subgraph retrieval; Re-DocRED нужен для RE-задачи |
-| Обобщаемость на актуальный Wikidata | GTSQA и FactKG — снимки 2015 года |
-| Статистически значимые выводы о производительности | Пилот — диагностический, не финальная оценка |
-| Сравнение с SOTA на GTSQA | Hits@1 для GFM-RAG не раскрыт в публикации; пока нет точного числа |
-
----
-
-## 7. Решение руководителя
-
-> **Статус: ОЖИДАЕТ РАССМОТРЕНИЯ**
-
-Настоящий протокол и обоснование выбора данных направляются руководителю (Анатолий Першинов) вместе с предложениями новизны [О9](https://github.com/OlegYurchik/soft-isomorphism/issues/9) для совместного рассмотрения.
-
-**Рекомендация:**
-- Основной датасет: **GTSQA** (CC-BY-4.0, ground-truth subgraph в test, < 1 ч адаптации)
-- Дополнительный: **FactKG** train/dev (типизированный reasoning для Q2)
-- Резерв: **Re-DocRED** — использовать после подтверждения лицензии (LICENSE файл)
-
-**Блокер для начала реализации:** протокол и выбор данных не считаются утверждёнными до получения ответа руководителя. Реализация на неподходящих данных не начинается.
-
-| | |
-|---|---|
-| Дата направления руководителю | 2026-10-29 |
-| Ответ руководителя | — |
-| Итоговое решение | — |
-
----
-
-## 8. Резервный вариант
-
-Если GTSQA окажется непригодным (например, синтетическая природа делает результаты неинтерпретируемыми):
-
-1. **FactKG train/dev** — перейти на основной датасет; скорректировать метрики под claim-verification
-2. **Re-DocRED** — использовать после подтверждения лицензии; 2–3 ч дополнительной адаптации
-3. **Изменение постановки** — если ни один датасет не подходит, подготовить обоснованный отчёт с предложением пересмотра research questions (не начинать реализацию)
+На 05.11.2026 запусков на полных датасетах нет; текущие fixtures не заменяют загрузку и аудит benchmark.
