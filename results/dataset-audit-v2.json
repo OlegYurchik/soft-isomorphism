@@ -1,0 +1,80 @@
+{
+  "version": "e1-v2",
+  "topic": "document graph to knowledge graph soft matching",
+  "selected": [
+    "FactKG",
+    "HotpotQA distractor"
+  ],
+  "factkg": {
+    "train": {
+      "rows": 86367,
+      "sha256": "41af6c4d21a76eb00f763c326770cbcbfa7021a23deeabd86f47c8df6a6e82c6",
+      "fields": [
+        "Entity_set",
+        "Evidence",
+        "Label",
+        "types"
+      ]
+    },
+    "dev": {
+      "rows": 13266,
+      "sha256": "eaf611ee9694030b1a7a312aa8d28b5ea60a5f81cae8c1c900b0616ada831670",
+      "fields": [
+        "Entity_set",
+        "Evidence",
+        "Label",
+        "types"
+      ]
+    },
+    "test": {
+      "rows": 9041,
+      "sha256": "9cecb4e5d0438f8abaf1f44402b18223a13d20f116a52f288391aa9a6cbd84a4",
+      "fields": [
+        "Entity_set",
+        "Label",
+        "types"
+      ]
+    }
+  },
+  "hotpotqa": {
+    "rows": 7405,
+    "sha256": "c20b638ca82b21d04fe12e14ff417ad05153d4d215a65de54497fca4e972f7c6",
+    "source": "https://huggingface.co/datasets/hotpotqa/hotpot_qa/resolve/main/distractor/validation-00000-of-00001.parquet",
+    "download_date": "2026-11-05"
+  },
+  "redocred_audit": {
+    "rows": 500,
+    "sha256": "051ee1d057204a5d08ef5502beacdadf191245b5eaf0e29ec2c607cf002c016f",
+    "entity_qid_field_present": false
+  },
+  "pending_artifacts": [
+    "dbpedia_2015_undirected_light.pickle",
+    "Qwen/Qwen2.5-7B-Instruct pinned weights and runtime"
+  ],
+  "parameters": {
+    "node_candidates": 5,
+    "variable_candidates": 20,
+    "radius": 2,
+    "fanout": 30,
+    "candidate_edges": 2000,
+    "beam": 64,
+    "max_expansions": 50000,
+    "mappings": 10,
+    "evidence_edges": 20,
+    "node_weight": 0.3,
+    "edge_weight": 0.7,
+    "noise": [
+      0,
+      0.1,
+      0.25,
+      0.5
+    ],
+    "seeds": [
+      17,
+      42,
+      73
+    ],
+    "bootstrap_iterations": 2000,
+    "bootstrap_seed": 42
+  }
+}
