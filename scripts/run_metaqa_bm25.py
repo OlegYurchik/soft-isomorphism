@@ -93,7 +93,7 @@ def main() -> None:
                 "question": example.question,
                 "gold_answers": sorted(example.answers),
                 "predicted_answers": [entity for entity, _ in ranked[:10]],
-                "evidence_fact_indices": evidence[:args.fact_limit],
+                "evidence_fact_indices": evidence[:20],
             }
         )
 

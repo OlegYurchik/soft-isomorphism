@@ -43,8 +43,16 @@ class BM25Index:
         self.avgdl = sum(self.lengths) / len(self.lengths) if self.lengths else 0.0
         self.term_freqs = [Counter(document) for document in self.tokens]
         doc_freqs: Counter[str] = Counter()
-        for terms in self.term_freqs:
-            doc_freqs.update(terms.keys())
+        postings: defaultdict[str, list[tuple[int, int]]] = defaultdict(list)
+        for doc_index, term_freq in enumerate(self.term_freqs):
+            doc_freqs.update(term_freq.keys())
+            for term, frequency in term_freq.items():
+                postings[term].append((doc_index, frequency))
+        self.postings = dict(postings)
+        self.norms = [
+            self.k1 * (1 - self.b + length / self.avgdl) if self.avgdl else 0.0
+            for length in self.lengths
+        ]
         self.idf = {
             term: math.log(1 + (len(self.tokens) - frequency + 0.5) / (frequency + 0.5))
             for term, frequency in doc_freqs.items()
@@ -59,23 +67,17 @@ class BM25Index:
             return []
 
         query_counts = Counter(query_terms)
-        scores: list[tuple[int, float]] = []
-        for index, term_freq in enumerate(self.term_freqs):
-            doc_len = self.lengths[index]
-            norm = self.k1 * (1 - self.b + self.b * doc_len / self.avgdl)
-            score = 0.0
-            for term, qtf in query_counts.items():
-                tf = term_freq.get(term, 0)
-                if tf:
-                    score += (
-                        self.idf.get(term, 0.0)
-                        * (tf * (self.k1 + 1) / (tf + norm))
-                        * min(qtf, 2)
-                    )
-            if score > 0:
-                scores.append((index, score))
-        scores.sort(key=lambda item: (-item[1], item[0]))
-        return scores[:limit]
+        scores: defaultdict[int, float] = defaultdict(float)
+        for term, qtf in query_counts.items():
+            idf = self.idf.get(term)
+            if idf is None:
+                continue
+            query_weight = min(qtf, 2)
+            for index, tf in self.postings.get(term, []):
+                norm = self.norms[index]
+                scores[index] += idf * (tf * (self.k1 + 1) / (tf + norm)) * query_weight
+        ranked = sorted(scores.items(), key=lambda item: (-item[1], item[0]))
+        return ranked[:limit]
 
 
 @dataclass(frozen=True)
