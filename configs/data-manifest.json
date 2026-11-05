@@ -1,33 +1,37 @@
 {
   "description": "Источники и статусы datasets для обсуждаемого пилота; candidate ≠ выбранный набор",
   "updated": "2026-11-05",
-  "selection_status": "PENDING_FEASIBILITY_AND_SUPERVISOR",
+  "selection_status": "WORKING_CHOICE_PENDING_LOCAL_FILE_AUDIT",
   "datasets": {
     "hotpotqa": {
-      "role": "candidate_primary",
+      "role": "primary_working_benchmark",
       "source": "official_dataset",
       "name": "HotpotQA distractor setting",
       "url": "https://hotpotqa.github.io/",
-      "related_work": ["NGM-RAG"],
-      "license": "VERIFY_FROM_OFFICIAL_SOURCE",
+      "related_work": [
+        "NGM-RAG"
+      ],
+      "license": "CC BY-SA 4.0 (official repository)",
       "access_date": null,
       "version": null,
       "checksums": "NOT_DOWNLOADED",
       "splits": {},
-      "notes": "Проверить 500-question protocol from NGM-RAG, supporting facts, доступность paragraphs и оценить стоимость построения query/target graph."
+      "notes": "Рабочий основной benchmark по рекомендации руководителя и пересечению с NGM-RAG. Текстовый multi-hop QA; не содержит prebuilt KG. Graph retrieval зависит от отдельной feasibility candidate graph construction. Точные subset/split IDs пока не закреплены."
     },
     "metaqa": {
-      "role": "candidate_secondary",
+      "role": "secondary_working_benchmark",
       "source": "SimGRAG_author_repository",
       "name": "MetaQA",
       "url": "https://github.com/YZ-Cai/SimGRAG",
-      "related_work": ["SimGRAG"],
-      "license": "VERIFY_DATASET_TERMS",
+      "related_work": [
+        "SimGRAG"
+      ],
+      "license": "CC BY 3.0 (official LICENSE.txt); verify upstream MovieQA/WikiMovies terms",
       "access_date": null,
       "version": null,
       "checksums": "NOT_DOWNLOADED",
       "splits": {},
-      "notes": "SimGRAG README содержит команду запуска. Проверить исходные файлы/splits/KG и не использовать gold answer path для создания query graph."
+      "notes": "Рабочий второй benchmark: SimGRAG содержит run commands; официальный README даёт movie KG, 1/2/3-hop vanilla QA split. Первичный B0 реализован в PR #31; query graph отсутствует и не извлекать из gold path."
     },
     "gtsqa": {
       "role": "legacy_candidate_not_selected",

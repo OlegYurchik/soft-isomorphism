@@ -24,11 +24,15 @@
 | **GTSQA** | KGQA | Вопрос + full search graph + gold answer_subgraph | QA/retrieval score по gold | Подграфовый gold удобен для evaluator | Отдельный независимый query graph отсутствует; нельзя подавать answer_subgraph как query |
 | **PQ / WC2014** | SimGRAG | KGQA и KG | Hits@1 | Два дополнительных benchmark SimGRAG | README авторского кода не документирует команды; адаптацию оценить после проверки данных |
 
-## Предварительная рекомендация
+## Рабочий выбор после обсуждения 05.11.2026
 
-Подготовить feasibility **HotpotQA + MetaQA**: первый даёт пересечение по benchmark с NGM-RAG и закрывает вопрос руководителя, второй — прямой кандидат для запуска SimGRAG. Это shortlist для проверки, не утверждённый выбор и не обещание head-to-head с NGM-RAG. Сначала проверить официальный файлы/splits/license, sample schema, объём графостроения, API/GPU/runtime. Если ресурсов хватает только на один benchmark, выбрать MetaQA для быстрого controlled matcher comparison; HotpotQA оставить для последующего NGM-compatible track.
+Пользователь подтвердил тему 2.6: мягкое сопоставление графа документа с графом знаний. Рабочий выбор для дальнейшей feasibility — **HotpotQA (основной по рекомендации руководителя) + MetaQA (второй, с готовым KG и SimGRAG-run commands)**. Это не обещание прямого сравнения с NGM-RAG: его полный код/пipeline не найден.
 
-Финальный выбор должен совместно учитывать постановку руководителя. Если тема возвращается к общим алгоритмам изоморфизма/обновления графа, эта benchmark пара может быть неадекватной.
+Роли различаются:
+- **HotpotQA** пересекается по benchmark с NGM-RAG и имеет supporting-fact gold, но это корпус paragraphs, не готовый KG. Для graph retrieval ещё требуется определить и зафиксировать построение candidate graph/KG; если это не удастся, HotpotQA останется отдельным BM25 QA/retrieval benchmark, не доказательством graph-to-KG matching.
+- **MetaQA** даёт явный movie KG и QA splits, удобен для первого BM25 baseline и проверки matcher-ов на KGQA. Он принимает текстовый вопрос, а не готовый document graph; query graph надо строить из вопроса без gold path.
+
+Первым реализуется B0 на MetaQA, затем проводится оценка затрат HotpotQA graph construction. На обоих наборах результаты и метрики отчётно разделять. Перед полноценным запуском проверить pinned files/splits, license, hashes и 10–20 реальных примеров; локальные данные пока не скачаны.
 
 ## Что уже есть локально
 

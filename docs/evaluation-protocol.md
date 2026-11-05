@@ -65,11 +65,12 @@ ranked evidence/answer → evaluator-only gold
 
 Поддержка гипотезы требует улучшения retrieval/answer robustness на corruption levels при фиксированном extractor/candidate pool и без недопустимого падения качества на исходных запросах. Если выигрыш пропадает при общей генерации графа либо существует только на synthetic corruption, вывод ограничивается robustness к контролируемой неполноте, а не реальным document-graph retrieval.
 
-## 7. Открытые решения
+## 7. Зафиксированное направление и оставшиеся решения
 
-1. Подтвердить тему 2.6 или вернуться к исходной теме алгоритмов изоморфизма/обновления.
-2. Подтвердить основной benchmark после feasibility HotpotQA/MetaQA.
-3. Утвердить graph extractor, primary metric, candidate budget и baseline scope.
-4. До решения не переименовывать текущие адаптеры в реализацию этого эксперимента и не заявлять результаты.
+Пользователь подтвердил тему 2.6: мягкое сопоставление графа документа с графом знаний. Возврат к исходной теме не является текущим планом.
+
+Рабочий benchmark pair — HotpotQA + MetaQA. MetaQA используется первым для baseline на готовом KG. HotpotQA включается в graph-matching эксперимент только после явного определения источника candidate graph; NGM-RAG остаётся related work, пока не воспроизведён полный pipeline.
+
+Остаётся определить: (1) graph extractor и его prompt/model/version; (2) candidate graph construction и ограничения поиска; (3) primary metric для каждого набора; (4) common candidate pool и бюджет поиска; (5) доступность файлов и pinned versions. До этих решений не заявлять результаты и не называть текстовый baseline графовым matcher-ом.
 
 На 05.11.2026 запусков на полных датасетах нет; текущие fixtures не заменяют загрузку и аудит benchmark.
