@@ -1,0 +1,36 @@
+{
+  "method": "B0-claim-bm25-knn-v1",
+  "script_sha256": "6d00cf9c17d15f4d96d6b51c25dfe683bf2a8cd4fc64543ac38eea26b0c3945d",
+  "python": "3.13.13",
+  "split": "dev",
+  "selection": "first N by SHA256(UTF-8 claim); no filtering by label/types",
+  "train_n": 86367,
+  "exact_overlap": 1,
+  "parameters": {
+    "k1": 1.5,
+    "b": 0.75,
+    "neighbors": 5,
+    "voting": "unweighted"
+  },
+  "hashes": {
+    "factkg_train.pickle": "41af6c4d21a76eb00f763c326770cbcbfa7021a23deeabd86f47c8df6a6e82c6",
+    "factkg_dev.pickle": "eaf611ee9694030b1a7a312aa8d28b5ea60a5f81cae8c1c900b0616ada831670"
+  },
+  "metrics": {
+    "n": 13266,
+    "accuracy": 0.5527664706769184,
+    "macro_f1": 0.5526489686449793
+  },
+  "nonoverlap_metrics": {
+    "n": 13265,
+    "accuracy": 0.5527327553712778,
+    "macro_f1": 0.5526163177893725
+  },
+  "majority_metrics": {
+    "n": 13266,
+    "accuracy": 0.5156037991858887,
+    "macro_f1": 0.3401969561324978
+  },
+  "mean_retrieval_seconds": 0.007560531315006046,
+  "elapsed_seconds": 104.78614207200008
+}
