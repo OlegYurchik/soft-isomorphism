@@ -55,13 +55,15 @@ Parquet-файлы по пути `gtsqa-with-graphs/{train,test}/0000.parquet`.
 | `id` | str/int | `Example.id` |
 | `question` | str | `Example.text` |
 | `answer` | str | `Example.metadata["answer"]` |
-| `graph` | list или dict | `Example.gold_edges` (парсится адаптером) |
+| `graph` | candidate KG subgraph around seed entities (up to 30k edges) | Не gold; пока не загружается как `Example.gold_edges` |
+| `full_answer_subgraph_wikikg2` | list of supporting triples | `Example.gold_edges` (evaluator only) |
+| `all_answers_wikikg2` | list of answer IDs | `Example.metadata["answers"]` (evaluator only) |
 | `graph_isomorphism` | str | `Example.metadata["graph_isomorphism"]` |
 | `n_hops` | int | `Example.metadata["n_hops"]` |
 
-### 2.2 Форматы поля `graph`
+### 2.2 Gold field and query-graph limitation
 
-Адаптер поддерживает два формата (точный формат уточняется при первой загрузке):
+Для retrieval в `gtsqa-with-graphs` нужно различать поля: `graph` — candidate/search graph, а gold — `full_answer_subgraph_wikikg2`. Не использовать candidate graph как query pattern и не передавать gold на вход метода. Query graph из вопроса датасет не предоставляет; его построение — отдельная часть эксперимента. Реальный файл ещё не загружен в этом проекте, поэтому serialisation должна быть подтверждена по закреплённой версии до полного запуска. Парсер gold поддерживает проверяемые list-of-triples/dict-with-edges форматы:
 
 **Format A — список троек:**
 ```json
@@ -96,7 +98,7 @@ examples = load_gtsqa("data/gtsqa", Split.TEST)
 ex = examples[0]
 # ex.id       -> "gtsqa-0001"
 # ex.text     -> "What is the capital of France?"
-# ex.gold_edges -> [Edge(head_id="Q142", rel_id="P36", tail_id="Q90")]
+# ex.gold_edges -> [Edge(head_id="Q142", rel_id="P36", tail_id="Q90")]  # from full_answer_subgraph_wikikg2; evaluator only
 # ex.metadata -> {"answer": "Paris", "graph_isomorphism": "single-hop", "n_hops": 1}
 ```
 
@@ -172,7 +174,13 @@ git clone https://github.com/jiho283/FactKG data/factkg
 
 ---
 
-## 5. Связь с манифестом
+## 5. Ограничения готовности к эксперименту
+
+Текущая схема адаптирует gold facts, но не выдаёт независимый query graph и не формирует общую candidate pool. Следовательно, успешный импорт не означает готовность к experiment design из О7. Пока benchmark не выбран и реальные файлы не закреплены, адаптеры GTSQA/FactKG — технический прототип, а не подтверждение пригодности данных.
+
+---
+
+## 6. Связь с манифестом
 
 `configs/data-manifest.json` описывает ожидаемые пути и размеры. Адаптер читает файлы по этим путям, но **не читает манифест напрямую** — маппинг путей захардкожен и проверен относительно манифеста вручную.
 

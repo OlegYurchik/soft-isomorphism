@@ -23,7 +23,7 @@ from .schema import Edge, Example, Source, Split
 
 logger = logging.getLogger(__name__)
 
-# GTSQA graph field formats observed in the wild (updated on first real download)
+# GTSQA gold-subgraph field formats (verify against pinned downloaded revision)
 _GTSQA_GRAPH_FORMATS = ("edge_list", "dict_nodes_edges", "list_of_triples")
 
 
@@ -71,7 +71,7 @@ def load_gtsqa(data_dir: str | Path, split: Split) -> list[Example]:
             continue
         example_id = str(row.get("id", f"gtsqa-{split.value}-{i}"))
         try:
-            gold_edges = _parse_gtsqa_graph(row["graph"], example_id)
+            gold_edges = _parse_gtsqa_graph(row["full_answer_subgraph_wikikg2"], example_id)
         except (KeyError, TypeError, ValueError) as exc:
             logger.warning("Skipping GTSQA example %s: %s", example_id, exc)
             skipped += 1
@@ -193,8 +193,9 @@ def _gtsqa_split_indices(data_dir: Path, split: Split) -> set[int]:
 def _parse_gtsqa_graph(graph_field: object, example_id: str) -> list[Edge]:
     """Parse GTSQA graph field into a list of Edge.
 
-    GTSQA 'gtsqa-with-graphs' stores answer-subgraphs as Wikidata triples.
-    The exact serialisation format is confirmed on first real download;
+    In 'gtsqa-with-graphs', 'graph' is the candidate search graph (up to 30k edges),
+    not the gold. Gold is 'full_answer_subgraph_wikikg2'. Do not substitute 'graph'
+    or 'answer_subgraph' for this field; verify the downloaded schema before use.
     this function handles the two most likely formats.
 
     Format A — list of triples: [[head_qid, rel_pid, tail_qid], ...]
@@ -235,7 +236,7 @@ def _parse_gtsqa_graph(graph_field: object, example_id: str) -> list[Edge]:
 
     raise ValueError(
         f"Unknown GTSQA graph format in {example_id!r}: {type(graph_field).__name__}. "
-        "Expected list-of-triples or dict-with-edges. "
+        "Expected gold full_answer_subgraph_wikikg2 as list-of-triples or dict-with-edges. "
         "Update _parse_gtsqa_graph once the real format is confirmed."
     )
 
