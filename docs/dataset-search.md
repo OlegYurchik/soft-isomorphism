@@ -7,6 +7,8 @@
 
 ## 1. Журнал поиска
 
+> **Дополнение 05.11.2026:** по замечанию руководителя добавлены бенчмарки, пересекающиеся с SimGRAG/NGM-RAG. Указание «используется в статье» не означает, что у нас есть локальный запуск или скачанные файлы.
+
 | # | Запрос | Площадка | Результат |
 |---|--------|----------|-----------|
 | 1 | `knowledge graph fact verification benchmark dataset 2025 arXiv` | WebSearch (extended) | FactNet-Bench, KGQAGen-10k, ClaimPKG |
@@ -17,6 +19,8 @@
 | 6 | `FactNet billion-scale knowledge graph multilingual factual grounding benchmark arXiv 2602.03417` | WebSearch | FactNet-Bench (полное описание) |
 | 7 | `OpenEA DBP2.0 entity alignment knowledge graph dataset paper arXiv` | WebSearch | OpenEA/DBP2.0 — задача entity alignment, не наша |
 | 8 | `MuSiQue multistep question answering dataset reasoning 2022 arXiv` | WebSearch | MuSiQue — нет KG-backing, исключён |
+| 9 | `NGM-RAG benchmark HotpotQA datasets graph matching` | Статья NGM-RAG / official benchmark | HotpotQA и MultiHop-RAG (по 500 вопросов), UltraDomain; HotpotQA — потенциальное пересечение с NGM-RAG, код метода не найден |
+| 10 | `SimGRAG benchmark MetaQA PathQuestions WC2014 FactKG code` | SimGRAG paper / README | MetaQA, PQ, WC2014, FactKG; README документирует запуск MetaQA и FactKG |
 
 ---
 
@@ -85,6 +89,17 @@
 
 ---
 
+#### HotpotQA
+- **Публикация/данные:** https://hotpotqa.github.io/ (проверить official release и лицензию перед загрузкой).
+- **Задача:** multi-hop QA по Wikipedia paragraphs с supporting-fact annotations.
+- **Связь с аналогами:** NGM-RAG сообщает эксперимент на 500 вопросах HotpotQA; это benchmark overlap, но не означает доступность его кода.
+- **Что проверять:** exact subset/split, supporting facts, corpus version, стоимость построения graph.
+
+#### MetaQA
+- **Задача:** multi-hop KGQA по movie knowledge graph.
+- **Связь с аналогами:** SimGRAG benchmark; команда запуска описана в официальном README https://github.com/YZ-Cai/SimGRAG.
+- **Что проверять:** источник/версия KG, splits, license и генерацию query graph только из вопроса.
+
 ### 2.2 Исключённые кандидаты
 
 | Датасет | Причина исключения |
@@ -100,7 +115,7 @@
 
 ## 3. Итоговый список для О5
 
-6 кандидатов передаются в [О5](https://github.com/OlegYurchik/soft-isomorphism/issues/5) для сравнительной таблицы:
+8 кандидатов передаются в [О5](https://github.com/OlegYurchik/soft-isomorphism/issues/5) для сравнительной таблицы:
 
 | Приоритет | Датасет | Год | KG | Тип задачи | Почему интересен |
 |-----------|---------|-----|----|------------|-----------------|
@@ -109,4 +124,6 @@
 | ★★ | **KGQAGen-10k** | NeurIPS 2025 | Wikidata | KGQA (verified) | Свежий, сложный, symbolic verification |
 | ★★ | **Re-DocRED** | EMNLP 2022 | Wikidata | Relation extraction | Реальные документы → тройки → KG; document graph строится напрямую |
 | ★★ | **FactNet-MFC** | arXiv 2026 | Wikidata | Fact checking (multilingual) | Свежайший; нужно проверить размер MFC-подмножества |
-| ★ | **2WikiMultiHopQA** | COLING 2020 | Wikidata | Multi-hop QA | Стандартный бенчмарк; reasoning paths = document graph proxy |
+| ★ | **2WikiMultiHopQA** | COLING 2020 | Wikidata | Multi-hop QA | Reasoning-path dataset, но не benchmark NGM-RAG по проверенной статье |
+| ★★★ | **HotpotQA** | EMNLP 2018 | Wikipedia passages | Multi-hop QA | Benchmark использует NGM-RAG; needs corpus/query graph construction |
+| ★★★ | **MetaQA** | 2019 | Movie KG | KGQA | Benchmark SimGRAG; авторский README содержит запуск |
