@@ -1,32 +1,18 @@
-# Методы сравнения (бейзлайны)
+# Методы первого эксперимента: единые имена
 
-> Пересмотрено 05.11.2026 по замечаниям руководителя. Это план-кандидат для О9, не отчёт запусков. Выбор benchmark и научного вопроса пока открыт.
-
-## Сводка
-
-| ID | Метод | Что контролирует | Условия |
+| ID | Метод | Выход | Роль |
 |---|---|---|---|
-| B0 | BM25 по текстовым фактам/абзацам | Поиск без топологии | Обязателен на том же sample и corpus |
-| B1 | VF2 exact subgraph match | Эффект строгих структурных ограничений | Только если query graph строится независимо от gold; тот же candidate pool |
-| B2 | SimGRAG / GSD | Мягкий graph-pattern retrieval аналог | Кандидат на MetaQA или FactKG; проверить совместимость кода/условий |
-| R1 | NGM-RAG | Связанная работа по neural graph matching | Не выбранный baseline: нужны HotpotQA/MultiHop-RAG и полный воспроизводимый pipeline |
+| B0 | Claim-only BM25 top-5 train neighbors + majority vote | FactKG verdict | Быстрый supervised контроль; реализован и запущен |
+| B1 | BM25 candidate KG triples, budget 20 | Evidence → общий reader → verdict | Контроль без структурного score |
+| B2 | Hard topology + lexical label cost, bounded search | Evidence → общий reader → verdict | Контроль полного структурного соответствия; **не** SimGRAG и **не** авторская реализация VF2 |
+| B3 | Soft constraints, одинаковые веса рёбер | Evidence → общий reader → verdict | Главный научный контроль |
+| E1 | Тот же B3, веса по agreement трёх extractor prompts | Evidence → общий reader → verdict | Проверяемая гипотеза |
 
-## B0 — BM25
+Все B1/B2/B3/E1 получают одинаковые Q, KG и candidate pool. Primary metric — Accuracy;
+macro-F1, coverage, time вторичны. Для B0 используются train labels; различие supervision
+от graph arms явно указывается. Выигрыш E1 над B0 не является доказательством новизны.
+SimGRAG — референс на FactKG, отдельное system reproduction пока не выполнено.
+NGM-RAG — related work, общего HotpotQA недостаточно для paper-score сравнения.
 
-Индексировать каждую тройку KG как `head label — relation label — tail label` (или абзацы HotpotQA отдельным вариантом). Для каждого вопроса ранжировать факты по BM25, агрегировать их score для ответа/evidence. Фиксировать tokenizer, top-k, tie-breaking и corpus snapshot. Считать benchmark-native метрики; для HotpotQA — answer EM/F1 и supporting-fact recall, для MetaQA — Hits@1. Не использовать gold path/evidence как query.
-
-## B1 — VF2
-
-Строить directed labeled query graph из тех же независимо полученных query patterns, которые доступны proposed matcher. Ограничивать поиск тем же candidate pool и лимитом времени/кандидатов; записывать coverage и timeout. VF2 не является «верхней границей precision» гарантированно: report фактические precision/recall и долю запросов без exact match. NetworkX VF2 применим как простой прототип на ограниченном pool.
-
-## B2 — SimGRAG
-
-SimGRAG не запускался. Авторский README документирует команды MetaQA и FactKG; опубликованная конфигурация использует Llama 3 70B/Ollama, Nomic embeddings и Milvus. Замена extractor/backbone или candidate KG — адаптация, а не точное воспроизведение статьи. Сначала проверить время установки и совместимость данных; сравнение только при общих split, candidate KG, query patterns и evaluator.
-
-## NGM-RAG
-
-NGM-RAG статья использует HotpotQA, MultiHop-RAG (по 500 вопросов) и UltraDomain. Официальная ссылка на код не найдена при проверке 05.11.2026. В статье query/target graphs строятся из текста, затем используются Levenshtein, BM25, BGE и LightGCN/GINE representations с weighted scoring. Не включать как реализуемый baseline, пока не подтверждён код/полное описание и бюджет. Можно цитировать как related work и как мотиватор общего benchmark HotpotQA.
-
-## Сравнимость
-
-Результаты должны использовать одну и ту же выборку, corpus/KG snapshot, gold definition, extractor и candidate generator. Если отличается один из этих пунктов, называть это адаптацией или отдельным экспериментом, а не head-to-head. Метрики разных benchmark не агрегировать.
+Алгоритмы и диаграммы: [нормативный протокол](https://github.com/OlegYurchik/soft-isomorphism/blob/docs/issue-7-protocol/docs/experiment-design-v2.md).
+Старые обозначения B2=SimGRAG или B2=proposed отменены.

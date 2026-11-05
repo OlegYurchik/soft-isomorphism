@@ -1,36 +1,47 @@
-# Обзор методов: graph retrieval и matching
+# Сравнение методов и границы предполагаемого вклада
 
-> Обновлено после замечаний руководителя 05.11.2026. НИР пока рассматривается в рамках темы 2.6; возможность возврата к прежней теме алгоритмов изоморфизма/обновления графа требует отдельного согласования. Числа ниже — результаты авторов, не наши запуски.
+Направление подтверждено: мягкое сопоставление графа документа с KG. Рабочий первый
+benchmark — FactKG (документ = короткий claim), второй — HotpotQA distractor (QA transfer).
+Длинные документы этим дизайном не покрыты. Таблица ниже фиксирует механизмы, а не наше превосходство.
 
-## Сравнение работ
+| Работа | Вход, выход и механизм | Как учитывает структуру/ошибки | Связь с E1 |
+|---|---|---|---|
+| [SimGRAG, §4.2](https://aclanthology.org/2025.findings-acl.163.pdf) | LLM query→pattern; GSD ранжирует KG-subgraphs; затем QA/verification | GSD определён на изоморфном соответствии, суммирует embedding distances узлов/отношений. В статье structural stage игнорирует направления | Основной референс, общий FactKG. Сравниваем устойчивость при несогласованном extracted pattern. Наш directed hard control B2 не равен авторскому SimGRAG |
+| [NGM-RAG, §§4–5](https://arxiv.org/pdf/2607.11159) | Query/corpus graphs; Levenshtein+BM25+GNN node scores; reader | LightGCN/GINE и взвешивание сигналов, не полный exact isomorphism | Related work и общий HotpotQA. Его 500 distractor questions неизвестны нам по IDs; published EM/F1 не контрольная группа |
+| [NeMa, §§3–6](https://sites.cs.ucsb.edu/~xyan/papers/vldb13_nema.pdf) | Query graph→top-k target matches; labels + neighbourhood cost | Approximate structure, шум labels/edges, heuristic inference | Показывает, что noisy soft matching уже известен. Нельзя объявлять partial matching или corruption experiment новой идеей |
+| [Automatic learning of cost functions for graph edit distance](https://www.sciencedirect.com/science/article/pii/S0020025506000569) | Вероятностная модель graph edits, оценка стоимости через обучение | Стоимость правок не обязана быть фиксированной | Даже адаптивные edit costs сами по себе не новизна. Нужен узкий эксперимент про согласованность document extraction |
+| [Noisy semantic-property graph matching](https://www.pnnl.gov/publications/using-graph-edit-distance-noisy-subgraph-matching-semantic-property-graphs) | Template/submission graphs, стоимость structural/attribute edits | GED используется для оценки noisy subgraph matches | Дополнительный ближайший класс, который отсутствовал в прежнем обзоре |
+| [SubgraphRAG](https://arxiv.org/abs/2410.20724), [GFM-RAG](https://arxiv.org/abs/2502.01113) | Learned retrieval KG evidence для вопросов | Используют структуру; наличие графа не отличает наш метод | Контекст retrieval; не включены в обязательные воспроизведения первого CPU/одна модель эксперимента |
 
-| Работа | Вход и задача | Механизм | Бенчмарки / метрики | Код и применимость |
-|---|---|---|---|---|
-| **SimGRAG** ([ACL 2025](https://aclanthology.org/2025.findings-acl.163.pdf), [код](https://github.com/YZ-Cai/SimGRAG)) | Текстовый запрос → retrieval подграфа KG → ответ/верификация | LLM строит graph pattern; семантический поиск формирует кандидатов; Graph Semantic Distance сравнивает соответствующие узлы и отношения через embeddings с учётом структуры | MetaQA (Hits@1: 98.0/98.4/97.8 для 1/2/3-hop), PathQuestions (88.7/78.6 для 2/3-hop), WC2014 (98.1), FactKG (accuracy 86.8). Дополнительно WebQSP-WD в приложении | Репозиторий содержит команды для MetaQA и FactKG; исходная конфигурация использует Ollama/Llama 3 70B, Nomic embeddings, Milvus. Не считать текстовый→pattern pipeline «безграфовым» |
-| **NGM-RAG** ([arXiv 2607.11159](https://arxiv.org/html/2607.11159)) | Multi-hop QA / long-context QA; граф вопроса сопоставляется с графом корпуса | LLM строит query/target graphs; узловые признаки и соответствия используют Levenshtein, BM25, BGE и LightGCN/GINE representations; взвешенный score выбирает evidence | HotpotQA и MultiHop-RAG (по 500 вопросов, EM/F1); UltraDomain Agriculture/Mix (pairwise LLM-as-judge) | Официальный код в статье не указан и при проверке не найден. GTSQA/FactKG не являются его benchmark. Реализация одной GNN не воспроизводит полный метод |
-| **SubgraphRAG** ([ICLR 2025](https://arxiv.org/abs/2410.20724)) | Текстовый вопрос → KG evidence | Entity linking, 1-hop expansion, MLP scoring троек с directional structural features | WebQSP/CWQ, KGQA метрики | Related method; результаты допустимо сопоставлять только на общем benchmark и протоколе |
-| **GFM-RAG** ([NeurIPS 2025](https://arxiv.org/abs/2502.01113)) | Текстовый запрос → универсальный KG retrieval | Предобученный GNN retriever, query-dependent edge scoring | Собственные KGQA и domain-RAG наборы статьи | Сильная related work; это не exact matching algorithm |
-| **KnowFormer** ([arXiv 2409.12865](https://arxiv.org/abs/2409.12865)) | KG reasoning / completion | Transformer с message passing и structure-aware attention | KG completion/reasoning benchmarks | Не использовать как baseline точного подграфового изоморфизма |
-| **VF2 / NetworkX** | Заданный query graph → точное структурное совпадение | Exact subgraph isomorphism при заданной схеме candidate generation | Метрики того же retrieval benchmark | Алгоритмический B1, не научная работа-конкурент |
+## Что можно защищать как исследовательский вопрос
 
-## Что можно и нельзя заключить
+При одинаковых extracted graphs, candidate pools и reader помогает ли **согласованность
+трёх extraction prompts** взвешивать структурные ограничения лучше одинаковых весов,
+если требуется проверить короткий документ по внешнему KG?
 
-SimGRAG и NGM-RAG оба используют графовую структуру, но различаются точкой входа и задачей. SimGRAG строит pattern из текста и сопоставляет с KG; NGM-RAG строит query/target graphs из вопроса и корпуса, затем применяет нейронное matching. Следовательно, сам факт «мы используем граф» не является knowledge gap.
+Различие с SimGRAG: допускаем неподдержанные query edges, сохраняя штраф, вместо требования
+полного структурного соответствия. Различие внутри собственного эксперимента:
+E1 отличается от B3 только весами извлечённых рёбер. Последнее является главным causal contrast.
+Agreement не означает истинность; модель может повторить ошибку. Проверяем также shuffled weights.
 
-Потенциальная гипотеза, требующая проверки по approximate subgraph matching/graph edit distance работам: **частичное отображение с раздельными штрафами за пропущенные и лишние рёбра может быть устойчивее exact matching при контролируемой неполноте query graph**. Это пока не подтверждённая новизна.
+Это **кандидат на эмпирический вклад**, не доказанная мировая новизна. Прочитанные работы
+не устанавливают, что данный частный pipeline отсутствует во всей литературе. Если найдётся
+такой же подход, либо E1 не выигрывает у B3, формулировка вклада пересматривается.
+Нельзя подменять этот вопрос утверждением «soft matching ещё никто не делал».
 
-## Бенчмарки и корректность сравнения
+## Корректность сравнения
 
-- Пересечение SimGRAG и NGM-RAG в основных таблицах не установлено: MetaQA/PQ/WC2014/FactKG против HotpotQA/MultiHop-RAG/UltraDomain.
-- MetaQA — возможная площадка сравнения с SimGRAG. HotpotQA — площадка, использованная NGM-RAG, но прямое сравнение с NGM-RAG возможно лишь при воспроизводимой реализации и совпадающем pipeline.
-- Нельзя сопоставлять числа из разных датасетов, разных split, разных генераторов графов или метрик.
-- Наличие answer-subgraph в GTSQA само по себе не означает наличие независимого query graph: подстановка gold answer-subgraph на вход matching создаёт утечку.
-- Мы пока не проводили собственных запусков и не воспроизводили результаты перечисленных работ.
+- Общий benchmark с SimGRAG: FactKG, Accuracy. Но наш первый test subset=500, модель и
+  budget другие: нельзя помещать его число рядом с paper accuracy как head-to-head.
+- Первое гарантированное сравнение: B1/B2/B3/E1 на одних IDs, одном KG, extractor,
+  candidate pool, reader и evaluator. B0 claim-only — отдельный дешёвый supervised контроль.
+- Компонентный hard control B2 подписывается своим именем; полного авторского SimGRAG пока нет.
+- Для системного сравнения разные системы могут иметь собственные extractor/reader;
+  необходимо одинаковое право доступа к данным и единый evaluator, а различия моделей/затрат
+  раскрываются. Нельзя требовать идентичную архитектуру и одновременно называть результат
+  воспроизведением каждого оригинального метода.
+- NGM-RAG остаётся related work до воспроизведения. HotpotQA добавлен по рекомендации
+  руководителя, но наличие датасета не является воспроизведением работы.
 
-## Источники
-
-- SimGRAG: https://aclanthology.org/2025.findings-acl.163/ и https://github.com/YZ-Cai/SimGRAG
-- NGM-RAG: https://arxiv.org/html/2607.11159
-- SubgraphRAG: https://arxiv.org/abs/2410.20724
-- GFM-RAG: https://arxiv.org/abs/2502.01113
-- KnowFormer: https://arxiv.org/abs/2409.12865
+Точный алгоритм и все параметры:
+[дизайн E1 в ветке задачи #7](https://github.com/OlegYurchik/soft-isomorphism/blob/docs/issue-7-protocol/docs/experiment-design-v2.md).
