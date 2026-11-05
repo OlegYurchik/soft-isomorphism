@@ -1,12 +1,12 @@
-from pytest import approx
 import pytest
+from pytest import approx
 
 from soft_isomorphism.matching import Edge, Node, Triple, score_mapping, validate_mapping
 
 
 def graph():
-    nodes = [Node("a", "Alice"), Node("b", "wrote")]
-    edges = [Edge("a", "author", "b", confidence=1.0)]
+    nodes = [Node("a", "Alice"), Node("b", "writer")]
+    edges = [Edge("a", "author", "b")]
     candidates = {"A": Node("A", "Alice"), "B": Node("B", "writer")}
     triples = [Triple("A", "author", "B")]
     return nodes, edges, candidates, triples
