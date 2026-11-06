@@ -1,0 +1,23 @@
+[project]
+name = "soft-isomorphism"
+version = "0.1.0"
+description = "Soft isomorphism between document graphs and knowledge graphs"
+requires-python = ">=3.11"
+dependencies = []
+
+[dependency-groups]
+dev = [
+    "ruff>=0.9",
+    "pytest>=8.0",
+    "pytest-asyncio>=0.24",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
