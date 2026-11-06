@@ -43,7 +43,8 @@ class Example:
     source: Source
     split: Split
     text: str
-    gold_edges: list[Edge]
+    # FactKG test contains a verdict but no evidence subgraph.
+    gold_edges: list[Edge] | None = None
     metadata: dict = field(default_factory=dict)
 
     def __post_init__(self) -> None:
@@ -51,9 +52,7 @@ class Example:
             raise ValueError("id must be non-empty")
         if not self.text:
             raise ValueError("text must be non-empty")
-        if not self.gold_edges:
-            raise ValueError(f"gold_edges is empty for example {self.id!r}")
-        for edge in self.gold_edges:
+        for edge in self.gold_edges or []:
             if not edge.head_id or not edge.rel_id or not edge.tail_id:
                 raise ValueError(
                     f"Edge in example {self.id!r} has empty head/rel/tail: {edge}"

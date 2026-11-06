@@ -53,9 +53,9 @@ def test_example_rejects_empty_text():
         )
 
 
-def test_example_rejects_empty_gold_edges():
-    with pytest.raises(ValueError, match="gold_edges is empty"):
-        Example(id="x", source=Source.GTSQA, split=Split.TEST, text="q", gold_edges=[])
+def test_example_allows_missing_gold_edges_for_verdict_only_split():
+    example = Example(id="x", source=Source.FACTKG, split=Split.TEST, text="q")
+    assert example.gold_edges is None
 
 
 def test_example_rejects_edge_with_empty_rel():
@@ -162,6 +162,7 @@ def _make_factkg_dir(tmp_path: Path) -> Path:
     json_dir.mkdir(parents=True)
     src = FIXTURES / "factkg_sample.json"
     (json_dir / "factkg_dev.json").write_bytes(src.read_bytes())
+    (json_dir / "factkg_test.json").write_bytes(src.read_bytes())
     return data_dir
 
 
@@ -180,17 +181,18 @@ def test_load_factkg_dev(tmp_path):
         assert "graph" not in ex.metadata
 
 
-def test_load_factkg_test_raises(tmp_path):
+def test_load_factkg_test_allows_missing_evidence(tmp_path):
     from soft_isomorphism.data.adapter import load_factkg
 
-    with pytest.raises(ValueError, match="no gold subgraph"):
-        load_factkg(tmp_path, Split.TEST)
+    data_dir = _make_factkg_dir(tmp_path)
+    examples = load_factkg(data_dir, Split.TEST)
+    assert examples[0].metadata["gold_available"]
 
 
 def test_load_factkg_missing_file_raises(tmp_path):
     from soft_isomorphism.data.adapter import load_factkg
 
-    with pytest.raises(FileNotFoundError, match="factkg_dev.json"):
+    with pytest.raises(FileNotFoundError, match="factkg_dev.pickle"):
         load_factkg(tmp_path, Split.DEV)
 
 

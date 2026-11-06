@@ -22,9 +22,11 @@
 
 FactKG test загружается как claim+label без требования Evidence. Старый `Example.gold_edges`
 не подходит для этого режима: наличие edge gold не является обязательным условием verification.
-CPU B0 читает raw FactKG через самостоятельный script и не использует legacy adapter.
-Старые GTSQA/FactKG edge adapters сохраняются как legacy; они не объявляются готовой реализацией E1.
-Новый graph runtime должен реализовать этот контракт; сейчас создан его дизайн, не код.
+CPU B0 читает raw FactKG через самостоятельный script. Адаптер теперь загружает
+канонические `data/factkg_unzip/factkg_{train,dev,test}.pickle` и сохраняет Label,
+Evidence, Entity_set и types только в `metadata`. В test `gold_edges=None`, потому что
+там нет Evidence; это ожидаемый режим verdict-only. Старый JSON loader оставлен только
+для синтетических fixtures. Extractor/matcher не получают evaluator-only поля.
 
 ## Реальные поля
 
