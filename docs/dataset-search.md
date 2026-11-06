@@ -18,3 +18,22 @@
 MetaQA/PQ/WC2014 компактнее/проще для KGQA, но не обеспечивают документальный вход. FactKG требует отдельной загрузки авторского DBpedia light; его нельзя подменить графом из gold Evidence.
 
 [Итоговый выбор #5](https://github.com/OlegYurchik/soft-isomorphism/blob/docs/issue-5-comparison-table/docs/dataset-selection.md)
+
+## Воспроизводимый журнал поиска
+
+Поиск проводился 29.10–05.11.2026. Использовались первичные страницы публикаций,
+официальные репозитории и страницы загрузки данных.
+
+| Направление запроса | Проверенные источники | Результат |
+|---|---|---|
+| approximate/subgraph matching | arXiv, publisher pages, Semantic Scholar | NeMa, noisy GED, SimGRAG |
+| document-level relation extraction | ACL Anthology, GitHub | Re-DocRED, FactKG |
+| KG fact verification | FactKG repository, ACL Anthology | FactKG; verdict есть, Evidence отсутствует в test |
+| graph retrieval / QA | SimGRAG и NGM-RAG papers/README | MetaQA, PQ, WC2014, HotpotQA |
+| ground-truth answer subgraphs | Hugging Face, GTSQA repository | GTSQA; входом является вопрос |
+
+Разные версии одного корпуса не считались разными наборами. MetaQA, PQ, WC2014 и
+GTSQA оставлены резервом из-за QA-входа; Re-DocRED исключён после проверки отсутствия
+глобальных entity QID. FactKG требует отдельного DBpedia light, а HotpotQA — построения
+corpus-derived KG. Итоговый выбор FactKG + HotpotQA сделан по требованиям постановки,
+до запуска предлагаемого метода.
