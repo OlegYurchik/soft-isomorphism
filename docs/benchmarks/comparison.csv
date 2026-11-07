@@ -6,8 +6,3 @@ PathQuestions,SimGRAG,2025,question,provided KG,answer,not audited,not audited,n
 WC2014,SimGRAG,2025,question,football KG,answer,not audited,not audited,not audited,question,answer,not confirmed,not downloaded,not selected,QA-only and narrow domain,https://aclanthology.org/2025.findings-acl.163.pdf
 GTSQA,NeurIPS-2025,2025,question,candidate Wikidata graph,answer subgraph,30477,not published,1622,question,subgraph,CC BY 4.0,local parquet present,diagnostic,synthetic QA input rather than document claim,https://huggingface.co/datasets/Graphcore/GTSQA
 Re-DocRED,dev-revised,2021,document,no aligned external KG,relations/PID,not audited,500 dev,not audited,document,mention/relation,MIT probable,500 docs audited; no global QID,not selected,entity linking and KG alignment required,https://github.com/tonytan48/Re-DocRED
-MetaQA,question,provided movie KG,answers,not downloaded,reserve,https://github.com/yuyuz/MetaQA
-PathQuestions,question,provided compact KG,answers,not audited locally,not selected,https://aclanthology.org/2025.findings-acl.163.pdf
-WC2014,question,provided football KG,answers,not audited locally,not selected,https://aclanthology.org/2025.findings-acl.163.pdf
-GTSQA,question,per-example candidate KG,answer subgraph,train/test present,diagnostic only,https://huggingface.co/datasets/Graphcore/GTSQA
-Re-DocRED,document,no ready aligned external KG,local entity relation labels,500 dev audited; no entity QID field,not selected,https://github.com/tonytan48/Re-DocRED
