@@ -1,6 +1,11 @@
-dataset,input,target_graph,gold,local_status,role,source
-FactKG,claim,DBpedia 2015 light,binary verdict plus train/dev relation paths,all splits present; KG missing,primary,https://github.com/jiho283/FactKG
-HotpotQA,question and contexts,corpus extraction required,answer and supporting sentences,validation present,secondary,https://github.com/hotpotqa/hotpot
+dataset,version,year,input,target_graph,gold,train,dev,test,annotation_unit,annotation_level,license,local_status,role,main_risk,source
+FactKG,ACL-2023,2023,short claim,DBpedia 2015 light,binary Label; Evidence paths in train/dev,86367,13266,9041,claim,verdict+paths,CC BY-NC-SA 4.0,all splits present; KG missing,primary,short documents and missing test Evidence,https://github.com/jiho283/FactKG
+HotpotQA distractor,validation-2026-11,2018,question+10 contexts,corpus-derived graph,answer+supporting facts,full train available,7405 validation,hidden test,question,answer+sentence provenance,CC BY-SA 4.0,validation downloaded; graph not built,secondary,not a direct document→KG benchmark,https://github.com/hotpotqa/hotpot
+MetaQA,1-hop/2-hop/3-hop,2018,question,movie KG,answer,train splits,validation by hop,test by hop,question,answer,CC BY 3.0,not selected; official format known,reserve,QA input does not test document claims,https://github.com/yuyuz/MetaQA
+PathQuestions,SimGRAG,2025,question,provided KG,answer,not audited,not audited,not audited,question,answer,not confirmed,not downloaded,not selected,QA-only and extra preparation,https://aclanthology.org/2025.findings-acl.163.pdf
+WC2014,SimGRAG,2025,question,football KG,answer,not audited,not audited,not audited,question,answer,not confirmed,not downloaded,not selected,QA-only and narrow domain,https://aclanthology.org/2025.findings-acl.163.pdf
+GTSQA,NeurIPS-2025,2025,question,candidate Wikidata graph,answer subgraph,30477,not published,1622,question,subgraph,CC BY 4.0,local parquet present,diagnostic,synthetic QA input rather than document claim,https://huggingface.co/datasets/Graphcore/GTSQA
+Re-DocRED,dev-revised,2021,document,no aligned external KG,relations/PID,not audited,500 dev,not audited,document,mention/relation,MIT probable,500 docs audited; no global QID,not selected,entity linking and KG alignment required,https://github.com/tonytan48/Re-DocRED
 MetaQA,question,provided movie KG,answers,not downloaded,reserve,https://github.com/yuyuz/MetaQA
 PathQuestions,question,provided compact KG,answers,not audited locally,not selected,https://aclanthology.org/2025.findings-acl.163.pdf
 WC2014,question,provided football KG,answers,not audited locally,not selected,https://aclanthology.org/2025.findings-acl.163.pdf
