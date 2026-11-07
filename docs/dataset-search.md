@@ -32,6 +32,22 @@ MetaQA/PQ/WC2014 компактнее/проще для KGQA, но не обес
 | graph retrieval / QA | SimGRAG и NGM-RAG papers/README | MetaQA, PQ, WC2014, HotpotQA |
 | ground-truth answer subgraphs | Hugging Face, GTSQA repository | GTSQA; входом является вопрос |
 
+Точные запросы восстановлены из истории этой ветки (`cc6191c`, журнал от 29.10–05.11),
+а не повторно выполнены сейчас:
+
+| # | Строка запроса | Зафиксированный результат |
+|---:|---|---|
+| 1 | `knowledge graph fact verification benchmark dataset 2025 arXiv` | FactNet-Bench, KGQAGen-10k, ClaimPKG |
+| 2 | `multi-hop knowledge graph question answering benchmark dataset 2025 arXiv new` | GTSQA, CR-LT-KGQA |
+| 3 | `document graph to knowledge graph matching subgraph retrieval benchmark 2025` | GTSQA, MKG-RAG-Bench |
+| 4 | `ground-truth subgraphs training evaluation knowledge graph augmented LLMs arXiv 2511.04473` | GTSQA |
+| 5 | `KG-RAG benchmark pitfalls diagnosing reliable evaluation 2025 arXiv 2505.23495` | KGQAGen-10k |
+| 6 | `FactNet billion-scale knowledge graph multilingual factual grounding benchmark arXiv 2602.03417` | FactNet-Bench |
+| 7 | `OpenEA DBP2.0 entity alignment knowledge graph dataset paper arXiv` | OpenEA/DBP2.0; исключён: entity alignment |
+| 8 | `MuSiQue multistep question answering dataset reasoning 2022 arXiv` | MuSiQue; исключён: нет KG backing |
+| 9 | `NGM-RAG benchmark HotpotQA datasets graph matching` | HotpotQA, MultiHop-RAG, UltraDomain |
+| 10 | `SimGRAG benchmark MetaQA PathQuestions WC2014 FactKG code` | MetaQA, PQ, WC2014, FactKG |
+
 Разные версии одного корпуса не считались разными наборами. MetaQA, PQ, WC2014 и
 GTSQA оставлены резервом из-за QA-входа; Re-DocRED исключён после проверки отсутствия
 глобальных entity QID. FactKG требует отдельного DBpedia light, а HotpotQA — построения
