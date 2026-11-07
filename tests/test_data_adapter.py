@@ -237,3 +237,14 @@ def test_real_factkg_contract_keeps_gold_out_of_method_input(tmp_path):
     assert gold[0].id == inputs[0].id
     assert gold[0].label is True
     assert gold[0].evidence is None
+
+
+def test_real_factkg_contract_rejects_malformed_entity_set(tmp_path):
+    from soft_isomorphism.data.adapter import load_factkg_records
+
+    directory = tmp_path / "data" / "factkg_unzip"
+    directory.mkdir(parents=True)
+    with (directory / "factkg_dev.pickle").open("wb") as stream:
+        pickle.dump({"Claim": {"Label": [True], "Entity_set": "not-a-list"}}, stream)
+    with pytest.raises(ValueError, match="Entity_set"):
+        load_factkg_records(tmp_path, Split.DEV)

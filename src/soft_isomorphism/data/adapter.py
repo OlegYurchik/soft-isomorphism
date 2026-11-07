@@ -55,6 +55,8 @@ def load_factkg_records(
         rows = pickle.load(stream)  # Only load files from the trusted upstream checkout.
     if not isinstance(rows, dict):
         raise ValueError("FactKG pickle must contain a claim-to-annotation dictionary")
+    if not rows:
+        raise ValueError("FactKG pickle contains no claims")
     inputs: list[FactKGInput] = []
     evaluation: list[FactKGEvaluation] = []
     for claim, annotation in rows.items():
@@ -63,15 +65,26 @@ def load_factkg_records(
         labels = annotation.get("Label")
         if not isinstance(labels, list) or len(labels) != 1 or type(labels[0]) is not bool:
             raise ValueError(f"FactKG Label must be a one-item boolean list: {claim[:80]}")
+        entity_set = annotation.get("Entity_set", ())
+        types = annotation.get("types", ())
+        if not isinstance(entity_set, (list, tuple)) or not all(
+            isinstance(entity, str) for entity in entity_set
+        ):
+            raise ValueError(f"Invalid FactKG Entity_set: {claim[:80]}")
+        if not isinstance(types, (list, tuple)) or not all(isinstance(kind, str) for kind in types):
+            raise ValueError(f"Invalid FactKG types: {claim[:80]}")
+        evidence = annotation.get("Evidence")
+        if evidence is not None and not isinstance(evidence, dict):
+            raise ValueError(f"Invalid FactKG Evidence: {claim[:80]}")
         identifier = hashlib.sha256(claim.encode("utf-8")).hexdigest()
         inputs.append(FactKGInput(identifier, claim))
         evaluation.append(
             FactKGEvaluation(
                 identifier,
                 labels[0],
-                tuple(annotation.get("Entity_set", ())),
-                annotation.get("Evidence"),
-                tuple(annotation.get("types", ())),
+                tuple(entity_set),
+                evidence,
+                tuple(types),
             )
         )
     if len({item.id for item in inputs}) != len(inputs):

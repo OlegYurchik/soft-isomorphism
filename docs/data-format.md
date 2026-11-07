@@ -50,3 +50,11 @@ entity_set, evidence, types)` только для оценщика. ID — SHA25
 
 Проверка на локальных данных: `PYTHONPATH=src python -c 'from soft_isomorphism.data.adapter import load_factkg_records; from soft_isomorphism.data.schema import Split; print(len(load_factkg_records("data/factkg", Split.DEV)[0]))'`.
 Ожидается `13266`. Полная проверка: `make check`.
+
+Команда для осмотра небольшого результата импорта: `PYTHONPATH=src python scripts/inspect_factkg.py data/factkg --split dev`.
+Она печатает число записей и **один вход метода** вида
+`{"count": 13266, "input": {"id": "<sha256 claim>", "text": "<исходный claim>"}}`,
+затем число отдельно сохранённых evaluator records. Значения в угловых скобках здесь
+обозначают поля примера, а не буквальный вывод. Команда никогда не печатает gold.
+Если upstream файл пуст или поле Label/Entity_set/types/Evidence имеет неожиданную форму,
+импорт завершается явной ошибкой.
