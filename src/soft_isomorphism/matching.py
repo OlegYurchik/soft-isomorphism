@@ -7,8 +7,8 @@ be tested independently.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 import re
+from dataclasses import dataclass
 from typing import Iterable, Mapping
 
 _TOKEN_RE = re.compile(r"[a-z0-9]+")
@@ -82,8 +82,10 @@ def score_mapping(
     node_cost = 0.0
     for node in nodes:
         target = mapping.get(node.id)
-        node_cost += null_node_cost if target is None else label_distance(
-            node.label, candidate_nodes[target].label
+        node_cost += (
+            null_node_cost
+            if target is None
+            else label_distance(node.label, candidate_nodes[target].label)
         )
     node_cost /= len(nodes)
 

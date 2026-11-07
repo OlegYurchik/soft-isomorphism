@@ -19,10 +19,12 @@ def test_exact_mapping_has_zero_cost():
 
 def test_confidence_downweights_unreliable_missing_edge():
     nodes, edges, candidates, triples = graph()
-    noisy = [Edge("a", "invented_relation", "b", confidence=0.2)]
-    regular = score_mapping(nodes, noisy, candidates, triples, {"a": "A", "b": "B"})
-    weighted = score_mapping(nodes, edges, candidates, triples, {"a": "A", "b": "B"})
-    assert weighted < regular
+    noisy = Edge("a", "invented_relation", "b", confidence=0.2)
+    unweighted = score_mapping(
+        nodes, [*edges, Edge("a", noisy.relation, "b")], candidates, triples, {"a": "A", "b": "B"}
+    )
+    weighted = score_mapping(nodes, [*edges, noisy], candidates, triples, {"a": "A", "b": "B"})
+    assert weighted < unweighted
 
 
 def test_null_mapping_has_explicit_node_penalty():
