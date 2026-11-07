@@ -45,3 +45,29 @@ Agreement не означает истинность; модель может п
 
 Точный алгоритм и все параметры:
 [дизайн E1 в ветке задачи #7](https://github.com/OlegYurchik/soft-isomorphism/blob/docs/issue-7-protocol/docs/experiment-design-v2.md).
+
+## Подробные разборы для обсуждения
+
+**SimGRAG.** Query text преобразуется LLM в pattern, затем GSD ранжирует candidate
+subgraphs по близости узлов и отношений. Работа релевантна из-за FactKG, но опубликованный
+pipeline, модель, sample IDs и KG snapshot не совпадают автоматически с нашим пилотом.
+Поэтому B2 называется hard topology control, а не репликацией SimGRAG. Проверяемое отличие
+E1 — сохранение штрафа за отсутствующую связь вместо требования полного соответствия.
+
+**NGM-RAG.** Система строит query/corpus graphs, сочетает lexical и embedding scores
+и использует GNN representations перед reader. HotpotQA делает её релевантной для QA-transfer,
+но неизвестны точные 500 IDs и локальный pipeline не подтверждён. Published EM/F1 нельзя
+использовать как численный baseline без воспроизведения; в первом запуске это related work.
+
+**NeMa.** Approximate matching оценивает label и neighbourhood compatibility и допускает
+шум в графах. Это прямое основание снять общую идею partial/noisy matching с novelty claim.
+В нашем пилоте NeMa служит теоретическим аналогом стоимости; мы не называем E1 новой
+задачей, пока не проверим agreement-weighting как отдельный эмпирический фактор.
+
+**SubgraphRAG/GFM-RAG.** Обе работы показывают, что структурированный retrieval может
+улучшать KGQA, но используют собственные learned retrievers и задачи вопросов. Они нужны
+для контекста graph retrieval, а не для обязательной CPU-репликации на FactKG claims.
+
+Для каждого метода при будущей адаптации нужно отдельно записать: источник кода,
+единицу входа, генератор кандидатов, функцию стоимости, solver, reader, benchmark,
+метрики и изменения интерфейса. Результат адаптации нельзя называть авторским запуском.
