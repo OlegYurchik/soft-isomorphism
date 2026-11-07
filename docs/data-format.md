@@ -37,3 +37,16 @@ HotpotQA parquet использует id/question/answer/context/supporting_fact
 context и supporting_facts могут быть struct of lists. Сохранить исходные title/sentence IDs.
 
 Файлы и hashes: [configs/experiment-v2.json](https://github.com/OlegYurchik/soft-isomorphism/blob/docs/issue-7-protocol/configs/experiment-v2.json).
+
+## Исполняемый контракт FactKG
+
+`load_factkg_records("data/factkg", Split.DEV)` возвращает две отдельные коллекции с
+одинаковыми ID: `FactKGInput(id, text)` для методов и `FactKGEvaluation(id, label,
+entity_set, evidence, types)` только для оценщика. ID — SHA256 исходного UTF-8 claim,
+совпадает с `configs/splits/factkg-e1.json`. Этот API читает все три pickle и отвергает
+неверный формат Label, а также дубли ID. Использовать только доверенные upstream pickle:
+формат pickle исполняет код при загрузке. Ранее существовавший `load_factkg` оставлен для
+совместимости с legacy тестами; E1 должен вызывать `load_factkg_records`.
+
+Проверка на локальных данных: `PYTHONPATH=src python -c 'from soft_isomorphism.data.adapter import load_factkg_records; from soft_isomorphism.data.schema import Split; print(len(load_factkg_records("data/factkg", Split.DEV)[0]))'`.
+Ожидается `13266`. Полная проверка: `make check`.

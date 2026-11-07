@@ -15,14 +15,69 @@ The data directory must match configs/data-manifest.json:
                data/factkg_dev.json
 """
 
+import hashlib
 import json
 import logging
 import pickle
+from dataclasses import dataclass
 from pathlib import Path
 
 from .schema import Edge, Example, Source, Split
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass(frozen=True)
+class FactKGInput:
+    id: str
+    text: str
+
+
+@dataclass(frozen=True)
+class FactKGEvaluation:
+    id: str
+    label: bool
+    entity_set: tuple[str, ...]
+    evidence: dict | None
+    types: tuple[str, ...]
+
+
+def load_factkg_records(
+    data_dir: str | Path, split: Split
+) -> tuple[list[FactKGInput], list[FactKGEvaluation]]:
+    """Return separate method inputs and evaluator records from trusted FactKG files."""
+    if split not in (Split.TRAIN, Split.DEV, Split.TEST):
+        raise ValueError(f"Unsupported FactKG split: {split.value}")
+    path = Path(data_dir) / "data" / "factkg_unzip" / f"factkg_{split.value}.pickle"
+    if not path.is_file():
+        raise FileNotFoundError(f"FactKG pickle not found: {path}")
+    with path.open("rb") as stream:
+        rows = pickle.load(stream)  # Only load files from the trusted upstream checkout.
+    if not isinstance(rows, dict):
+        raise ValueError("FactKG pickle must contain a claim-to-annotation dictionary")
+    inputs: list[FactKGInput] = []
+    evaluation: list[FactKGEvaluation] = []
+    for claim, annotation in rows.items():
+        if not isinstance(claim, str) or not claim or not isinstance(annotation, dict):
+            raise ValueError("Invalid FactKG claim or annotation")
+        labels = annotation.get("Label")
+        if not isinstance(labels, list) or len(labels) != 1 or type(labels[0]) is not bool:
+            raise ValueError(f"FactKG Label must be a one-item boolean list: {claim[:80]}")
+        identifier = hashlib.sha256(claim.encode("utf-8")).hexdigest()
+        inputs.append(FactKGInput(identifier, claim))
+        evaluation.append(
+            FactKGEvaluation(
+                identifier,
+                labels[0],
+                tuple(annotation.get("Entity_set", ())),
+                annotation.get("Evidence"),
+                tuple(annotation.get("types", ())),
+            )
+        )
+    if len({item.id for item in inputs}) != len(inputs):
+        raise ValueError("Duplicate FactKG claim IDs")
+    return inputs, evaluation
+
 
 # GTSQA gold-subgraph field formats (verify against pinned downloaded revision)
 _GTSQA_GRAPH_FORMATS = ("edge_list", "dict_nodes_edges", "list_of_triples")
@@ -217,9 +272,7 @@ def _parse_gtsqa_graph(graph_field: object, example_id: str) -> list[Edge]:
         edges = []
         for item in graph_field:
             if not (isinstance(item, (list, tuple)) and len(item) == 3):
-                raise ValueError(
-                    f"Expected triple [head, rel, tail], got {item!r} in {example_id}"
-                )
+                raise ValueError(f"Expected triple [head, rel, tail], got {item!r} in {example_id}")
             edges.append(Edge(head_id=str(item[0]), rel_id=str(item[1]), tail_id=str(item[2])))
         if not edges:
             raise ValueError("graph field is an empty list")
@@ -266,9 +319,7 @@ def _parse_factkg_graph(graph_field: object, example_id: str) -> list[Edge]:
             raise ValueError(f"Adjacency for {head!r} in {example_id!r} is not a list")
         for entry in adjacency:
             if not (isinstance(entry, (list, tuple)) and len(entry) == 2):
-                raise ValueError(
-                    f"Expected [relation, tail] in {example_id!r}, got {entry!r}"
-                )
+                raise ValueError(f"Expected [relation, tail] in {example_id!r}, got {entry!r}")
             edges.append(Edge(head_id=str(head), rel_id=str(entry[0]), tail_id=str(entry[1])))
 
     if not edges:

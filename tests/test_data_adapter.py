@@ -5,6 +5,8 @@ They verify schema correctness, ID tracing, direction preservation,
 deduplication safety, and error handling.
 """
 
+import hashlib
+import pickle
 from pathlib import Path
 
 import pytest
@@ -215,3 +217,23 @@ def test_load_factkg_metadata_label(tmp_path):
     types = {ex.metadata["type"] for ex in examples}
     assert "One-hop" in types
     assert "Multi-hop" in types
+
+
+def test_real_factkg_contract_keeps_gold_out_of_method_input(tmp_path):
+    from soft_isomorphism.data.adapter import load_factkg_records
+
+    directory = tmp_path / "data" / "factkg_unzip"
+    directory.mkdir(parents=True)
+    claim = "Alice authored Book."
+    with (directory / "factkg_test.pickle").open("wb") as stream:
+        pickle.dump(
+            {claim: {"Label": [True], "Entity_set": ["Alice"], "types": ["One-hop"]}}, stream
+        )
+    inputs, gold = load_factkg_records(tmp_path, Split.TEST)
+    assert inputs[0].id == hashlib.sha256(claim.encode("utf-8")).hexdigest()
+    assert inputs[0].text == claim
+    assert not hasattr(inputs[0], "label")
+    assert not hasattr(inputs[0], "entity_set")
+    assert gold[0].id == inputs[0].id
+    assert gold[0].label is True
+    assert gold[0].evidence is None
