@@ -43,3 +43,7 @@ Re-DocRED dev: проверены все 500 документов, поля ment
 Нужны проверенный DBpedia light с checksum, зафиксированный Qwen checkpoint, extraction cache,
 реализованные matcher/reader и оценки на фиксированных splits. Пока выполнены аудит файлов,
 фиксация дизайна и CPU baseline. Выбор benchmark уже сделан; графовый запуск ещё не выполнен.
+
+Трассировка 10 строк FactKG и 10 строк HotpotQA с исходными ID, полями gold и
+ограничениями runtime сохранена в [`results/dataset-example-audit.md`](../results/dataset-example-audit.md).
+Она подтверждает формат файлов и не является оценкой метода.
