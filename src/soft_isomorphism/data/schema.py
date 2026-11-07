@@ -55,6 +55,4 @@ class Example:
             raise ValueError(f"gold_edges is empty for example {self.id!r}")
         for edge in self.gold_edges:
             if not edge.head_id or not edge.rel_id or not edge.tail_id:
-                raise ValueError(
-                    f"Edge in example {self.id!r} has empty head/rel/tail: {edge}"
-                )
+                raise ValueError(f"Edge in example {self.id!r} has empty head/rel/tail: {edge}")

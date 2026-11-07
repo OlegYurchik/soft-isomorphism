@@ -188,7 +188,9 @@ def _gtsqa_split_indices(data_dir: Path, split: Split) -> set[int]:
         indices = json.load(fh)
     key = split.value  # "train-dev" or "train-fit"
     if key not in indices:
-        raise KeyError(f"Key {key!r} not found in {index_file}. Expected 'train-dev' or 'train-fit'.")
+        raise KeyError(
+            f"Key {key!r} not found in {index_file}. Expected 'train-dev' or 'train-fit'."
+        )
     return set(indices[key])
 
 
@@ -213,9 +215,7 @@ def _parse_gtsqa_graph(graph_field: object, example_id: str) -> list[Edge]:
         edges = []
         for item in graph_field:
             if not (isinstance(item, (list, tuple)) and len(item) == 3):
-                raise ValueError(
-                    f"Expected triple [head, rel, tail], got {item!r} in {example_id}"
-                )
+                raise ValueError(f"Expected triple [head, rel, tail], got {item!r} in {example_id}")
             edges.append(Edge(head_id=str(item[0]), rel_id=str(item[1]), tail_id=str(item[2])))
         if not edges:
             raise ValueError("graph field is an empty list")
@@ -262,9 +262,7 @@ def _parse_factkg_graph(graph_field: object, example_id: str) -> list[Edge]:
             raise ValueError(f"Adjacency for {head!r} in {example_id!r} is not a list")
         for entry in adjacency:
             if not (isinstance(entry, (list, tuple)) and len(entry) == 2):
-                raise ValueError(
-                    f"Expected [relation, tail] in {example_id!r}, got {entry!r}"
-                )
+                raise ValueError(f"Expected [relation, tail] in {example_id!r}, got {entry!r}")
             edges.append(Edge(head_id=str(head), rel_id=str(entry[0]), tail_id=str(entry[1])))
 
     if not edges:

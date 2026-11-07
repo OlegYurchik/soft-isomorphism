@@ -138,7 +138,11 @@ def evaluate_answers(
             no_prediction += 1
             continue
         first_rank = next(
-            (rank for rank, entity in enumerate(ranked_entities, start=1) if entity in example.answers),
+            (
+                rank
+                for rank, entity in enumerate(ranked_entities, start=1)
+                if entity in example.answers
+            ),
             None,
         )
         if first_rank is not None:
@@ -148,9 +152,7 @@ def evaluate_answers(
                     hits[k] += 1
 
     count = len(examples)
-    result: dict[str, float | int] = {
-        f"hits_at_{k}": hits[k] / count for k in ks
-    }
+    result: dict[str, float | int] = {f"hits_at_{k}": hits[k] / count for k in ks}
     result["mrr"] = reciprocal_rank / count
     result["no_prediction"] = no_prediction
     result["num_examples"] = count
