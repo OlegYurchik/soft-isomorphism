@@ -1,0 +1,29 @@
+{
+  "updated": "2026-11-05",
+  "selection_status": "SELECTED_PENDING_KG_AND_MODEL",
+  "active_manifest": "configs/experiment-v2.json",
+  "datasets": {
+    "factkg": {
+      "role": "primary",
+      "url": "https://github.com/jiho283/FactKG",
+      "splits_locally_audited": true,
+      "kg_status": "dbpedia_2015_undirected_light.pickle not downloaded",
+      "gold": "binary label; relation paths in train/dev only"
+    },
+    "hotpotqa": {
+      "role": "secondary",
+      "url": "https://huggingface.co/datasets/hotpotqa/hotpot_qa",
+      "split": "distractor validation",
+      "locally_audited": true,
+      "rows": 7405,
+      "kg_status": "corpus extraction not run"
+    }
+  },
+  "not_selected": [
+    "MetaQA",
+    "GTSQA",
+    "Re-DocRED",
+    "PQ",
+    "WC2014"
+  ]
+}
