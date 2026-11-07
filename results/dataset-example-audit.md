@@ -22,9 +22,19 @@ validation parquet; сырые файлы не коммитируются. Тр�
 | 8 | Well, Jan O'Sullivan had a successor after all. | True | Jan_O'Sullivan | successor / existence |
 | 9 | Tom Udall actually had a successor when he died. | True | Tom_Udall | successor / existence |
 
-Первые десять строк дают проверку схемы и полей, но не покрывают все reasoning types.
-Для итоговой feasibility-приёмки нужно добавить отдельную выборку с Conjunction,
-Multi-hop и Negation и сохранить её ID в audit artifact.
+Первые десять строк проверяют схему, но все имеют тип `existence`. Дополнительно
+проверены пять строк с другими типами; их устойчивые ID — SHA256 исходного claim:
+
+| SHA256 claim | Тип / Label | Вход → evaluator gold |
+|---|---|---|
+| `897fcd0915178fd10750375cd2ef4f8db36e953926bfc51a39fa446f10eeb047` | substitution, False | Lesley Griffiths was Edwina Hart's daughter? → Edwina_Hart / children и Lesley_Griffiths / ~children |
+| `fb4758831833ae9e1da1525d16679294e0db8b506de952a9d770a7c468ad05dd` | multi claim, False | The capital of Alderney is Saint Anne and they have the Red Oak Municipal Airport. → capital / ~cityServed paths |
+| `2acd9b120ff62b4c6fb5ce51fee2fc0aa62ff298ec7cb1195005708587eb7566` | negation, False | Nissan G engine did not have a successor → Nissan_G_engine / successor |
+| `95163cecac2f97080ab0c8f0709c1614b18e7e7ad72e56b412587ac12f24f28c` | multi hop, True | Pakistan Civil Aviation Authority governs the airport in Pakistan → Pakistan / ~location,operator |
+| `d26e595d7d7a47ee880c3eda3121063997fe2ef6988a841a834add303aeecb4f` | num3 + multi claim, False | Allama Iqbal International Airport runway length 2900 metres → location/runwayLength/runwayDesignation paths |
+
+`~relation` в Evidence обозначает обратный шаг пути. Здесь он сохранён как
+аннотация; никакая тройка не реконструируется без DBpedia light.
 
 ## HotpotQA: 10 проверенных строк
 
@@ -50,3 +60,15 @@ Multi-hop и Negation и сохранить её ID в audit artifact.
 graph experiment остаются DBpedia light, Qwen runtime и реализация extraction/candidate
 generation. Нельзя считать эти 20 строк независимой оценкой метода: они использованы
 для проверки формата и должны быть исключены из настройки, если попадут в ручной аудит.
+
+## Воспроизведение проверки
+
+Из корня репозитория с загруженными авторскими файлами: `sha256sum data/factkg/data/factkg_unzip/factkg_{train,dev,test}.pickle data/hotpotqa/validation.parquet`.
+Проверка FactKG dev по первым 10 строкам и типам: `python -c 'import pickle,collections; r=pickle.load(open("data/factkg/data/factkg_unzip/factkg_dev.pickle","rb")); print(len(r),list(r.items())[:10]); print(collections.Counter(t for row in r.values() for t in row["types"]))'`.
+Проверка HotpotQA: `python -c 'import pandas as pd; p=pd.read_parquet("data/hotpotqa/validation.parquet"); print(len(p),p[["id","question","answer","supporting_facts"]].head(10).to_dict("records"))'`.
+Файлы pickle следует брать только из доверенного авторского репозитория.
+
+Оценка оставшейся подготовки: 2–4 часа для загрузки и проверки DBpedia light,
+2–4 часа для адаптера KG и проверки направления `~relation`; отдельное время
+потребуется на LLM extraction и измерение runtime. Это оценка работы, не результат
+ресурсного замера.
