@@ -1,0 +1,12 @@
+{
+  "protocol": "e1-v2",
+  "node_weight": 0.3,
+  "edge_weight": 0.7,
+  "null_node_cost": 0.8,
+  "minimum_node_coverage": 0.8,
+  "minimum_edge_confidence": 0.2,
+  "node_label_distance": "character-trigram-jaccard",
+  "relation_distance": "token-jaccard",
+  "directional": true,
+  "mapping_injective": true
+}
