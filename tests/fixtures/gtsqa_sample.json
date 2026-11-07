@@ -1,0 +1,86 @@
+[
+  {
+    "id": "gtsqa-0001",
+    "question": "What is the capital of France?",
+    "answer_node": "Paris (Q90)",
+    "graph": [
+      [
+        "France (Q142)",
+        "capital (P36)",
+        "Paris (Q90)"
+      ],
+      [
+        "Paris (Q90)",
+        "country (P17)",
+        "France (Q142)"
+      ]
+    ],
+    "full_answer_subgraph_wikikg2": [
+      [
+        "Q142",
+        "P36",
+        "Q90"
+      ]
+    ],
+    "all_answers_wikikg2": [
+      "Q90"
+    ],
+    "graph_isomorphism": "single-hop",
+    "n_hops": 1
+  },
+  {
+    "id": "gtsqa-0002",
+    "question": "Who directed the film Inception?",
+    "answer_node": "Christopher Nolan (Q25191)",
+    "graph": [
+      [
+        "Inception (Q25188)",
+        "director (P57)",
+        "Christopher Nolan (Q25191)"
+      ],
+      [
+        "Inception (Q25188)",
+        "country of origin (P495)",
+        "United States (Q30)"
+      ]
+    ],
+    "full_answer_subgraph_wikikg2": [
+      [
+        "Q25188",
+        "P57",
+        "Q25191"
+      ]
+    ],
+    "all_answers_wikikg2": [
+      "Q25191"
+    ],
+    "graph_isomorphism": "two-hop-chain",
+    "n_hops": 2
+  },
+  {
+    "id": "gtsqa-0003",
+    "question": "What is the currency of Japan?",
+    "answer_node": "Japanese yen (Q8146)",
+    "graph": {
+      "edges": [
+        {
+          "head": "Japan (Q17)",
+          "rel": "currency (P38)",
+          "tail": "Japanese yen (Q8146)"
+        }
+      ]
+    },
+    "full_answer_subgraph_wikikg2": [
+      [
+        "Q17",
+        "P38",
+        "Q8146"
+      ]
+    ],
+    "all_answers_wikikg2": [
+      "Q8146"
+    ],
+    "graph_isomorphism": "single-hop",
+    "n_hops": 1
+  }
+]
