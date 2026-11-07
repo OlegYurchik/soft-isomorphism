@@ -1,0 +1,20 @@
+{
+  "method": "B0-claim-bm25-knn-v1",
+  "script_sha256": "6d00cf9c17d15f4d96d6b51c25dfe683bf2a8cd4fc64543ac38eea26b0c3945d",
+  "python": "3.13.13",
+  "split": "test",
+  "selection": "first 500 by SHA256(UTF-8 claim); no filtering by label/types",
+  "train_n": 86367,
+  "exact_overlap": 0,
+  "parameters": {"k1": 1.5, "b": 0.75, "neighbors": 5, "voting": "unweighted"},
+  "hashes": {
+    "factkg_train.pickle": "41af6c4d21a76eb00f763c326770cbcbfa7021a23deeabd86f47c8df6a6e82c6",
+    "factkg_test.pickle": "9cecb4e5d0438f8abaf1f44402b18223a13d20f116a52f288391aa9a6cbd84a4"
+  },
+  "metrics": {"n": 500, "accuracy": 0.564, "macro_f1": 0.5635530783522327},
+  "nonoverlap_metrics": {"n": 500, "accuracy": 0.564, "macro_f1": 0.5635530783522327},
+  "majority_metrics": {"n": 500, "accuracy": 0.506, "macro_f1": 0.33598937583001326},
+  "mean_retrieval_seconds": 0.008370389110059478,
+  "elapsed_seconds": 8.190959916999418,
+  "full_predictions": "data/evaluation/factkg-b0-test-500.json (local ignored artifact)"
+}
