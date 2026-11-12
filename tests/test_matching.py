@@ -5,6 +5,7 @@ from soft_isomorphism.matching import (
     Edge,
     Node,
     Triple,
+    _edge_distance,
     score_mapping,
     score_mapping_breakdown,
     validate_mapping,
@@ -22,6 +23,10 @@ def graph():
 def test_exact_mapping_has_zero_cost():
     nodes, edges, candidates, triples = graph()
     assert score_mapping(nodes, edges, candidates, triples, {"a": "A", "b": "B"}) == approx(0)
+
+
+def test_camel_case_relation_matches_natural_phrase():
+    assert _edge_distance("leader title", "leaderTitle") == 0
 
 
 def test_confidence_downweights_unreliable_missing_edge():

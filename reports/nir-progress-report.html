@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>НИР · мягкое сопоставление графа с KG</title>
+  <style>
+    :root{color-scheme:light;--ink:#18332f;--muted:#60736f;--line:#d6e2dd;--green:#16735f;--amber:#a86419;--blue:#315f8e;--paper:#f5f8f6}
+    *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.55 system-ui,-apple-system,Segoe UI,sans-serif}
+    main{max-width:1150px;margin:auto;padding:34px 24px 80px}h1{font-size:clamp(2.2rem,5vw,4rem);line-height:1.08;letter-spacing:-.04em;margin:.35em 0}h2{font-size:1.6rem;margin:42px 0 15px;letter-spacing:-.025em}h3{margin:0 0 8px;font-size:1.08rem}p{margin:8px 0 14px}a{color:var(--blue);text-underline-offset:3px}small,.muted{color:var(--muted)}code{font:0.87em ui-monospace,SFMono-Regular,Consolas,monospace;background:#edf3f0;padding:2px 5px;border-radius:4px;overflow-wrap:anywhere}
+    .eyebrow{font-size:.83rem;letter-spacing:.11em;text-transform:uppercase;color:var(--green);font-weight:750}.lead{font-size:1.18rem;max-width:830px;color:#395650}.nav{display:flex;flex-wrap:wrap;gap:9px;margin:22px 0 30px}.nav a{padding:7px 12px;background:white;border:1px solid var(--line);border-radius:99px;text-decoration:none;font-size:.9rem}
+    .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.cards{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}.card,.metric,.panel{background:white;border:1px solid var(--line);border-radius:14px;padding:20px;box-shadow:0 2px 10px #173b3308}.metric{border-top:4px solid var(--green)}.metric.warn{border-top-color:var(--amber)}.metric b{display:block;font-size:1.9rem;line-height:1.15;letter-spacing:-.04em}.metric span{font-size:.88rem;color:var(--muted)}.callout{background:#173c35;color:#f1f8f5;border-radius:14px;padding:20px 24px}.callout p{margin:5px 0}.callout strong{color:#a9e6d0}
+    .flow{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}.step{position:relative;background:white;border:1px solid var(--line);border-radius:12px;padding:15px;min-height:115px}.step b{display:block;margin:5px 0}.step em{font-size:.78rem;color:var(--green);font-style:normal;font-weight:700;letter-spacing:.08em}.step:not(:last-child):after{content:"→";position:absolute;right:-13px;top:40%;z-index:1;color:var(--green);font-weight:800;background:var(--paper);padding:0 3px}
+    .tablewrap{overflow-x:auto;background:white;border:1px solid var(--line);border-radius:14px}table{border-collapse:collapse;width:100%;min-width:650px;font-size:.91rem}th,td{text-align:left;vertical-align:top;padding:12px 15px;border-bottom:1px solid #e6eeea}th{background:#eaf2ee;color:#385950}tr:last-child td{border-bottom:0}.tag{display:inline-block;border-radius:99px;padding:2px 8px;font-size:.76rem;font-weight:700;background:#e4f2eb;color:#17654f}.tag.open{background:#fff0da;color:#98601b}
+    .bars{display:grid;grid-template-columns:repeat(2,1fr);gap:18px}.barrow{margin:10px 0}.barhead{display:flex;justify-content:space-between;gap:10px;font-size:.9rem}.track{height:13px;background:#e9efeb;border-radius:99px;overflow:hidden;margin-top:5px}.fill{height:100%;background:var(--green);border-radius:99px}.fill.alt{background:#e4a74e}.note{font-size:.89rem;color:var(--muted)}ol,ul{padding-left:1.35rem}li{margin:5px 0}.sources{display:flex;flex-wrap:wrap;gap:8px}.sources a{background:white;border:1px solid var(--line);padding:7px 11px;border-radius:8px;text-decoration:none;font-size:.88rem}footer{border-top:1px solid var(--line);margin-top:42px;padding-top:18px;color:var(--muted);font-size:.87rem}
+    @media(max-width:850px){.grid{grid-template-columns:repeat(2,1fr)}.flow{grid-template-columns:repeat(2,1fr)}.step:after{display:none}}@media(max-width:580px){main{padding:22px 16px 55px}.grid,.cards,.bars,.flow{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="eyebrow">НИР · проверенный статус · 12 ноября 2026</div>
+    <h1>Мягкое сопоставление графа текста с графом знаний</h1>
+    <p class="lead">Цель — извлечь из текста граф отношений, найти соответствующие факты во внешнем KG и проверить, помогает ли графовый поиск отвечать точнее. Проверен новый пилот с <b>одним извлечением графа на запрос</b> и отдельным BM25 fallback для UNKNOWN.</p>
+    <nav class="nav" aria-label="Разделы отчёта"><a href="#done">Сделано</a><a href="#pipeline">Как работает</a><a href="#results">Результаты</a><a href="#research">Что ищем</a><a href="#next">План</a><a href="#materials">Материалы</a></nav>
+  </header>
+
+  <section class="grid" aria-label="Ключевые числа">
+    <div class="metric"><b>9,9 млн</b><span>сущностей в подключённом DBpedia light</span></div>
+    <div class="metric"><b>56,4%</b><span>Accuracy текстового B0 на 500 test claims</span></div>
+    <div class="metric"><b>20</b><span>dev claims в графовом пилоте с моделью ИТМО</span></div>
+    <div class="metric warn"><b>0</b><span>UNKNOWN у гибрида на dev-20 и test-20; преимущество E1 не проверено</span></div>
+  </section>
+
+  <section id="done">
+    <h2>Что выполнено</h2>
+    <div class="cards">
+      <article class="card"><h3>Постановка и аналоги</h3><p>Определена тема: мягкое сопоставление графа текста с KG. Основной референс — SimGRAG, потому что он решает задачу проверки фактов на FactKG. NGM-RAG изучен как соседний метод и ориентир для второго QA-набора, но его GNN-фреймворк не воспроизведён.</p></article>
+      <article class="card"><h3>Данные</h3><p>Локально доступны FactKG: 86&nbsp;367 train, 13&nbsp;266 dev и 9&nbsp;041 test утвержление; подключён авторский DBpedia 2015 light и построен индекс имён всех 9&nbsp;913&nbsp;189 сущностей. HotpotQA distractor: 7&nbsp;405 validation вопросов, выбран для последующей проверки переноса.</p></article>
+      <article class="card"><h3>Текстовый контроль B0</h3><p>Реализован BM25 по текстам train с голосованием пяти ближайших соседей. На всём dev Accuracy 55,28%; на заранее фиксированных 500 test утверждениях — 56,4%, Macro-F1 56,36%. Точных пересечений train с этой test выборкой: 0.</p></article>
+      <article class="card"><h3>Графовые компоненты</h3><p>Реализованы стоимость сопоставления узлов и направленных рёбер, полный перебор для малых графов и ограниченный beam search. Собран пилотный конвейер: извлечение → linking → candidate pool → B3/E1 → KG evidence → reader → Accuracy. Для LLM подключена модель ИТМО.</p></article>
+    </div>
+  </section>
+
+  <section id="pipeline">
+    <h2>Как устроен текущий пилот</h2>
+    <div class="flow">
+      <div class="step"><em>01 · ТЕКСТ</em><b>FactKG claim</b><span>Короткое утверждение; метка скрыта от retrieval.</span></div>
+      <div class="step"><em>02 · ИЗВЛЕЧЕНИЕ</em><b>Граф запроса</b><span>Qwen3.8-27B, один вызов на claim в новом пилоте.</span></div>
+      <div class="step"><em>03 · КАНДИДАТЫ</em><b>DBpedia</b><span>Индекс имён, top-5 сущностей, ограниченная 2-hop окрестность.</span></div>
+      <div class="step"><em>04 · MATCH</em><b>Soft mapping</b><span>Один граф и pool; при одном извлечении веса B3/E1 одинаковы.</span></div>
+      <div class="step"><em>05 · ОЦЕНКА</em><b>KG → reader → B0</b><span>При UNKNOWN отдельный гибрид берёт текстовый ответ BM25.</span></div>
+    </div>
+    <p class="note">Старый пилот использовал три близких запроса для весов E1. В новом пилоте один ответ даёт каждому ребру вес 1, поэтому B3=E1. Новый прогон оценивает extraction, retrieval и fallback; он не проверяет гипотезу о весах.</p>
+  </section>
+
+  <section id="results">
+    <h2>Измеренные результаты</h2>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Прогон</th><th>Данные</th><th>Что получено</th><th>Граница вывода</th></tr></thead>
+      <tbody>
+        <tr><td><b>B0: BM25 по claims</b> <span class="tag">завершён</span></td><td>500 FactKG test, фиксированный выбор по SHA-256</td><td>Accuracy 56,4%; Macro-F1 56,36%. Majority: 50,6% Accuracy.</td><td>Текстовый контроль; другой набор примеров и иной pipeline, чем графовый dev-пилот.</td></tr>
+        <tr><td><b>B3 и E1: основной пилот</b> <span class="tag">завершён</span></td><td>20 FactKG dev, модель ИТМО Qwen3-32B</td><td>Граф: 20/20; допустимый mapping: 19/20; факты KG для reader: 4/20. У обоих Accuracy 15%, UNKNOWN 17/20.</td><td>Малая dev выборка. Между B3 и E1 нет различий в переданных доказательствах.</td></tr>
+        <tr><td><b>Альтернативные значения отношений</b> <span class="tag open">диагностика</span></td><td>Те же 20 FactKG dev и сохранённые графы</td><td>Факты KG доступны для 8/20 у обоих методов; доказательства B3/E1 различаются в 1 случае.</td><td>Вызов reader прерван. Accuracy этого варианта неизвестна; это изменение retrieval, а не проверка эффекта весов.</td></tr>
+        <tr><td><b>Один вызов Qwen3.8-27B + expanded KG</b> <span class="tag">завершён</span></td><td>20 dev и отдельно 20 test FactKG</td><td>Графы 20/20 на каждом split. Evidence 7/20 dev, 6/20 test. Reader: 30% Accuracy и 14 UNKNOWN на dev; 25% и 14 UNKNOWN на test.</td><td>Оба графовых метода совпадают, потому что все веса рёбер равны 1. 20 примеров недостаточно для вывода об улучшении.</td></tr>
+        <tr><td><b>Граф + BM25 при UNKNOWN</b> <span class="tag">завершён</span></td><td>Те же 20 dev и 20 test</td><td>0 UNKNOWN; Accuracy 65% dev и 55% test. Один BM25: 50% на каждой этой выборке. Fallback использован 14/20 раз на каждом split.</td><td>Ноль UNKNOWN обеспечен правилом fallback. Это гибрид, а не доказательство качества graph retrieval.</td></tr>
+      </tbody>
+    </table></div>
+    <div class="bars" style="margin-top:15px">
+      <div class="panel"><h3>Покрытие доказательствами · старый Qwen3-32B dev 20</h3><div class="barrow"><div class="barhead"><span>Исходный retrieval</span><b>4 / 20</b></div><div class="track"><div class="fill" style="width:20%"></div></div></div><div class="barrow"><div class="barhead"><span>Диагностический retrieval</span><b>8 / 20</b></div><div class="track"><div class="fill alt" style="width:40%"></div></div></div><p class="note">Наличие факта в контексте не гарантирует правильный ответ.</p></div>
+      <div class="panel"><h3>Где теряется сигнал · старый Qwen3-32B</h3><div class="barrow"><div class="barhead"><span>Граф извлечён</span><b>20 / 20</b></div><div class="track"><div class="fill" style="width:100%"></div></div></div><div class="barrow"><div class="barhead"><span>Mapping найден</span><b>19 / 20</b></div><div class="track"><div class="fill" style="width:95%"></div></div></div><div class="barrow"><div class="barhead"><span>Исходный evidence найден</span><b>4 / 20</b></div><div class="track"><div class="fill alt" style="width:20%"></div></div></div></div>
+    </div>
+    <div class="panel" style="margin-top:15px"><h3>Диагноз UNKNOWN</h3><p>В старом прогоне 16 из 17 UNKNOWN установлены конвейером <b>до reader</b>: 15 раз mapping найден, но evidence пуст; один раз mapping не найден. Новый режим Qwen3.8-27B устранил технические пустые ответы extractor и расширил evidence, но graph reader всё ещё дал 14 UNKNOWN на каждом split из-за слабого покрытия KG-фактами. <a href="../docs/factkg-unknown-diagnosis.md">Подробная разбивка старого прогона</a>.</p><p class="note">Новый пилот выполнен с одним извлечением на claim и моделью ИТМО iairlab/qwen3.8-27b. Ноль UNKNOWN получен только у явно обозначенного гибрида с BM25.</p></div>
+    <p class="note">Источник локальных чисел: <code>data/evaluation/factkg-b0-test-500.json</code>, <code>data/evaluation/e1-pilot-itmo-dev-20/summary-bm25-v2.json</code> и сохранённые <code>match*.jsonl</code>. Сырые данные и ответы модели не входят в Git. Сравнивать 56,4% test B0 с 15% dev графового пилота как победу одного метода над другим нельзя.</p>
+  </section>
+
+  <section id="research">
+    <h2>Что мы сейчас ищем</h2>
+    <div class="callout"><p><strong>Исследовательский вопрос:</strong> какой конкретный механизм улучшит мягкое сопоставление графа утверждения с KG при одном извлечении графа на утверждение и одинаковом бюджете для сравниваемых методов?</p><p>Предыдущая гипотеза — вес связи по согласию трёх ответов LLM — остаётся результатом пилотного дизайна, но её стоимость и качество весов не обоснованы.</p></div>
+    <div class="cards" style="margin-top:15px">
+      <article class="card"><h3>Ближайший ориентир: SimGRAG</h3><p>LLM преобразует запрос в графовый шаблон; затем метод ищет подграф KG по graph semantic distance. Он уже проверен на FactKG. Наш метод должен сформулировать улучшение относительно такого поиска и проверить его на общем датасете. Точную репликацию авторского SimGRAG мы ещё не выполняли. <a href="https://aclanthology.org/2025.findings-acl.163.pdf">Статья</a>.</p></article>
+      <article class="card"><h3>Соседний метод: NGM-RAG</h3><p>Строит графы и комбинирует совпадение имён, BM25 и графовую нейросеть для выбора узлов контекста. Его адаптивные веса относятся к сигналам поиска, а не к достоверности отдельных извлечённых связей. HotpotQA позволяет позднее проверить перенос в QA, но его результаты не равны сравнению на FactKG. <a href="https://arxiv.org/pdf/2607.11159">Статья</a>.</p></article>
+    </div>
+    <div class="panel" style="margin-top:15px"><h3>Кандидаты на следующую проверку · решения ещё нет</h3><ol><li><b>Надёжный retrieval:</b> понять, почему при 19 найденных отображениях исходный метод выдаёт факты лишь для четырёх утверждений; разделить ошибки извлечения, linking, ограничения candidate pool и выбора evidence.</li><li><b>Проверка противоречащих фактов:</b> при отсутствии заявленного ребра показывать реальные альтернативные значения того же отношения, не считать простое отсутствие ребра доказательством ложности.</li><li><b>Однопроходные веса:</b> если веса сохраняются в гипотезе, определить их из наблюдаемых признаков одного извлечения и проверить калибровку и эффект против B3. Произвольная «уверенность» LLM сама по себе недостаточна.</li></ol><p class="note">Эти пункты — направления проверки. Научная новизна новой версии алгоритма пока не доказана и не заявляется как результат.</p></div>
+  </section>
+
+  <section id="next">
+    <h2>Ближайший план</h2>
+    <div class="tablewrap"><table><thead><tr><th>Шаг</th><th>Что измерить</th><th>Критерий решения</th></tr></thead><tbody>
+      <tr><td>1. Разобрать ошибки 20 dev claims</td><td>Доли потерь на extraction, linking, candidate pool, graph match и evidence.</td><td>Выбрать один узкий механизм для улучшения, а не менять весь pipeline одновременно.</td></tr>
+      <tr><td>2. Улучшить покрытие KG evidence</td><td>Долю claims с достаточными фактами, ошибки linking и соответствие отношений.</td><td>Снизить UNKNOWN graph reader без неуместных или вымышленных фактов.</td></tr>
+      <tr><td>3. Сравнить на FactKG</td><td>Accuracy, UNKNOWN, evidence coverage, различия mapping и latency на одной выборке.</td><td>Парное сравнение с B3 и отдельный B0; без переноса вывода с dev на test.</td></tr>
+      <tr><td>4. Проверить перенос</td><td>HotpotQA после устойчивого результата на FactKG.</td><td>Одинаковый протокол и доступные входные данные для QA-сравнения.</td></tr>
+    </tbody></table></div>
+  </section>
+
+  <section id="materials"><h2>Материалы и воспроизводимость</h2><div class="sources"><a href="../docs/factkg-e1-pilot.md">Новый пилот и команды</a><a href="../docs/experiment-design-v2.md">Дизайн E1 · исходная версия</a><a href="../docs/evaluation-protocol.md">Протокол оценки</a><a href="../docs/dataset-selection.md">Выбор датасетов</a><a href="../docs/matching-cost.md">Стоимость сопоставления</a><a href="../docs/mapping-search.md">Поиск отображения</a><a href="../docs/factkg-unknown-diagnosis.md">Диагноз UNKNOWN</a><a href="../scripts/factkg_e1_pilot.py">Скрипт пилота</a><a href="../tests/test_factkg_e1_pilot.py">Тесты пилота</a><a href="https://github.com/jiho283/FactKG">FactKG</a></div><p class="note">Сырые результаты хранятся локально в игнорируемом Git каталоге data/evaluation. Старый дизайн E1 с тремя извлечениями сохранён для истории; новый однопроходный эксперимент требует иной гипотезы. Проверка <code>make check</code>: 24 теста прошли.</p></section>
+  <footer>Статус на 12.11.2026. Пилот — диагностика, не подтверждение превосходства над SimGRAG, NGM-RAG или текстовым B0.</footer>
+</main>
+</body>
+</html>

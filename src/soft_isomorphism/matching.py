@@ -46,7 +46,8 @@ class CostBreakdown:
 
 
 def _tokens(value: str) -> set[str]:
-    return set(_TOKEN_RE.findall(value.casefold().replace("_", " ")))
+    value = re.sub(r"([a-z])([A-Z])", r"\1 \2", value.replace("_", " "))
+    return set(_TOKEN_RE.findall(value.casefold()))
 
 
 def label_distance(left: str, right: str) -> float:
