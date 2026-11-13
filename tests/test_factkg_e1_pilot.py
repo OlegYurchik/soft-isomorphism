@@ -3,7 +3,8 @@ import json
 import sqlite3
 from pathlib import Path
 
-from soft_isomorphism.matching import Triple
+from soft_isomorphism.matching import Edge, Node, Triple
+from soft_isomorphism.search import exhaustive_search
 
 SCRIPT = Path(__file__).parents[1] / "scripts" / "factkg_e1_pilot.py"
 spec = importlib.util.spec_from_file_location("factkg_e1_pilot", SCRIPT)
@@ -36,6 +37,46 @@ def test_merge_views_uses_agreement_not_gold():
 def test_single_extraction_view_has_unit_weight():
     graph = pilot.merge_views([[("alice", "author", "book", "positive")]])
     assert graph["edges"][0]["confidence"] == 1.0
+
+
+def test_uniform_weights_make_b3_and_e1_identical():
+    graph = pilot.merge_views([[("a", "r1", "c", "positive"), ("a", "r2", "c", "positive")]])
+    assert {edge["confidence"] for edge in graph["edges"]} == {1.0}
+    nodes = [Node(item["id"], item["label"]) for item in graph["nodes"]]
+    kg_nodes = {label: Node(label, label) for label in ("a", "b", "c")}
+    kg_edges = [Triple("a", "r1", "b"), Triple("a", "r2", "c")]
+    candidates = {node.id: [node.label] if node.label == "a" else ["b", "c"] for node in nodes}
+
+    arms = {}
+    for arm in ("B3", "E1"):
+        edges = [
+            Edge(
+                item["source"],
+                item["relation"],
+                item["target"],
+                item["confidence"] if arm == "E1" else 1.0,
+            )
+            for item in graph["edges"]
+        ]
+        outcome = exhaustive_search(nodes, edges, kg_nodes, kg_edges, candidates)
+        arms[arm] = (
+            outcome.matches,
+            pilot.evidence(outcome.matches[0].mapping, graph, kg_edges, weighted=arm == "E1"),
+        )
+    assert arms["B3"] == arms["E1"]
+
+
+def test_nonuniform_weights_can_change_the_best_mapping():
+    nodes = [Node("s", "a"), Node("t", "c")]
+    kg_nodes = {label: Node(label, label) for label in ("a", "b", "c")}
+    kg_edges = [Triple("a", "r1", "b"), Triple("a", "r2", "c")]
+    candidates = {"s": ["a"], "t": ["b", "c"]}
+    b3 = [Edge("s", "r1", "t", 1), Edge("s", "r2", "t", 1)]
+    e1 = [Edge("s", "r1", "t", 1), Edge("s", "r2", "t", 1 / 3)]
+    b3_best = exhaustive_search(nodes, b3, kg_nodes, kg_edges, candidates).matches[0]
+    e1_best = exhaustive_search(nodes, e1, kg_nodes, kg_edges, candidates).matches[0]
+    assert b3_best.mapping == {"s": "a", "t": "c"}
+    assert e1_best.mapping == {"s": "a", "t": "b"}
 
 
 def test_parse_view_rejects_nonliteral_quote():

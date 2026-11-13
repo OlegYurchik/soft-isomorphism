@@ -51,7 +51,7 @@
       <div class="step"><em>04 · MATCH</em><b>Soft mapping</b><span>Один граф и pool; при одном извлечении веса B3/E1 одинаковы.</span></div>
       <div class="step"><em>05 · ОЦЕНКА</em><b>KG → reader → B0</b><span>При UNKNOWN отдельный гибрид берёт текстовый ответ BM25.</span></div>
     </div>
-    <p class="note">Решение: гипотезу E1 в текущем дизайне считаем нерабочей. В новом пилоте один ответ даёт каждому ребру вес 1, поэтому B3=E1. В сохранённом трёхпроходном dev-20 прогоне веса различались, но mapping, evidence и ответы E1 и B3 совпали. Это не доказывает отсутствие эффекта на других данных.</p>
+    <p class="note">Доказано для текущего дизайна: при одном извлечении все веса равны 1, поэтому стоимость любого mapping, поиск, evidence и ответ B3 и E1 совпадают. В старом трёхпроходном dev-20 только 7 графов имели неодинаковые веса внутри графа; ни один не дал различия mapping или evidence. Это не доказывает отсутствие эффекта других весов на других данных.</p>
   </section>
 
   <section id="results">
@@ -94,7 +94,7 @@
     </tbody></table></div>
   </section>
 
-  <section id="materials"><h2>Материалы и воспроизводимость</h2><div class="sources"><a href="../docs/factkg-e1-pilot.md">Новый пилот и команды</a><a href="../docs/experiment-design-v2.md">Дизайн E1 · исходная версия</a><a href="../docs/evaluation-protocol.md">Протокол оценки</a><a href="../docs/dataset-selection.md">Выбор датасетов</a><a href="../docs/matching-cost.md">Стоимость сопоставления</a><a href="../docs/mapping-search.md">Поиск отображения</a><a href="../docs/factkg-unknown-diagnosis.md">Диагноз UNKNOWN</a><a href="../scripts/factkg_e1_pilot.py">Скрипт пилота</a><a href="../tests/test_factkg_e1_pilot.py">Тесты пилота</a><a href="https://github.com/jiho283/FactKG">FactKG</a></div><p class="note">Сырые результаты хранятся локально в игнорируемом Git каталоге data/evaluation. Старый дизайн E1 с тремя извлечениями сохранён для истории; новый однопроходный эксперимент требует иной гипотезы. Проверка <code>make check</code>: 27 тестов прошли.</p></section>
+  <section id="materials"><h2>Материалы и воспроизводимость</h2><div class="sources"><a href="../docs/factkg-e1-pilot.md">Новый пилот и команды</a><a href="../docs/e1-degeneracy-proof.md">Доказательство вырождения E1</a><a href="../docs/experiment-design-v2.md">Дизайн E1 · исходная версия</a><a href="../docs/evaluation-protocol.md">Протокол оценки</a><a href="../docs/dataset-selection.md">Выбор датасетов</a><a href="../docs/matching-cost.md">Стоимость сопоставления</a><a href="../docs/mapping-search.md">Поиск отображения</a><a href="../docs/factkg-unknown-diagnosis.md">Диагноз UNKNOWN</a><a href="../scripts/factkg_e1_pilot.py">Скрипт пилота</a><a href="../tests/test_factkg_e1_pilot.py">Тесты пилота</a><a href="https://github.com/jiho283/FactKG">FactKG</a></div><p class="note">Сырые результаты хранятся локально в игнорируемом Git каталоге data/evaluation. Старый дизайн E1 с тремя извлечениями сохранён для истории; новый однопроходный эксперимент требует иной гипотезы. Проверка <code>make check</code>: 29 тестов прошли.</p></section>
   <footer>Статус на 12.11.2026. Пилот — диагностика, не подтверждение превосходства над SimGRAG, NGM-RAG или текстовым B0.</footer>
 </main>
 </body>
