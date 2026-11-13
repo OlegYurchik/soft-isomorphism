@@ -85,7 +85,9 @@ def call_model(
 ) -> tuple[str, dict, float]:
     if "qwen3" in model.lower() and "qwen3.8" not in model.lower():
         user += "\n/no_think"
-    headers = {"Content-Type": "application/json"}
+    # The ITMO LiteLLM gateway rejects urllib's default User-Agent with
+    # Cloudflare error 1010, while accepting regular API client identifiers.
+    headers = {"Content-Type": "application/json", "User-Agent": "OpenAI/Python 1.0"}
     if api_key:
         headers["Authorization"] = f"Bearer {api_key}"
     payload = {

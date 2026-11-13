@@ -37,6 +37,8 @@ Encoder: `sentence-transformers/all-MiniLM-L6-v2`, ревизия
 | B4 и E4 выбрали разные mapping / evidence | **0 / 0** | **0 / 0** |
 | Непустые evidence B1 / B4 / E4 | **20 / 3 / 3** | **20 / 1 / 1** |
 | Покрытые авторские path constraints у положительных claims | **B1: 19/32; B4: 8/32; E4: 8/32** | На test аннотаций `Evidence` нет |
+| Accuracy B1 / B4 / E4 (UNKNOWN считается ошибкой) | **0.60 / 0.05 / 0.05** | **0.70 / 0.00 / 0.00** |
+| UNKNOWN B1 / B4 / E4 | **6 / 19 / 19** | **5 / 20 / 20** |
 
 Для каждого claim, где нет query path, `P(f)=0` для всех mapping. В 11
 claims с query paths (6 dev, 5 test) **ни у одного из top-50 mapping нет
@@ -63,12 +65,15 @@ pool/beam для 10 claims и несовпадение коротких назв
 малая доля непустых evidence у B4/E4; одно лишь семантическое кодирование
 коротких relation names не решило проблему retrieval.
 
-Reader и Accuracy **не запускались**: сервис ИТМО
-`https://api.duckduck.cloud` в день прогона не отвечал даже на `GET
-/v1/models` с авторизацией (таймаут 8 с) и короткий chat-запрос (таймаут
-15 с). Отсутствующий результат нельзя заменять прежней Accuracy B3 или
-гибрида с B0. На test-20 авторских path annotations нет, поэтому там
-публикуется только наличие evidence и точное равенство B4/E4.
+Reader запущен 13.11.2026 на `iairlab/qwen3.8-27b` с temperature 0 и
+одинаковым KG-only prompt для всех методов. Первоначальные таймауты
+сменились Cloudflare 1010: gateway отклонял стандартный `Python-urllib`
+User-Agent. После явного API-клиентского User-Agent сервер вернул 200;
+это исправление транспорта, prompt и данные не менялись. B1 правильно
+классифицировал 12/20 dev и 14/20 test claims; среди не-UNKNOWN ответов
+это 12/14 и 14/15 соответственно. Такая условная доля не заменяет
+основную Accuracy, где UNKNOWN считается ошибкой. B4 и E4 дали один и
+тот же ответ на каждом claim, как и следует из одинаковых evidence.
 
 ## Решение
 
@@ -101,9 +106,9 @@ PYTHONPATH=src python scripts/factkg_e4_experiment.py evaluate \
   --out-dir data/evaluation/e4-dev-20 --split dev
 ```
 
-Команда `read` подготовлена для отдельной оценки Accuracy после
-восстановления API; она использует один KG-only reader для B1/B4/E4 и
-возобновляет работу по сохранённым claim IDs.
+Команда `read` использует один KG-only reader для B1/B4/E4, проверяет
+SHA-256 evidence при возобновлении и сохраняет `predictions.jsonl` и
+`reader-summary.json` в игнорируемом каталоге результата.
 
 Структурную достижимость из таблицы можно воспроизвести без encoder и API:
 

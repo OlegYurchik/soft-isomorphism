@@ -160,6 +160,7 @@ def test_qwen38_request_disables_thinking(monkeypatch):
 
     def fake_urlopen(request, timeout):
         captured.update(json.loads(request.data))
+        captured["user_agent"] = request.headers["User-agent"]
         return Response()
 
     monkeypatch.setattr(pilot.urllib.request, "urlopen", fake_urlopen)
@@ -168,6 +169,7 @@ def test_qwen38_request_disables_thinking(monkeypatch):
     )
     assert captured["chat_template_kwargs"] == {"enable_thinking": False}
     assert captured["messages"][1]["content"] == "Claim"
+    assert captured["user_agent"] == "OpenAI/Python 1.0"
 
 
 def test_candidate_pool_preserves_reverse_relation_direction():
