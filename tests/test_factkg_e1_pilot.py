@@ -1,5 +1,6 @@
 import importlib.util
 import json
+import pickle
 import sqlite3
 from pathlib import Path
 
@@ -10,6 +11,15 @@ SCRIPT = Path(__file__).parents[1] / "scripts" / "factkg_e1_pilot.py"
 spec = importlib.util.spec_from_file_location("factkg_e1_pilot", SCRIPT)
 pilot = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(pilot)
+
+
+def test_selected_claims_supports_stable_offset(tmp_path):
+    path = tmp_path / "claims.pickle"
+    claims = {"gamma": {}, "alpha": {}, "beta": {}}
+    with path.open("wb") as stream:
+        pickle.dump(claims, stream)
+    expected = sorted(claims, key=pilot.digest)[1:3]
+    assert pilot.selected_claims(path, limit=2, offset=1) == expected
 
 
 def test_merge_views_uses_agreement_not_gold():

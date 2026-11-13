@@ -30,10 +30,10 @@ def digest(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
-def selected_claims(path: Path, limit: int) -> list[str]:
+def selected_claims(path: Path, limit: int, offset: int = 0) -> list[str]:
     with path.open("rb") as stream:
         rows = pickle.load(stream)
-    return sorted(rows, key=digest)[:limit]
+    return sorted(rows, key=digest)[offset : offset + limit]
 
 
 def norm(text: str) -> str:
@@ -332,7 +332,7 @@ def api_key_for(args: argparse.Namespace) -> str | None:
 
 
 def extract(args: argparse.Namespace) -> None:
-    claims = selected_claims(args.data_dir / f"factkg_{args.split}.pickle", args.limit)
+    claims = selected_claims(args.data_dir / f"factkg_{args.split}.pickle", args.limit, args.offset)
     relations = json.loads((args.work_dir / "relations.json").read_text())
     output = args.work_dir / "extract.jsonl"
     existing = {row["id"]: row for row in read_jsonl(output)} if output.exists() else {}
@@ -867,6 +867,7 @@ def main() -> None:
     )
     parser.add_argument("--split", choices=("train", "dev", "test"), default="train")
     parser.add_argument("--limit", type=int, default=5)
+    parser.add_argument("--offset", type=int, default=0)
     parser.add_argument("--server-url", default="http://127.0.0.1:8997")
     parser.add_argument("--model", default="qwen2.5-7b-instruct-q4-k-m")
     parser.add_argument("--api-key-env", default="OPENAI_API_KEY")
@@ -883,6 +884,8 @@ def main() -> None:
     args = parser.parse_args()
     if args.limit < 1:
         parser.error("limit must be positive")
+    if args.offset < 0:
+        parser.error("offset must be non-negative")
     if args.relation_limit < 1:
         parser.error("relation-limit must be positive")
     if args.phase == "hybrid" and args.b0_file is None:
