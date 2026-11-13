@@ -29,7 +29,7 @@
     <div class="metric"><b>9,9 млн</b><span>сущностей в подключённом DBpedia light</span></div>
     <div class="metric"><b>56,4%</b><span>Accuracy текстового B0 на 500 test claims</span></div>
     <div class="metric"><b>20</b><span>dev claims в графовом пилоте с моделью ИТМО</span></div>
-    <div class="metric warn"><b>0</b><span>UNKNOWN у гибрида на dev-20 и test-20; преимущество E1 не проверено</span></div>
+    <div class="metric warn"><b>0</b><span>UNKNOWN у гибрида на dev-20 и test-20; гипотеза E1 в текущем дизайне отклонена</span></div>
   </section>
 
   <section id="done">
@@ -51,7 +51,7 @@
       <div class="step"><em>04 · MATCH</em><b>Soft mapping</b><span>Один граф и pool; при одном извлечении веса B3/E1 одинаковы.</span></div>
       <div class="step"><em>05 · ОЦЕНКА</em><b>KG → reader → B0</b><span>При UNKNOWN отдельный гибрид берёт текстовый ответ BM25.</span></div>
     </div>
-    <p class="note">Старый пилот использовал три близких запроса для весов E1. В новом пилоте один ответ даёт каждому ребру вес 1, поэтому B3=E1. Новый прогон оценивает extraction, retrieval и fallback; он не проверяет гипотезу о весах.</p>
+    <p class="note">Решение: гипотезу E1 в текущем дизайне считаем нерабочей. В новом пилоте один ответ даёт каждому ребру вес 1, поэтому B3=E1. В сохранённом трёхпроходном dev-20 прогоне веса различались, но mapping, evidence и ответы E1 и B3 совпали. Это не доказывает отсутствие эффекта на других данных.</p>
   </section>
 
   <section id="results">
@@ -76,7 +76,7 @@
 
   <section id="research">
     <h2>Что мы сейчас ищем</h2>
-    <div class="callout"><p><strong>Исследовательский вопрос:</strong> какой конкретный механизм улучшит мягкое сопоставление графа утверждения с KG при одном извлечении графа на утверждение и одинаковом бюджете для сравниваемых методов?</p><p>Предыдущая гипотеза — вес связи по согласию трёх ответов LLM — остаётся результатом пилотного дизайна, но её стоимость и качество весов не обоснованы.</p></div>
+    <div class="callout"><p><strong>Решение по E1:</strong> гипотеза о весах по согласию трёх извлечений в текущем дизайне не работает и не используется как заявленное улучшение. При одном извлечении E1 тождественен B3; на сохранённом трёхпроходном dev-20 различий в результатах нет.</p><p><strong>Следующий вопрос:</strong> какой конкретный механизм улучшит мягкое сопоставление графа утверждения с KG при одном извлечении и одинаковом бюджете методов?</p></div>
     <div class="cards" style="margin-top:15px">
       <article class="card"><h3>Ближайший ориентир: SimGRAG</h3><p>LLM преобразует запрос в графовый шаблон; затем метод ищет подграф KG по graph semantic distance. Он уже проверен на FactKG. Наш метод должен сформулировать улучшение относительно такого поиска и проверить его на общем датасете. Точную репликацию авторского SimGRAG мы ещё не выполняли. <a href="https://aclanthology.org/2025.findings-acl.163.pdf">Статья</a>.</p></article>
       <article class="card"><h3>Соседний метод: NGM-RAG</h3><p>Строит графы и комбинирует совпадение имён, BM25 и графовую нейросеть для выбора узлов контекста. Его адаптивные веса относятся к сигналам поиска, а не к достоверности отдельных извлечённых связей. HotpotQA позволяет позднее проверить перенос в QA, но его результаты не равны сравнению на FactKG. <a href="https://arxiv.org/pdf/2607.11159">Статья</a>.</p></article>
@@ -94,7 +94,7 @@
     </tbody></table></div>
   </section>
 
-  <section id="materials"><h2>Материалы и воспроизводимость</h2><div class="sources"><a href="../docs/factkg-e1-pilot.md">Новый пилот и команды</a><a href="../docs/experiment-design-v2.md">Дизайн E1 · исходная версия</a><a href="../docs/evaluation-protocol.md">Протокол оценки</a><a href="../docs/dataset-selection.md">Выбор датасетов</a><a href="../docs/matching-cost.md">Стоимость сопоставления</a><a href="../docs/mapping-search.md">Поиск отображения</a><a href="../docs/factkg-unknown-diagnosis.md">Диагноз UNKNOWN</a><a href="../scripts/factkg_e1_pilot.py">Скрипт пилота</a><a href="../tests/test_factkg_e1_pilot.py">Тесты пилота</a><a href="https://github.com/jiho283/FactKG">FactKG</a></div><p class="note">Сырые результаты хранятся локально в игнорируемом Git каталоге data/evaluation. Старый дизайн E1 с тремя извлечениями сохранён для истории; новый однопроходный эксперимент требует иной гипотезы. Проверка <code>make check</code>: 24 теста прошли.</p></section>
+  <section id="materials"><h2>Материалы и воспроизводимость</h2><div class="sources"><a href="../docs/factkg-e1-pilot.md">Новый пилот и команды</a><a href="../docs/experiment-design-v2.md">Дизайн E1 · исходная версия</a><a href="../docs/evaluation-protocol.md">Протокол оценки</a><a href="../docs/dataset-selection.md">Выбор датасетов</a><a href="../docs/matching-cost.md">Стоимость сопоставления</a><a href="../docs/mapping-search.md">Поиск отображения</a><a href="../docs/factkg-unknown-diagnosis.md">Диагноз UNKNOWN</a><a href="../scripts/factkg_e1_pilot.py">Скрипт пилота</a><a href="../tests/test_factkg_e1_pilot.py">Тесты пилота</a><a href="https://github.com/jiho283/FactKG">FactKG</a></div><p class="note">Сырые результаты хранятся локально в игнорируемом Git каталоге data/evaluation. Старый дизайн E1 с тремя извлечениями сохранён для истории; новый однопроходный эксперимент требует иной гипотезы. Проверка <code>make check</code>: 27 тестов прошли.</p></section>
   <footer>Статус на 12.11.2026. Пилот — диагностика, не подтверждение превосходства над SimGRAG, NGM-RAG или текстовым B0.</footer>
 </main>
 </body>
