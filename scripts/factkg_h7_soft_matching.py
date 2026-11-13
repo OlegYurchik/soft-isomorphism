@@ -308,6 +308,8 @@ def score_row(
 
 def score(args: argparse.Namespace) -> None:
     rows = read_jsonl(args.candidate_file)
+    if args.row_limit is not None:
+        rows = rows[: args.row_limit]
     b4 = {row["id"]: row for row in read_jsonl(args.b4_file)}
     encoder = OnnxRelationEncoder()
     results = []
@@ -465,7 +467,10 @@ def main() -> None:
     parser.add_argument("--reader-max-tokens", type=int, default=256)
     parser.add_argument("--fixed-only", action="store_true")
     parser.add_argument("--include-b1", action="store_true")
+    parser.add_argument("--row-limit", type=int)
     args = parser.parse_args()
+    if args.row_limit is not None and args.row_limit < 1:
+        parser.error("row-limit must be positive")
     args.out_dir.mkdir(parents=True, exist_ok=True)
     {"score": score, "evaluate": evaluate, "read": read}[args.phase](args)
 

@@ -14,6 +14,7 @@ import time
 import unicodedata
 import urllib.request
 from collections import Counter, deque
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 from soft_isomorphism.matching import Edge, Node, Triple, _edge_distance, label_distance
@@ -344,10 +345,10 @@ def extract(args: argparse.Namespace) -> None:
             or row.get("open_relations", False) != args.open_relations
         ):
             raise ValueError("cached extraction has different model or extraction settings")
-    for claim in claims:
+    key = api_key_for(args)
+
+    def extract_claim(claim: str) -> dict:
         identifier = digest(claim)
-        if identifier in existing:
-            continue
         views, raw_views, usage = [], [], []
         relevant_relations = (
             []
@@ -376,7 +377,7 @@ def extract(args: argparse.Namespace) -> None:
                 args.extract_max_tokens,
                 schema=GRAPH_SCHEMA,
                 model=args.model,
-                api_key=api_key_for(args),
+                api_key=key,
                 json_mode=args.json_mode,
             )
             raw_views.append(raw)
@@ -387,7 +388,7 @@ def extract(args: argparse.Namespace) -> None:
                 )
             except (ValueError, KeyError, TypeError, json.JSONDecodeError):
                 views.append([])
-        row = {
+        return {
             "id": identifier,
             "text": claim,
             "graph": merge_views(views),
@@ -400,13 +401,21 @@ def extract(args: argparse.Namespace) -> None:
             "raw_views": raw_views,
             "usage": usage,
         }
-        existing[identifier] = row
-        write_jsonl(output, [existing[digest(text)] for text in claims if digest(text) in existing])
-        edge_count = len(row["graph"]["edges"])
-        print(
-            f"extracted {len(existing)}/{len(claims)} {identifier[:12]} edges={edge_count}",
-            flush=True,
-        )
+
+    pending = [claim for claim in claims if digest(claim) not in existing]
+    with ThreadPoolExecutor(max_workers=args.workers) as executor:
+        results = executor.map(extract_claim, pending)
+        for row in results:
+            identifier = row["id"]
+            existing[identifier] = row
+            write_jsonl(
+                output, [existing[digest(text)] for text in claims if digest(text) in existing]
+            )
+            edge_count = len(row["graph"]["edges"])
+            print(
+                f"extracted {len(existing)}/{len(claims)} {identifier[:12]} edges={edge_count}",
+                flush=True,
+            )
 
 
 def reparse(args: argparse.Namespace) -> None:
@@ -875,6 +884,7 @@ def main() -> None:
     parser.add_argument("--json-mode", choices=("schema", "object"), default="schema")
     parser.add_argument("--extract-max-tokens", type=int, default=256)
     parser.add_argument("--extract-views", type=int, choices=(1, 3), default=3)
+    parser.add_argument("--workers", type=int, default=1)
     parser.add_argument("--relation-limit", type=int, default=80)
     parser.add_argument("--open-relations", action="store_true")
     parser.add_argument("--reader-max-tokens", type=int, default=128)
@@ -886,6 +896,8 @@ def main() -> None:
         parser.error("limit must be positive")
     if args.offset < 0:
         parser.error("offset must be non-negative")
+    if args.workers < 1:
+        parser.error("workers must be positive")
     if args.relation_limit < 1:
         parser.error("relation-limit must be positive")
     if args.phase == "hybrid" and args.b0_file is None:

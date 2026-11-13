@@ -239,15 +239,17 @@ def prepare(args: argparse.Namespace) -> None:
                     "expanded_states": outcome.expanded_states,
                 }
             )
-        existing[row["id"]] = result
+        existing[result["id"]] = result
         with output.open("a") as stream:
             stream.write(json.dumps(result, ensure_ascii=False) + "\n")
-        print(f"prepared {len(existing)}/{len(rows)} {row['id'][:12]}", flush=True)
+        print(f"prepared {len(existing)}/{len(rows)} {result['id'][:12]}", flush=True)
     index.close()
 
 
 def score(args: argparse.Namespace) -> None:
     rows = read_jsonl(args.out_dir / "candidate-pools.jsonl")
+    if args.row_limit is not None:
+        rows = rows[: args.row_limit]
     encoder = OnnxRelationEncoder()
     relations = {
         value
@@ -463,7 +465,10 @@ def main() -> None:
     parser.add_argument("--kilo-auth-provider")
     parser.add_argument("--json-mode", choices=("object", "schema"), default="object")
     parser.add_argument("--reader-max-tokens", type=int, default=256)
+    parser.add_argument("--row-limit", type=int)
     args = parser.parse_args()
+    if args.row_limit is not None and args.row_limit < 1:
+        parser.error("row-limit must be positive")
     args.out_dir.mkdir(parents=True, exist_ok=True)
     {"prepare": prepare, "score": score, "evaluate": evaluate, "read": read}[args.phase](args)
 
