@@ -269,6 +269,8 @@ def link_candidates(index: sqlite3.Connection, label: str, limit: int = 5) -> li
     if not words:
         return []
     queries = ['"' + cleaned + '"', '"' + max(words, key=len) + '"']
+    if len(words) > 1 and 4 <= len(words[0]) <= 6:
+        queries.append('"' + words[0] + '"')
     hits: set[str] = set()
     for query in queries:
         try:
@@ -282,6 +284,42 @@ def link_candidates(index: sqlite3.Connection, label: str, limit: int = 5) -> li
         hits.update(row[0] for row in rows)
     ranked = sorted(hits, key=lambda kg_id: (label_distance(label, kg_id.replace("_", " ")), kg_id))
     return [kg_id for kg_id in ranked[:limit] if label_distance(label, kg_id.replace("_", " ")) < 1]
+
+
+def direct_id_variants(label: str, kg: dict) -> list[str]:
+    """Prefer exact KG identifiers, including a leading-article variant."""
+    stripped = re.sub(r"^(?:the|a|an)\s+", "", label, flags=re.I)
+    candidates = [
+        value.replace(" ", "_")
+        for phrase in (label, stripped)
+        for value in (phrase, phrase.title())
+    ]
+    return list(dict.fromkeys(identifier for identifier in candidates if identifier in kg))
+
+
+def variable_candidates(
+    node_id: str, graph: dict, triples: list[Triple], anchors: dict[str, list[str]], seeds: set[str]
+) -> list[str]:
+    """Rank unnamed nodes by edges connecting them to named query anchors."""
+    scores: dict[str, float] = {}
+    for edge in graph["edges"]:
+        if node_id not in (edge["source"], edge["target"]):
+            continue
+        other_id = edge["target"] if edge["source"] == node_id else edge["source"]
+        other_anchors = set(anchors.get(other_id, []))
+        for triple in triples:
+            if edge["target"] == node_id and triple.source in other_anchors:
+                candidate = triple.target
+            elif edge["source"] == node_id and triple.target in other_anchors:
+                candidate = triple.source
+            else:
+                continue
+            if not candidate or candidate in seeds or candidate.startswith('"'):
+                continue
+            score = 1 - _edge_distance(edge["relation"], triple.relation)
+            scores[candidate] = max(scores.get(candidate, -1), score)
+    ranked = sorted(scores, key=lambda identifier: (-scores[identifier], identifier))
+    return ranked[:20]
 
 
 def api_key_for(args: argparse.Namespace) -> str | None:
@@ -442,10 +480,11 @@ def candidate_pool(
         if label == "?":
             continue
         if name_index is not None:
-            anchors[node["id"]] = [id for id in link_candidates(name_index, label) if id in kg]
+            direct = direct_id_variants(label, kg)
+            fuzzy = [id for id in link_candidates(name_index, label) if id in kg]
+            anchors[node["id"]] = list(dict.fromkeys([*direct, *fuzzy]))[:5]
         else:
-            variants = [label.replace(" ", "_"), label.title().replace(" ", "_"), label]
-            anchors[node["id"]] = [next((id for id in variants if id in kg), None)]
+            anchors[node["id"]] = direct_id_variants(label, kg)[:5] or [None]
     if name_index is None:
         unresolved = {
             norm(node["label"]): node["id"]
@@ -489,9 +528,16 @@ def candidate_pool(
     candidates = {}
     for node in graph["nodes"]:
         if node["label"] == "?":
-            candidates[node["id"]] = [
-                identifier for identifier in sorted(nodes) if identifier not in seeds
-            ][:20]
+            linked = variable_candidates(node["id"], graph, values, anchors, set(seeds))
+            fallback = [
+                identifier
+                for identifier in sorted(nodes)
+                if identifier
+                and identifier != "?"
+                and identifier not in seeds
+                and not identifier.startswith('"')
+            ]
+            candidates[node["id"]] = list(dict.fromkeys([*linked, *fallback]))[:20]
         else:
             candidates[node["id"]] = [value for value in anchors.get(node["id"], []) if value]
     return nodes, values, candidates

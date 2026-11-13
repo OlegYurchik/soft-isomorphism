@@ -153,6 +153,42 @@ def test_fts_linking_finds_normalized_name():
     assert pilot.link_candidates(connection, "Taylor County, Texas")[0] == "Taylor_County,_Texas"
 
 
+def test_fts_linking_recovers_accented_surname_from_first_name():
+    connection = sqlite3.connect(":memory:")
+    connection.execute(
+        "CREATE VIRTUAL TABLE entity_names USING fts5(id UNINDEXED, label, tokenize='trigram')"
+    )
+    connection.executemany(
+        "INSERT INTO entity_names(id,label) VALUES(?,?)",
+        [
+            ("Sauli_Niinistö", "sauli niinistö"),
+            ("niinisto.fi", "niinisto.fi"),
+        ],
+    )
+    assert pilot.link_candidates(connection, "Sauli Niinisto")[0] == "Sauli_Niinistö"
+
+
+def test_direct_id_variant_recovers_name_after_article():
+    kg = {"National_Park_Service": {}}
+    assert pilot.direct_id_variants("the national park service", kg) == ["National_Park_Service"]
+
+
+def test_variable_candidates_prefer_relation_connected_entity():
+    graph = {
+        "nodes": [{"id": "n0", "label": "Helsinki"}, {"id": "n1", "label": "?"}],
+        "edges": [{"source": "n0", "relation": "country", "target": "n1"}],
+    }
+    triples = [
+        Triple("Helsinki", "timeZone", "Europe"),
+        Triple("Helsinki", "country", "Finland"),
+        Triple("Helsinki", "country", '"Finland"'),
+    ]
+    assert pilot.variable_candidates("n1", graph, triples, {"n0": ["Helsinki"]}, {"Helsinki"}) == [
+        "Finland",
+        "Europe",
+    ]
+
+
 def test_bm25_fanout_prioritizes_claim_relation():
     triples = [Triple("Alice", "award", "Medal"), Triple("Alice", "birthPlace", "Paris")]
     ranked = pilot.bm25_incident(triples, "Alice was born in Paris", limit=1)
