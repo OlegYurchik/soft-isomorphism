@@ -3,104 +3,155 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>НИР · мягкое сопоставление графа с KG</title>
+  <title>Отчёт по НИР · мягкое сопоставление графов</title>
   <style>
-    :root{color-scheme:light;--ink:#18332f;--muted:#60736f;--line:#d6e2dd;--green:#16735f;--amber:#a86419;--blue:#315f8e;--paper:#f5f8f6}
-    *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.55 system-ui,-apple-system,Segoe UI,sans-serif}
-    main{max-width:1150px;margin:auto;padding:34px 24px 80px}h1{font-size:clamp(2.2rem,5vw,4rem);line-height:1.08;letter-spacing:-.04em;margin:.35em 0}h2{font-size:1.6rem;margin:42px 0 15px;letter-spacing:-.025em}h3{margin:0 0 8px;font-size:1.08rem}p{margin:8px 0 14px}a{color:var(--blue);text-underline-offset:3px}small,.muted{color:var(--muted)}code{font:0.87em ui-monospace,SFMono-Regular,Consolas,monospace;background:#edf3f0;padding:2px 5px;border-radius:4px;overflow-wrap:anywhere}
-    .eyebrow{font-size:.83rem;letter-spacing:.11em;text-transform:uppercase;color:var(--green);font-weight:750}.lead{font-size:1.18rem;max-width:830px;color:#395650}.nav{display:flex;flex-wrap:wrap;gap:9px;margin:22px 0 30px}.nav a{padding:7px 12px;background:white;border:1px solid var(--line);border-radius:99px;text-decoration:none;font-size:.9rem}
-    .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.cards{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}.card,.metric,.panel{background:white;border:1px solid var(--line);border-radius:14px;padding:20px;box-shadow:0 2px 10px #173b3308}.metric{border-top:4px solid var(--green)}.metric.warn{border-top-color:var(--amber)}.metric b{display:block;font-size:1.9rem;line-height:1.15;letter-spacing:-.04em}.metric span{font-size:.88rem;color:var(--muted)}.callout{background:#173c35;color:#f1f8f5;border-radius:14px;padding:20px 24px}.callout p{margin:5px 0}.callout strong{color:#a9e6d0}
-    .flow{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}.step{position:relative;background:white;border:1px solid var(--line);border-radius:12px;padding:15px;min-height:115px}.step b{display:block;margin:5px 0}.step em{font-size:.78rem;color:var(--green);font-style:normal;font-weight:700;letter-spacing:.08em}.step:not(:last-child):after{content:"→";position:absolute;right:-13px;top:40%;z-index:1;color:var(--green);font-weight:800;background:var(--paper);padding:0 3px}
-    .tablewrap{overflow-x:auto;background:white;border:1px solid var(--line);border-radius:14px}table{border-collapse:collapse;width:100%;min-width:650px;font-size:.91rem}th,td{text-align:left;vertical-align:top;padding:12px 15px;border-bottom:1px solid #e6eeea}th{background:#eaf2ee;color:#385950}tr:last-child td{border-bottom:0}.tag{display:inline-block;border-radius:99px;padding:2px 8px;font-size:.76rem;font-weight:700;background:#e4f2eb;color:#17654f}.tag.open{background:#fff0da;color:#98601b}
-    .bars{display:grid;grid-template-columns:repeat(2,1fr);gap:18px}.barrow{margin:10px 0}.barhead{display:flex;justify-content:space-between;gap:10px;font-size:.9rem}.track{height:13px;background:#e9efeb;border-radius:99px;overflow:hidden;margin-top:5px}.fill{height:100%;background:var(--green);border-radius:99px}.fill.alt{background:#e4a74e}.note{font-size:.89rem;color:var(--muted)}ol,ul{padding-left:1.35rem}li{margin:5px 0}.sources{display:flex;flex-wrap:wrap;gap:8px}.sources a{background:white;border:1px solid var(--line);padding:7px 11px;border-radius:8px;text-decoration:none;font-size:.88rem}footer{border-top:1px solid var(--line);margin-top:42px;padding-top:18px;color:var(--muted);font-size:.87rem}
-    @media(max-width:850px){.grid{grid-template-columns:repeat(2,1fr)}.flow{grid-template-columns:repeat(2,1fr)}.step:after{display:none}}@media(max-width:580px){main{padding:22px 16px 55px}.grid,.cards,.bars,.flow{grid-template-columns:1fr}}
+    :root{color-scheme:light;--ink:#172d2a;--muted:#5c6f6b;--paper:#f4f7f5;--card:#fff;--line:#d8e2de;--green:#14745d;--green-soft:#e5f3ed;--blue:#34658f;--blue-soft:#e7eff7;--amber:#a86618;--amber-soft:#fff0d9;--red:#a8493f;--red-soft:#fbe9e7;--purple:#705593;--shadow:0 3px 16px rgba(26,55,48,.07)}
+    *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.55 Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}main{max-width:1180px;margin:0 auto;padding:34px 24px 80px}h1,h2,h3{line-height:1.15;letter-spacing:-.025em}h1{max-width:900px;margin:9px 0 14px;font-size:clamp(2.25rem,5vw,4.3rem);letter-spacing:-.055em}h2{margin:46px 0 16px;font-size:clamp(1.55rem,2.5vw,2rem)}h3{margin:0 0 8px;font-size:1.06rem}p{margin:7px 0 13px}a{color:var(--blue);text-underline-offset:3px}code{padding:2px 5px;border-radius:5px;background:#edf2f0;font:.86em ui-monospace,SFMono-Regular,Consolas,monospace;overflow-wrap:anywhere}.eyebrow{color:var(--green);font-size:.8rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase}.lead{max-width:890px;color:#38534e;font-size:1.16rem}.muted,.note{color:var(--muted)}.note{font-size:.88rem}.nav{display:flex;flex-wrap:wrap;gap:8px;margin:23px 0 30px}.nav a{padding:7px 12px;border:1px solid var(--line);border-radius:99px;background:#fff;text-decoration:none;font-size:.88rem}
+    .metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.metric,.card,.panel{border:1px solid var(--line);border-radius:14px;background:var(--card);box-shadow:var(--shadow)}.metric{padding:17px 18px;border-top:4px solid var(--green)}.metric.blue{border-top-color:var(--blue)}.metric.amber{border-top-color:var(--amber)}.metric b{display:block;margin-bottom:3px;font-size:1.82rem;line-height:1.1;letter-spacing:-.045em}.metric span{color:var(--muted);font-size:.86rem}.cards{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}.card,.panel{padding:19px 20px}.callout{padding:20px 23px;border-radius:14px;background:#173d35;color:#f2f8f5}.callout strong{color:#a8e6cf}.callout p:last-child{margin-bottom:0}
+    .flow{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}.step{position:relative;min-height:122px;padding:15px;border:1px solid var(--line);border-radius:12px;background:#fff}.step:not(:last-child)::after{content:"→";position:absolute;z-index:2;top:42%;right:-14px;padding:0 3px;background:var(--paper);color:var(--green);font-weight:900}.step em{color:var(--green);font-size:.73rem;font-style:normal;font-weight:800;letter-spacing:.08em}.step b{display:block;margin:7px 0 4px}.step span{color:var(--muted);font-size:.86rem}.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:14px;background:#fff;box-shadow:var(--shadow)}table{width:100%;min-width:760px;border-collapse:collapse;font-size:.89rem}th,td{padding:11px 13px;border-bottom:1px solid #e6ece9;text-align:left;vertical-align:top}th{background:#eaf2ee;color:#35564e;font-size:.83rem;letter-spacing:.02em}tr:last-child td{border-bottom:0}.status{display:inline-block;white-space:nowrap;padding:2px 8px;border-radius:99px;font-size:.72rem;font-weight:800}.rejected{background:var(--red-soft);color:var(--red)}.mixed{background:var(--amber-soft);color:var(--amber)}.supported{background:var(--green-soft);color:var(--green)}.pending{background:var(--blue-soft);color:var(--blue)}
+    .timeline{display:grid;gap:10px}.hypothesis{display:grid;grid-template-columns:72px 1.25fr 1.25fr 120px;gap:14px;align-items:start;padding:15px 17px;border:1px solid var(--line);border-radius:13px;background:#fff;box-shadow:var(--shadow)}.hid{color:var(--green);font-size:1.15rem;font-weight:900}.hypothesis p{margin:0;font-size:.9rem}.hypothesis .result{color:#405b56}.bars{display:grid;grid-template-columns:1.2fr .8fr;gap:14px}.barrow{margin:12px 0}.barhead{display:flex;justify-content:space-between;gap:12px;font-size:.87rem}.track{height:14px;margin-top:5px;overflow:hidden;border-radius:99px;background:#e7eeeb}.fill{height:100%;border-radius:99px;background:var(--green)}.fill.blue{background:var(--blue)}.fill.amber{background:var(--amber)}.fill.purple{background:var(--purple)}
+    .diagram{display:grid;grid-template-columns:1fr auto 1fr auto 1fr;gap:11px;align-items:center}.diagram .box{min-height:112px;padding:16px;border:1px solid var(--line);border-radius:12px;background:#fff}.diagram .arrow{color:var(--green);font-size:1.5rem;font-weight:900}.formula{padding:12px 15px;border-left:4px solid var(--green);background:#eaf3ef;font:.9rem ui-monospace,SFMono-Regular,Consolas,monospace}.decision{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.decision .card{border-top:4px solid var(--green)}ul,ol{padding-left:1.3rem}li{margin:5px 0}.sources{display:flex;flex-wrap:wrap;gap:8px}.sources a{padding:7px 10px;border:1px solid var(--line);border-radius:8px;background:#fff;text-decoration:none;font-size:.84rem}footer{margin-top:46px;padding-top:17px;border-top:1px solid var(--line);color:var(--muted);font-size:.85rem}
+    @media(max-width:920px){.metrics{grid-template-columns:repeat(2,1fr)}.flow{grid-template-columns:repeat(2,1fr)}.step::after{display:none}.hypothesis{grid-template-columns:58px 1fr}.hypothesis .status{justify-self:start}.bars,.decision{grid-template-columns:1fr}}@media(max-width:620px){main{padding:23px 15px 55px}.metrics,.cards,.flow{grid-template-columns:1fr}.diagram{grid-template-columns:1fr}.diagram .arrow{transform:rotate(90deg);justify-self:center}}@media print{body{background:#fff;font-size:12px}main{max-width:none;padding:0}.nav{display:none}.metric,.card,.panel,.hypothesis,.tablewrap{box-shadow:none;break-inside:avoid}h2{break-after:avoid}a{color:inherit;text-decoration:none}}
   </style>
 </head>
 <body>
 <main>
   <header>
-    <div class="eyebrow">НИР · проверенный статус · 12 ноября 2026</div>
+    <div class="eyebrow">Отчёт по НИР · фактический статус на 15.11.2026</div>
     <h1>Мягкое сопоставление графа текста с графом знаний</h1>
-    <p class="lead">Цель — извлечь из текста граф отношений, найти соответствующие факты во внешнем KG и проверить, помогает ли графовый поиск отвечать точнее. Проверен новый пилот с <b>одним извлечением графа на запрос</b> и отдельным BM25 fallback для UNKNOWN.</p>
-    <nav class="nav" aria-label="Разделы отчёта"><a href="#done">Сделано</a><a href="#pipeline">Как работает</a><a href="#results">Результаты</a><a href="#research">Что ищем</a><a href="#next">План</a><a href="#materials">Материалы</a></nav>
+    <p class="lead">Цель — проверить, можно ли устойчиво сопоставлять граф отношений, извлечённый из claim, с DBpedia при неточных именах, отношениях и топологии. Пройдена серия из восьми зафиксированных гипотез. Лучший текущий результат — H10: path-guided endpoint linking вместе с edge-to-path soft matching.</p>
+    <nav class="nav" aria-label="Разделы"><a href="#summary">Итог</a><a href="#setup">Постановка</a><a href="#pipeline">Pipeline</a><a href="#hypotheses">Гипотезы</a><a href="#comparison">Сравнение</a><a href="#h10">H10</a><a href="#limits">Границы</a><a href="#next">План</a></nav>
   </header>
 
-  <section class="grid" aria-label="Ключевые числа">
-    <div class="metric"><b>9,9 млн</b><span>сущностей в подключённом DBpedia light</span></div>
-    <div class="metric"><b>56,4%</b><span>Accuracy текстового B0 на 500 test claims</span></div>
-    <div class="metric"><b>20</b><span>dev claims в графовом пилоте с моделью ИТМО</span></div>
-    <div class="metric warn"><b>0</b><span>UNKNOWN у гибрида на dev-20 и test-20; гипотеза E1 в текущем дизайне отклонена</span></div>
+  <section id="summary" class="metrics" aria-label="Ключевые числа">
+    <div class="metric"><b>41,85%</b><span>path coverage H10 на 500 diagnostic dev claims</span></div>
+    <div class="metric blue"><b>+10,69 п.п.</b><span>прирост H10 относительно H9</span></div>
+    <div class="metric"><b>85 / 3</b><span>H10-only / H9-only покрытых gold paths</span></div>
+    <div class="metric amber"><b>pending</b><span>end-to-end reader H9/H10: Qwen backend возвращает HTTP 500</span></div>
   </section>
 
-  <section id="done">
-    <h2>Что выполнено</h2>
-    <div class="cards">
-      <article class="card"><h3>Постановка и аналоги</h3><p>Определена тема: мягкое сопоставление графа текста с KG. Основной референс — SimGRAG, потому что он решает задачу проверки фактов на FactKG. NGM-RAG изучен как соседний метод и ориентир для второго QA-набора, но его GNN-фреймворк не воспроизведён.</p></article>
-      <article class="card"><h3>Данные</h3><p>Локально доступны FactKG: 86&nbsp;367 train, 13&nbsp;266 dev и 9&nbsp;041 test утвержление; подключён авторский DBpedia 2015 light и построен индекс имён всех 9&nbsp;913&nbsp;189 сущностей. HotpotQA distractor: 7&nbsp;405 validation вопросов, выбран для последующей проверки переноса.</p></article>
-      <article class="card"><h3>Текстовый контроль B0</h3><p>Реализован BM25 по текстам train с голосованием пяти ближайших соседей. На всём dev Accuracy 55,28%; на заранее фиксированных 500 test утверждениях — 56,4%, Macro-F1 56,36%. Точных пересечений train с этой test выборкой: 0.</p></article>
-      <article class="card"><h3>Графовые компоненты</h3><p>Реализованы стоимость сопоставления узлов и направленных рёбер, полный перебор для малых графов и ограниченный beam search. Собран пилотный конвейер: извлечение → linking → candidate pool → B3/E1 → KG evidence → reader → Accuracy. Для LLM подключена модель ИТМО.</p></article>
+  <section>
+    <h2>Краткий вывод</h2>
+    <div class="callout">
+      <p><strong>Что доказано:</strong> H8 устойчиво улучшает базовый soft matcher B4; H10 на диагностических 500 claims существенно улучшает retrieval относительно H9.</p>
+      <p><strong>Что не доказано:</strong> пока нет результата reader для H10, независимого подтверждения на ranks 1000–1499 и test. Нельзя утверждать, что H10 улучшает Accuracy или превосходит SimGRAG/B1.</p>
     </div>
+  </section>
+
+  <section id="setup">
+    <h2>Постановка и данные</h2>
+    <div class="cards">
+      <article class="card"><h3>Основная задача</h3><p>FactKG fact verification: по claim и только найденным KG-фактам вернуть TRUE, FALSE или UNKNOWN. UNKNOWN считается ошибкой в Accuracy.</p></article>
+      <article class="card"><h3>Данные</h3><p>FactKG: 86 367 train, 13 266 dev, 9 041 test. KG — DBpedia 2015 light; индекс имён охватывает 9 913 189 сущностей. Gold label и Evidence не передаются retrieval.</p></article>
+      <article class="card"><h3>Бенчмарки</h3><p>FactKG — основной. HotpotQA distractor выбран как второй для проверки переноса, но графовые H8–H10 на нём ещё не запускались.</p></article>
+      <article class="card"><h3>Аналоги</h3><p>SimGRAG — ближайшая референсная работа по query-graph retrieval и FactKG. NGM-RAG — соседняя GNN-работа и ориентир для HotpotQA; её framework локально не воспроизводился.</p></article>
+    </div>
+    <p class="note">Нумерация экспериментов историческая: ранние гипотезы назывались E1 и E4, затем H5–H10. B0–B4 — baseline-методы, а не пропущенные гипотезы H2/H3.</p>
   </section>
 
   <section id="pipeline">
-    <h2>Как устроен текущий пилот</h2>
+    <h2>Общий экспериментальный pipeline</h2>
     <div class="flow">
-      <div class="step"><em>01 · ТЕКСТ</em><b>FactKG claim</b><span>Короткое утверждение; метка скрыта от retrieval.</span></div>
-      <div class="step"><em>02 · ИЗВЛЕЧЕНИЕ</em><b>Граф запроса</b><span>Qwen3.8-27B, один вызов на claim в новом пилоте.</span></div>
-      <div class="step"><em>03 · КАНДИДАТЫ</em><b>DBpedia</b><span>Индекс имён, top-5 сущностей, ограниченная 2-hop окрестность.</span></div>
-      <div class="step"><em>04 · MATCH</em><b>Soft mapping</b><span>Один граф и pool; при одном извлечении веса B3/E1 одинаковы.</span></div>
-      <div class="step"><em>05 · ОЦЕНКА</em><b>KG → reader → B0</b><span>При UNKNOWN отдельный гибрид берёт текстовый ответ BM25.</span></div>
+      <div class="step"><em>01 · CLAIM</em><b>FactKG text</b><span>Метка скрыта от retrieval.</span></div>
+      <div class="step"><em>02 · EXTRACTION</em><b>Query graph</b><span>Qwen3.8-27B, один вызов на claim.</span></div>
+      <div class="step"><em>03 · LINKING</em><b>Entity domains</b><span>Кандидаты DBpedia и общий KG pool.</span></div>
+      <div class="step"><em>04 · MATCHING</em><b>Soft mapping</b><span>Узлы, рёбра или пути; beam width 64.</span></div>
+      <div class="step"><em>05 · READER</em><b>TRUE/FALSE/UNKNOWN</b><span>Одинаковый KG-only prompt для arms.</span></div>
     </div>
-    <p class="note">Доказано для текущего дизайна: при одном извлечении все веса равны 1, поэтому стоимость любого mapping, поиск, evidence и ответ B3 и E1 совпадают. В старом трёхпроходном dev-20 только 7 графов имели неодинаковые веса внутри графа; ни один не дал различия mapping или evidence. Это не доказывает отсутствие эффекта других весов на других данных.</p>
+    <p class="formula">C(f) = 0.3 · mean(node distance) + 0.7 · mean(edge/path distance)</p>
+    <p class="note">Primary end-to-end метрика — Accuracy; вторичные — Macro-F1 и UNKNOWN. Retrieval диагностируется через path-constraint coverage: долю авторских FactKG paths, присутствующих в evidence.</p>
   </section>
 
-  <section id="results">
-    <h2>Измеренные результаты</h2>
+  <section>
+    <h2>Базовые результаты</h2>
     <div class="tablewrap"><table>
-      <thead><tr><th>Прогон</th><th>Данные</th><th>Что получено</th><th>Граница вывода</th></tr></thead>
+      <thead><tr><th>Метод</th><th>Выборка</th><th>Результат</th><th>Назначение</th></tr></thead>
       <tbody>
-        <tr><td><b>B0: BM25 по claims</b> <span class="tag">завершён</span></td><td>500 FactKG test, фиксированный выбор по SHA-256</td><td>Accuracy 56,4%; Macro-F1 56,36%. Majority: 50,6% Accuracy.</td><td>Текстовый контроль; другой набор примеров и иной pipeline, чем графовый dev-пилот.</td></tr>
-        <tr><td><b>B3 и E1: основной пилот</b> <span class="tag">завершён</span></td><td>20 FactKG dev, модель ИТМО Qwen3-32B</td><td>Граф: 20/20; допустимый mapping: 19/20; факты KG для reader: 4/20. У обоих Accuracy 15%, UNKNOWN 17/20.</td><td>Малая dev выборка. Между B3 и E1 нет различий в переданных доказательствах.</td></tr>
-        <tr><td><b>Альтернативные значения отношений</b> <span class="tag open">диагностика</span></td><td>Те же 20 FactKG dev и сохранённые графы</td><td>Факты KG доступны для 8/20 у обоих методов; доказательства B3/E1 различаются в 1 случае.</td><td>Вызов reader прерван. Accuracy этого варианта неизвестна; это изменение retrieval, а не проверка эффекта весов.</td></tr>
-        <tr><td><b>Один вызов Qwen3.8-27B + expanded KG</b> <span class="tag">завершён</span></td><td>20 dev и отдельно 20 test FactKG</td><td>Графы 20/20 на каждом split. Evidence 7/20 dev, 6/20 test. Reader: 30% Accuracy и 14 UNKNOWN на dev; 25% и 14 UNKNOWN на test.</td><td>Оба графовых метода совпадают, потому что все веса рёбер равны 1. 20 примеров недостаточно для вывода об улучшении.</td></tr>
-        <tr><td><b>Граф + BM25 при UNKNOWN</b> <span class="tag">завершён</span></td><td>Те же 20 dev и 20 test</td><td>0 UNKNOWN; Accuracy 65% dev и 55% test. Один BM25: 50% на каждой этой выборке. Fallback использован 14/20 раз на каждом split.</td><td>Ноль UNKNOWN обеспечен правилом fallback. Это гибрид, а не доказательство качества graph retrieval.</td></tr>
-        <tr><td><b>E4: штраф за незавершённые пути</b> <span class="tag open">диагностика</span></td><td>Те же сохранённые графы: 20 dev и 20 test</td><td>B4/E4: 0 различий mapping и evidence. Accuracy: 5% dev и 0% test; UNKNOWN: 19/20 и 20/20. Простой B1: 60% dev, 70% test; UNKNOWN 6/20 и 5/20.</td><td>Во всех 40 claims path score одинаков у всех top-50 mapping. На dev покрытие авторских путей B1 19/32, B4/E4 8/32. Это диагностические, ранее просмотренные примеры, а не независимый test.</td></tr>
-        <tr><td><b>H5: дополнение B1 связными путями</b> <span class="tag open">диагностика</span></td><td>Те же 20 FactKG dev, общий pool и бюджет 20 троек</td><td>Coverage: B1 19/32, Flat 22/32, H5 22/32. Flat и H5 изменили 19/20 evidence и восстановили одни и те же три ограничения.</td><td>Связность H5 не дала эффекта сверх Flat. Вспомогательный reader при проверке H6: H5 50% Accuracy и 7 UNKNOWN; test не запускался.</td></tr>
-        <tr><td><b>H6: семантическое расширение B1</b> <span class="tag open">диагностика</span></td><td>Те же 20 FactKG dev; H6 сформулирована после retrieval-результата</td><td>B1: 60% Accuracy, 6 UNKNOWN. H6: 55%, 7 UNKNOWN. Вердикты различаются в 1/20: правильный FALSE B1 сменился на UNKNOWN.</td><td>Рост path coverage не перешёл в end-to-end качество. Exploratory gate не пройден; независимые dev и test не запускались.</td></tr>
-        <tr><td><b>H7: контекстная cost + расширение domains</b> <span class="tag open">диагностика</span></td><td>20 FactKG dev, новый beam search по soft mapping</td><td>B4/C7/H7 path coverage: 8/32, 18/32, 16/32. H7 меняет 15/20 mappings, но не восстанавливает paths сверх C7.</td><td>Relation-guided domain expansion отклонено в текущем виде; оно повышает наличие evidence, но снижает точность путей.</td></tr>
-        <tr><td><b>H8: контекстная edge cost</b> <span class="tag">пилот поддержан</span></td><td>Независимые FactKG dev SHA-ranks 500–599, cumulative 100 claims</td><td>B4 → C7: coverage 8/134 → 35/134; Accuracy 2% → 16%; UNKNOWN 98 → 83; uniquely correct C7/B4 = 14/0; exact paired p=0,000122.</td><td>Воспроизводимое улучшение soft matcher относительно B4, но B1 остаётся сильнее: 61% Accuracy. Extraction 500/500 готов, candidate pools 101/500; итоговый прогон продолжается.</td></tr>
+        <tr><td><b>Majority</b></td><td>500 FactKG test</td><td>Accuracy 50,6%</td><td>Нижний контроль.</td></tr>
+        <tr><td><b>B0: BM25 claim kNN</b></td><td>13 266 dev</td><td>Accuracy 55,28%; Macro-F1 55,26%</td><td>Текстовый baseline без KG.</td></tr>
+        <tr><td><b>B0: BM25 claim kNN</b></td><td>Фиксированные 500 test</td><td>Accuracy 56,4%; Macro-F1 56,36%; exact train overlap 0</td><td>Основной test baseline.</td></tr>
+        <tr><td><b>B1: lexical KG triples</b></td><td>500 dev ranks 500–999</td><td>Path coverage 416/767 = 54,24%; evidence 481/500</td><td>Сильный retrieval baseline; full reader не завершён.</td></tr>
       </tbody>
     </table></div>
-    <div class="bars" style="margin-top:15px">
-      <div class="panel"><h3>Покрытие доказательствами · старый Qwen3-32B dev 20</h3><div class="barrow"><div class="barhead"><span>Исходный retrieval</span><b>4 / 20</b></div><div class="track"><div class="fill" style="width:20%"></div></div></div><div class="barrow"><div class="barhead"><span>Диагностический retrieval</span><b>8 / 20</b></div><div class="track"><div class="fill alt" style="width:40%"></div></div></div><p class="note">Наличие факта в контексте не гарантирует правильный ответ.</p></div>
-      <div class="panel"><h3>Где теряется сигнал · старый Qwen3-32B</h3><div class="barrow"><div class="barhead"><span>Граф извлечён</span><b>20 / 20</b></div><div class="track"><div class="fill" style="width:100%"></div></div></div><div class="barrow"><div class="barhead"><span>Mapping найден</span><b>19 / 20</b></div><div class="track"><div class="fill" style="width:95%"></div></div></div><div class="barrow"><div class="barhead"><span>Исходный evidence найден</span><b>4 / 20</b></div><div class="track"><div class="fill alt" style="width:20%"></div></div></div></div>
-    </div>
-    <div class="panel" style="margin-top:15px"><h3>Диагноз UNKNOWN</h3><p>В старом прогоне 16 из 17 UNKNOWN установлены конвейером <b>до reader</b>: 15 раз mapping найден, но evidence пуст; один раз mapping не найден. Новый режим Qwen3.8-27B устранил технические пустые ответы extractor и расширил evidence, но graph reader всё ещё дал 14 UNKNOWN на каждом split из-за слабого покрытия KG-фактами. <a href="../docs/factkg-unknown-diagnosis.md">Подробная разбивка старого прогона</a>.</p><p class="note">Новый пилот выполнен с одним извлечением на claim и моделью ИТМО iairlab/qwen3.8-27b. Ноль UNKNOWN получен только у явно обозначенного гибрида с BM25.</p></div>
-    <p class="note">Источник локальных чисел: <code>data/evaluation/factkg-b0-test-500.json</code>, <code>data/evaluation/e1-pilot-itmo-dev-20/summary-bm25-v2.json</code>, сохранённые <code>match*.jsonl</code> и <code>data/evaluation/e4-{dev,test}-20/retrieval-summary.json</code>. Сырые данные и ответы модели не входят в Git. Сравнивать 56,4% test B0 с 15% dev графового пилота как победу одного метода над другим нельзя.</p>
   </section>
 
-  <section id="research">
-    <h2>Что мы сейчас ищем</h2>
-    <div class="callout"><p><strong>Решение по E1:</strong> гипотеза о весах по согласию трёх извлечений в текущем дизайне не работает и не используется как заявленное улучшение. При одном извлечении E1 тождественен B3; на сохранённом трёхпроходном dev-20 различий в результатах нет.</p><p><strong>Следующий вопрос:</strong> какой конкретный механизм улучшит мягкое сопоставление графа утверждения с KG при одном извлечении и одинаковом бюджете методов?</p></div>
-    <div class="cards" style="margin-top:15px">
-      <article class="card"><h3>Ближайший ориентир: SimGRAG</h3><p>LLM преобразует запрос в графовый шаблон; затем метод ищет подграф KG по graph semantic distance. Он уже проверен на FactKG. Наш метод должен сформулировать улучшение относительно такого поиска и проверить его на общем датасете. Точную репликацию авторского SimGRAG мы ещё не выполняли. <a href="https://aclanthology.org/2025.findings-acl.163.pdf">Статья</a>.</p></article>
-      <article class="card"><h3>Соседний метод: NGM-RAG</h3><p>Строит графы и комбинирует совпадение имён, BM25 и графовую нейросеть для выбора узлов контекста. Его адаптивные веса относятся к сигналам поиска, а не к достоверности отдельных извлечённых связей. HotpotQA позволяет позднее проверить перенос в QA, но его результаты не равны сравнению на FactKG. <a href="https://arxiv.org/pdf/2607.11159">Статья</a>.</p></article>
+  <section id="hypotheses">
+    <h2>Все проверенные гипотезы</h2>
+    <div class="timeline">
+      <article class="hypothesis"><div class="hid">E1</div><p><b>Agreement-weighted edges.</b> Вес ребра из согласия нескольких LLM-extractions должен снижать влияние ненадёжных связей.</p><p class="result">В однопроходном режиме все веса равны 1, поэтому E1 точно тождественен B3. В старом dev-20 mapping/evidence совпали 20/20; Accuracy 3/20, UNKNOWN 17/20.</p><span class="status rejected">отклонена</span></article>
+      <article class="hypothesis"><div class="hid">E4</div><p><b>Path-consistency penalty.</b> Штраф 0,2 за незавершённые query paths длины 2–3 должен выбирать более структурно согласованные mappings.</p><p class="result">На dev-20 и test-20 штраф постоянен внутри top-50: 0 изменений mapping/evidence. Dev Accuracy B4/E4 5%/5%, UNKNOWN 19/19; test 0%/0%, UNKNOWN 20/20.</p><span class="status rejected">не прошла gate</span></article>
+      <article class="hypothesis"><div class="hid">H5</div><p><b>Connected residual paths.</b> Дополнять первые 12 B1-троек связными путями длины 2–3 до бюджета 20.</p><p class="result">Coverage вырос с 19/32 до 22/32, но Flat-контроль восстановил те же пути. Вклад именно связности не показан. Exploratory reader: 10/20 Accuracy, 7 UNKNOWN.</p><span class="status mixed">механизм не выделен</span></article>
+      <article class="hypothesis"><div class="hid">H6</div><p><b>Flat semantic expansion.</b> Заменить слабый хвост B1 независимо отобранными по cosine тройками.</p><p class="result">При coverage 22/32 против 19/32 у B1, Accuracy снизилась 60%→55%, UNKNOWN вырос 6→7. Один правильный FALSE стал UNKNOWN.</p><span class="status rejected">отклонена</span></article>
+      <article class="hypothesis"><div class="hid">H7</div><p><b>Contextual edge cost + domain expansion.</b> Сравнивать полные query/KG edges и добавлять relation-guided соседей в domains.</p><p class="result">На dev-20: B4 8/32, contextual cost C7 18/32, полная H7 16/32. Expansion изменила 15/20 mappings, но не добавила ни одного path сверх C7 и потеряла два.</p><span class="status rejected">расширение отклонено</span></article>
+      <article class="hypothesis"><div class="hid">H8</div><p><b>Contextual full-edge cost.</b> Оставить исходные domains, но заменить relation-only distance на cosine между полными рёбрами <i>source–relation–target</i>.</p><p class="result">Независимые 50: B4→H8 Accuracy 2%→8%, UNKNOWN 49→46, coverage 4/57→14/57. Cumulative 100: Accuracy 2%→16%, UNKNOWN 98→83, coverage 8/134→35/134; H8-only correct 14, B4-only 0, p=0,000122.</p><span class="status supported">пилот поддержан</span></article>
+      <article class="hypothesis"><div class="hid">H9</div><p><b>Edge-to-path matching.</b> Разрешить одному query edge сопоставляться с направленным KG-путём длины 1–2 с штрафом 0,1 за hop.</p><p class="result">На 500 diagnostic claims coverage 219/767→239/767 (+2,61 п.п.), evidence 178→245; найдено 8 двухшаговых gold paths. Прирост ниже зафиксированного gate +5 п.п.</p><span class="status mixed">механизм работает, gate нет</span></article>
+      <article class="hypothesis"><div class="hid">H10</div><p><b>Path-guided endpoint linking.</b> К H9 добавить не более двух endpoint-кандидатов на query node, найденных по путям; добавить provenance penalty 0,15.</p><p class="result">На тех же 500 diagnostic claims coverage 239/767→321/767 (+10,69 п.п.), length-2 8→28, evidence 245→481. H10-only/H9-only paths 85/3; p=7,34e−22. Все retrieval gates пройдены.</p><span class="status pending">retrieval поддержан</span></article>
     </div>
-    <div class="panel" style="margin-top:15px"><h3>Решение по E4</h3><p>Штраф за целые пути реализован и проверен на 40 сохранённых claims. В 29 графах нет направленного пути длиной 2–3; в остальных 11 ни один из top-50 mapping не завершает путь. Поэтому E4 в этом прогоне тождественен B4 по выбору mapping и evidence. У текущей версии нет эффекта, и масштабировать её без исправления extraction/relation alignment нецелесообразно. <a href="../docs/factkg-e4-diagnostic.md">Точные результаты и команды</a>.</p><p class="note">Отсутствие эффекта на диагностических 40 claims не является статистическим опровержением гипотезы на независимом test subset. Научная новизна не заявляется.</p></div>
   </section>
 
-  <section id="next">
-    <h2>Ближайший план</h2>
-    <div class="tablewrap"><table><thead><tr><th>Шаг</th><th>Что измерить</th><th>Критерий решения</th></tr></thead><tbody>
-      <tr><td>1. Разобрать провал E4</td><td>Отдельно измерить отсутствие направленных путей в Q, отсутствие свидетелей в KG pool и ошибку relation similarity.</td><td>Новый механизм должен давать различающийся score между кандидатами на неиспользованном dev.</td></tr>
-      <tr><td>2. Проверить сильный простой контроль</td><td>B1: полнота релевантных путей и точность ответа на тех же claims и при том же лимите evidence.</td><td>Не продолжать сложный matcher, если простой 1-hop retrieval стабильно лучше.</td></tr>
-      <tr><td>3. Запустить независимую оценку</td><td>API восстановлен; после изменения механизма использовать dev holdout для retrieval и test ranks 20–519 для Accuracy, UNKNOWN, latency и парного CI.</td><td>Публиковать численное улучшение только при реальном парном выигрыше.</td></tr>
-      <tr><td>4. Проверить перенос</td><td>HotpotQA после устойчивого результата на FactKG.</td><td>Одинаковый протокол и доступные входные данные для QA-сравнения.</td></tr>
+  <section id="comparison">
+    <h2>Ключевое сравнение на 500 dev claims</h2>
+    <div class="bars">
+      <div class="panel"><h3>Path-constraint coverage</h3>
+        <div class="barrow"><div class="barhead"><span>B4 · relation-only direct edge</span><b>11,08%</b></div><div class="track"><div class="fill amber" style="width:11.08%"></div></div></div>
+        <div class="barrow"><div class="barhead"><span>H8 · contextual direct edge</span><b>28,55%</b></div><div class="track"><div class="fill blue" style="width:28.55%"></div></div></div>
+        <div class="barrow"><div class="barhead"><span>H9 · contextual edge-to-path</span><b>31,16%</b></div><div class="track"><div class="fill purple" style="width:31.16%"></div></div></div>
+        <div class="barrow"><div class="barhead"><span>H10 · endpoint-aware edge-to-path</span><b>41,85%</b></div><div class="track"><div class="fill" style="width:41.85%"></div></div></div>
+        <div class="barrow"><div class="barhead"><span>B1 · lexical triples</span><b>54,24%</b></div><div class="track"><div class="fill blue" style="width:54.24%"></div></div></div>
+      </div>
+      <div class="panel"><h3>Один бюджет не предполагается</h3><p>H10 даёт в среднем 1,744 evidence triples на claim, B1 — 19,186. Поэтом B1 пока выше по coverage, но H10 делает более компактный структурный retrieval.</p><p><b>Корректный вывод:</b> H10 лучше H9 по retrieval в этом diagnostic run. Он ещё не лучше B1 и не проверен по Accuracy.</p></div>
+    </div>
+    <div class="tablewrap" style="margin-top:14px"><table><thead><tr><th>Arm</th><th>Evidence claims</th><th>Mean triples</th><th>Covered paths</th><th>Length 1</th><th>Length 2</th><th>Статус</th></tr></thead><tbody>
+      <tr><td>B1</td><td>481/500</td><td>19,186</td><td>416/767</td><td>387/517</td><td>29/242</td><td>Внешний baseline</td></tr>
+      <tr><td>B4</td><td>68/500</td><td>—</td><td>85/767</td><td>—</td><td>0</td><td>Soft baseline</td></tr>
+      <tr><td>H8</td><td>178/500</td><td>0,458</td><td>219/767</td><td>219/517</td><td>0/242</td><td>Frozen component</td></tr>
+      <tr><td>H9</td><td>245/500</td><td>0,826</td><td>239/767</td><td>231/517</td><td>8/242</td><td>Ablation H10</td></tr>
+      <tr><td><b>H10</b></td><td><b>481/500</b></td><td><b>1,744</b></td><td><b>321/767</b></td><td><b>293/517</b></td><td><b>28/242</b></td><td><span class="status supported">retrieval gate passed</span></td></tr>
     </tbody></table></div>
   </section>
 
-  <section id="materials"><h2>Материалы и воспроизводимость</h2><div class="sources"><a href="../docs/factkg-e1-pilot.md">Пилот E1 и команды</a><a href="../docs/e1-degeneracy-proof.md">Доказательство вырождения E1</a><a href="../docs/factkg-e4-diagnostic.md">Диагностика E4</a><a href="../docs/residual-path-completion-experiment.md">Дизайн и результат H5</a><a href="../docs/semantic-b1-expansion-experiment.md">Дизайн и результат H6</a><a href="../docs/contextual-soft-matching-experiment.md">Дизайн и результат H7</a><a href="../docs/contextual-edge-cost-experiment.md">Дизайн и результат H8</a><a href="../docs/experiment-design-v2.md">Дизайн E1 · исходная версия</a><a href="../docs/evaluation-protocol.md">Протокол оценки</a><a href="../docs/dataset-selection.md">Выбор датасетов</a><a href="../docs/matching-cost.md">Стоимость сопоставления</a><a href="../docs/mapping-search.md">Поиск отображения</a><a href="../docs/factkg-unknown-diagnosis.md">Диагноз UNKNOWN</a><a href="../scripts/factkg_e1_pilot.py">Скрипт E1</a><a href="../scripts/factkg_e4_experiment.py">Скрипт E4</a><a href="../scripts/factkg_h5_experiment.py">Скрипт H5/H6</a><a href="../scripts/factkg_h7_soft_matching.py">Скрипт H7/H8</a><a href="../tests/test_factkg_e1_pilot.py">Тесты E1</a><a href="../tests/test_factkg_e4_experiment.py">Тесты E4</a><a href="../tests/test_factkg_h5_experiment.py">Тесты H5/H6</a><a href="../tests/test_factkg_h7_soft_matching.py">Тесты H7/H8</a><a href="https://github.com/jiho283/FactKG">FactKG</a></div><p class="note">Сырые результаты хранятся локально в игнорируемом Git каталоге data/evaluation. H8 независимо проверена на 100 dev claims; подготовка полного диапазона 500 продолжается. Проверка <code>make check</code>: 43 теста прошли.</p></section>
-  <footer>Статус на 13.11.2026. Пилоты — диагностика, не подтверждение превосходства над SimGRAG, NGM-RAG или текстовым B0.</footer>
+  <section id="h10">
+    <h2>Идея текущего подхода H10</h2>
+    <div class="diagram">
+      <div class="box"><h3>1. Исходные якоря</h3><p>Для конца query edge берутся entity candidates из обычного linking.</p></div><div class="arrow">→</div>
+      <div class="box"><h3>2. Path-guided proposals</h3><p>От якоря ищутся пути длины 1–2. На query node добавляются не более двух endpoints.</p></div><div class="arrow">→</div>
+      <div class="box"><h3>3. Joint soft matching</h3><p>Beam search выбирает mapping и KG edge/path; расширенный endpoint получает штраф 0,15.</p></div>
+    </div>
+    <p class="formula">proposal = 0.7 · cosine(query relation, relation sequence) + 0.3 · label similarity − 0.1 · extra hop</p>
+    <div class="cards" style="margin-top:14px">
+      <article class="card"><h3>Почему не H7</h3><p>H7 добавляла до пяти соседей на edge в два раунда и не штрафовала их происхождение. H10 ограничивает expansion двумя кандидатами на node и использует provenance penalty.</p></article>
+      <article class="card"><h3>Пример</h3><p>Query edge <code>film — producer is from → city</code> может быть сопоставлен с KG-путём <code>film — producer → person — birthPlace → city</code>. H9 умела оценить такой путь, только если оба конца уже были в domains; H10 может добавить пропущенный конец.</p></article>
+    </div>
+  </section>
+
+  <section id="limits">
+    <h2>Границы вывода</h2>
+    <div class="cards">
+      <article class="card"><h3>Diagnostic ≠ confirmation</h3><p>H9 и H10 выведены из анализа ranks 500–999, поэтому их цифры на этих 500 claims — диагностика механизма. Независимый диапазон ещё не запущен.</p></article>
+      <article class="card"><h3>Retrieval ≠ Accuracy</h3><p>Высокое gold-path coverage не гарантирует правильный verdict. H6 уже показала, что retrieval может вырасти, а Accuracy — снизиться.</p></article>
+      <article class="card"><h3>Нет прямой победы над SimGRAG</h3><p>В текущей среде не воспроизведён авторский SimGRAG с теми же KG, sample IDs, model и budget. Paper numbers можно приводить только как внешний ориентир.</p></article>
+      <article class="card"><h3>Внешний блокер</h3><p><code>iairlab/qwen3.8-27b</code> через ITMO LiteLLM возвращает HTTP 500 <code>model group connection error</code>. Из-за этого не завершены H10 reader и extraction новых claims.</p></article>
+    </div>
+  </section>
+
+  <section id="next">
+    <h2>Что делать дальше</h2>
+    <div class="decision">
+      <article class="card"><h3>1. End-to-end gate</h3><p>Один reader оценивает H9/H10 на текущих 500. Gate зафиксирован до результата: H10 должен дать ≥+5 п.п. Accuracy, меньше UNKNOWN, Macro-F1 не хуже более чем на 1 п.п. и paired p&lt;0,05.</p></article>
+      <article class="card"><h3>2. Independent dev</h3><p>Только при прохождении reader-gate извлечь графы для FactKG dev SHA-ranks 1000–1499 и повторить замороженные H9/H10 без изменения параметров.</p></article>
+      <article class="card"><h3>3. Test и второй benchmark</h3><p>При подтверждении на independent dev — зафиксировать test subset, сравнить с B1/B0 и после этого проверять перенос на HotpotQA.</p></article>
+    </div>
+  </section>
+
+  <section id="materials">
+    <h2>Материалы и воспроизводимость</h2>
+    <div class="sources">
+      <a href="../docs/experiment-design-v2.md">Дизайн E1</a><a href="../docs/e1-degeneracy-proof.md">Доказательство E1</a><a href="../docs/factkg-e4-diagnostic.md">E4</a><a href="../docs/residual-path-completion-experiment.md">H5</a><a href="../docs/semantic-b1-expansion-experiment.md">H6</a><a href="../docs/contextual-soft-matching-experiment.md">H7</a><a href="../docs/contextual-edge-cost-experiment.md">H8</a><a href="../docs/edge-to-path-soft-matching-experiment.md">H9</a><a href="../docs/endpoint-aware-edge-path-experiment.md">H10</a><a href="../scripts/factkg_h9_edge_path.py">Код H9</a><a href="../scripts/factkg_h10_endpoint_paths.py">Код H10</a><a href="../docs/dataset-selection.md">Выбор данных</a><a href="../docs/evaluation-protocol.md">Протокол</a>
+    </div>
+    <p class="note">Итоговые retrieval JSON: <code>data/evaluation/h8-dev-500-c7/</code>, <code>h9-dev-500-diagnostic/</code>, <code>h10-dev-500-diagnostic/</code>. Сырые LLM outputs, KG и модельные файлы локальны и не включаются в Git.</p>
+  </section>
+
+  <footer>Отчёт собран из зафиксированных дизайнов, локальных summary JSON и кода в ветке <code>exp/issue-19-factkg-pilot</code>. Последняя проверка: 52/52 теста проходят.</footer>
 </main>
 </body>
 </html>
