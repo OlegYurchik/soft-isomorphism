@@ -81,6 +81,32 @@ def test_soft_search_and_evidence_can_select_two_hop_alignment():
     assert alignments[0]["adjusted_similarity"] == 0.85
 
 
+def test_soft_search_applies_explicit_candidate_provenance_penalty():
+    arcs = directed_arcs(
+        [
+            triple("Film", "location", "City"),
+            triple("Film", "location", "ExpandedCity"),
+        ]
+    )
+    path_index = h9.build_path_index(arcs, {("Film", "City"), ("Film", "ExpandedCity")})
+
+    def similarity(_query, candidate):
+        return 0.9 if "ExpandedCity" in candidate else 0.8
+
+    mapping = {"s": "Film", "t": "ExpandedCity"}
+    unpenalized, _, _ = h9.mapping_cost(graph(), mapping, path_index, similarity, partial=False)
+    penalized, _, _ = h9.mapping_cost(
+        graph(),
+        mapping,
+        path_index,
+        similarity,
+        partial=False,
+        node_penalties={("t", "ExpandedCity"): 1.0},
+    )
+
+    assert penalized - unpenalized == h9.NODE_WEIGHT / 2
+
+
 def test_exact_paired_pvalue_is_two_sided():
     assert h9.exact_paired_pvalue(14, 0) == 0.0001220703125
     assert h9.exact_paired_pvalue(2, 2) == 1.0

@@ -107,6 +107,7 @@ def mapping_cost(
     similarity: Callable[[str, str], float],
     *,
     partial: bool,
+    node_penalties: dict[tuple[str, str], float] | None = None,
 ) -> tuple[float, float, float]:
     labels = {node["id"]: node["label"] for node in graph["nodes"]}
     node_sum = 0.0
@@ -119,6 +120,8 @@ def mapping_cost(
             if image is None
             else (0.0 if node["label"] == "?" else label_distance(node["label"], image))
         )
+        if image is not None and node_penalties is not None:
+            node_sum += node_penalties.get((node["id"], image), 0.0)
     node_cost = node_sum / len(graph["nodes"])
 
     edge_sum = 0.0
@@ -144,6 +147,8 @@ def soft_search(
     domains: dict[str, list[str]],
     path_index: dict[tuple[str, str], list[list[dict]]],
     similarity: Callable[[str, str], float],
+    *,
+    node_penalties: dict[tuple[str, str], float] | None = None,
 ) -> list[dict]:
     degree = {node["id"]: 0 for node in graph["nodes"]}
     for edge in graph["edges"]:
@@ -165,7 +170,14 @@ def soft_search(
                 )
                 if possible < required:
                     continue
-                cost, _, _ = mapping_cost(graph, candidate, path_index, similarity, partial=True)
+                cost, _, _ = mapping_cost(
+                    graph,
+                    candidate,
+                    path_index,
+                    similarity,
+                    partial=True,
+                    node_penalties=node_penalties,
+                )
                 expanded.append((cost, candidate))
         expanded.sort(
             key=lambda item: (
@@ -180,7 +192,12 @@ def soft_search(
     results = []
     for mapping in beam:
         cost, node_cost, edge_cost = mapping_cost(
-            graph, mapping, path_index, similarity, partial=False
+            graph,
+            mapping,
+            path_index,
+            similarity,
+            partial=False,
+            node_penalties=node_penalties,
         )
         results.append(
             {
