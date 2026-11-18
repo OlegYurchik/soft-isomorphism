@@ -31,24 +31,24 @@
 <body>
 <main>
   <header>
-    <div class="eyebrow">Отчёт по НИР · фактический статус на 16.11.2026</div>
+    <div class="eyebrow">Отчёт по НИР · фактический статус на 18.11.2026</div>
     <h1>Мягкое сопоставление графа текста с графом знаний</h1>
-    <p class="lead">Цель — проверить, можно ли устойчиво сопоставлять граф отношений, извлечённый из claim, с DBpedia при неточных именах, отношениях и топологии. Пройдена серия из восьми зафиксированных гипотез. Лучший текущий результат — H10: path-guided endpoint linking вместе с edge-to-path soft matching.</p>
+    <p class="lead">Цель — проверить, можно ли устойчиво сопоставлять граф отношений, извлечённый из claim, с DBpedia при неточных именах, отношениях и топологии. Пройдена серия из восьми зафиксированных гипотез. H10 исправила H9, но не превзошла сильный простой baseline B1.</p>
     <nav class="nav" aria-label="Разделы"><a href="#summary">Итог</a><a href="#setup">Данные</a><a href="#notation">Обозначения</a><a href="#related">Работы и gap</a><a href="#design">Дизайн</a><a href="#hypotheses">Гипотезы</a><a href="#comparison">Результаты</a><a href="#reference">Референс</a><a href="#statusmap">Статус</a><a href="#next">План</a></nav>
   </header>
 
   <section id="summary" class="metrics" aria-label="Ключевые числа">
-    <div class="metric"><b>41,85%</b><span>path coverage H10 на 500 diagnostic dev claims</span></div>
-    <div class="metric blue"><b>+10,69 п.п.</b><span>прирост H10 относительно H9</span></div>
-    <div class="metric"><b>85 / 3</b><span>H10-only / H9-only покрытых gold paths</span></div>
-    <div class="metric amber"><b>pending</b><span>end-to-end reader H9/H10: Qwen backend возвращает HTTP 500</span></div>
+    <div class="metric"><b>52,2%</b><span>end-to-end Accuracy H10 на 500 diagnostic dev claims</span></div>
+    <div class="metric blue"><b>+30,2 п.п.</b><span>Accuracy H10 относительно H9</span></div>
+    <div class="metric amber"><b>−7,4 п.п.</b><span>Accuracy H10 относительно B1</span></div>
+    <div class="metric"><b>43 / 80</b><span>H10-only / B1-only правильных verdicts</span></div>
   </section>
 
   <section>
     <h2>Краткий вывод</h2>
     <div class="callout">
-      <p><strong>Что доказано:</strong> H8 устойчиво улучшает базовый soft matcher B4; H10 на диагностических 500 claims существенно улучшает retrieval относительно H9.</p>
-      <p><strong>Что не доказано:</strong> пока нет результата reader для H10, независимого подтверждения на ranks 1000–1499 и test. Нельзя утверждать, что H10 улучшает Accuracy или превосходит SimGRAG/B1.</p>
+      <p><strong>Что доказано:</strong> H10 существенно улучшает H9 и по retrieval, и по end-to-end качеству: Accuracy 22,0%→52,2%, Macro-F1 0,352→0,644, UNKNOWN 374→199.</p>
+      <p><strong>Главный отрицательный результат:</strong> B1 остаётся лучше H10: Accuracy 59,6% против 52,2%, парные победы 80 против 43, p=0,00108. Поэтому текущая гипотеза не переносится на independent dev.</p>
     </div>
   </section>
 
@@ -108,7 +108,7 @@
     </table></div>
     <div class="gap-grid">
       <article class="gap-card focus"><span class="paper-tag">Knowledge gap</span><h3>Узкий и проверяемый</h3><p>В выбранных ближайших работах не выделена совместная ошибка: query-edge соответствует KG-пути, но нужный endpoint отсутствует в entity candidates. H10 проверяет bounded endpoint recovery вместе с edge-to-path matching.</p></article>
-      <article class="gap-card caution"><span class="paper-tag">Граница заявления</span><h3>Это ещё не доказанная новизна</h3><p>Path retrieval и гибкая выборка троек уже существуют. Кандидат на вклад — связка endpoint recovery + directed edge-to-path в document→external-KG verification. Если reader-gate и independent dev не пройдены, заявление сужается до retrieval-эвристики.</p></article>
+      <article class="gap-card caution"><span class="paper-tag">Граница заявления</span><h3>Это ещё не доказанная новизна</h3><p>Path retrieval и гибкая выборка троек уже существуют. Связка endpoint recovery + directed edge-to-path улучшила H9, но проиграла B1 и не пошла на independent dev. Поэтому H10 сейчас — исследованная retrieval-эвристика, а не доказанный новый метод.</p></article>
     </div>
   </section>
 
@@ -126,7 +126,7 @@
       <article class="detail-stage"><h3>Frozen embeddings</h3><p><code>all-MiniLM-L6-v2</code> кодирует full edges и relation sequences. Node distance остаётся label-based.</p><div class="io"><span>CPU ONNX</span><span>no training</span></div></article>
       <article class="detail-stage"><h3>H10 endpoint proposals</h3><p>От якорей ищутся directed simple paths 1–2; на query node добавляются не более 2 endpoints.</p><div class="io"><span>relation 0.7</span><span>label 0.3</span><span>hop −0.1</span></div></article>
       <article class="detail-stage"><h3>Joint soft matching</h3><p>Beam 64 выбирает mapping и edge/path. Cost: node 0.3, edge/path 0.7, path penalty 0.1, provenance 0.15.</p><div class="io"><span>H8/H9/H10</span><span>directed</span><span>≥80% nodes</span></div></article>
-      <article class="detail-stage"><h3>Evidence и reader</h3><p>В prompt попадают только реальные KG-тройки. Один Qwen-reader даёт TRUE/FALSE/UNKNOWN для H9/H10.</p><div class="io"><span>same prompt</span><span>temperature 0</span><span>blocked</span></div></article>
+      <article class="detail-stage"><h3>Evidence и reader</h3><p>В prompt попадают только реальные KG-тройки. Один Qwen-reader даёт TRUE/FALSE/UNKNOWN для H9/H10/B1.</p><div class="io"><span>same prompt</span><span>temperature 0</span><span>complete</span></div></article>
       <article class="detail-stage"><h3>Evaluator</h3><p>Retrieval: path coverage, evidence, length-1/2. End-to-end: Accuracy, Macro-F1, UNKNOWN, H10-only/H9-only, exact paired p.</p><div class="io"><span>UNKNOWN = error</span><span>fixed gates</span></div></article>
     </div>
     <p class="formula">proposal = 0.7 · cosine(query relation, relation sequence) + 0.3 · label similarity − 0.1 · extra hop</p>
@@ -158,14 +158,14 @@
         <tr><td><b>Majority</b></td><td>500 FactKG test</td><td>Accuracy 50,6%</td><td>Нижний контроль.</td></tr>
         <tr><td><b>B0: BM25 claim kNN</b></td><td>13 266 dev</td><td>Accuracy 55,28%; Macro-F1 55,26%</td><td>Текстовый baseline без KG.</td></tr>
         <tr><td><b>B0: BM25 claim kNN</b></td><td>Фиксированные 500 test</td><td>Accuracy 56,4%; Macro-F1 56,36%; exact train overlap 0</td><td>Основной test baseline.</td></tr>
-        <tr><td><b>B1: lexical KG triples</b></td><td>500 dev ranks 500–999</td><td>Path coverage 416/767 = 54,24%; evidence 481/500</td><td>Сильный retrieval baseline; full reader не завершён.</td></tr>
+        <tr><td><b>B1: lexical KG triples</b></td><td>500 dev ranks 500–999</td><td>Coverage 54,24%; Accuracy 59,6%; Macro-F1 0,699</td><td>Сильный retrieval и reader baseline.</td></tr>
       </tbody>
     </table></div>
   </section>
 
   <section id="hypotheses">
     <h2>Все проверенные гипотезы</h2>
-    <p class="hyp-intro">Мы последовательно проверяли веса, связность, семантическое расширение и сопоставление с путями. Остановились на H10: она прошла retrieval-gate, но ещё должна пройти reader-gate.</p>
+    <p class="hyp-intro">Мы последовательно проверяли веса, связность, семантическое расширение и сопоставление с путями. H10 прошла gates относительно H9, но проиграла B1; следующий шаг — анализ парных ошибок перед формулировкой H11.</p>
     <div class="timeline">
       <article class="hypothesis"><div class="hid">E1</div><div class="hyp-visual e1viz" role="img" aria-label="Три оценки сходятся в одинаковый вес 1.0"><span class="mini-label">LLM views</span><i class="vote v1"></i><i class="vote v2"></i><i class="vote v3"></i><i class="edge"></i><b>weight 1.0</b></div><p><b>Agreement-weighted edges.</b> Вес ребра из согласия нескольких LLM-extractions должен снижать влияние ненадёжных связей.</p><p class="result">В однопроходном режиме все веса равны 1, поэтому E1 точно тождественен B3. В старом dev-20 mapping/evidence совпали 20/20; Accuracy 3/20, UNKNOWN 17/20.</p><span class="status rejected">отклонена</span></article>
       <article class="hypothesis"><div class="hid">E4</div><div class="hyp-visual e4viz" role="img" aria-label="Штраф пульсирует, но путь остаётся неизменным"><span class="mini-label">same mapping</span><span class="badge">−0.2</span><i class="node a"></i><i class="node b"></i><i class="node c"></i><i class="edge"></i><i class="edge e2"></i></div><p><b>Path-consistency penalty.</b> Штраф 0,2 за незавершённые query paths длины 2–3 должен выбирать более структурно согласованные mappings.</p><p class="result">На dev-20 и test-20 штраф постоянен внутри top-50: 0 изменений mapping/evidence. Dev Accuracy B4/E4 5%/5%, UNKNOWN 19/19; test 0%/0%, UNKNOWN 20/20.</p><span class="status rejected">не прошла gate</span></article>
@@ -174,7 +174,7 @@
       <article class="hypothesis"><div class="hid">H7</div><div class="hyp-visual h7viz" role="img" aria-label="Вокруг узла появляется слишком много кандидатов"><span class="mini-label">wide domains</span><span class="badge">2 paths lost</span><i class="node a"></i><i class="candidate c1"></i><i class="candidate c2"></i><i class="candidate c3"></i><i class="candidate c4"></i><i class="candidate c5"></i></div><p><b>Contextual edge cost + domain expansion.</b> Сравнивать полные query/KG edges и добавлять relation-guided соседей в domains.</p><p class="result">На dev-20: B4 8/32, contextual cost C7 18/32, полная H7 16/32. Expansion изменила 15/20 mappings, но не добавила ни одного path сверх C7 и потеряла два.</p><span class="status rejected">расширение отклонено</span></article>
       <article class="hypothesis"><div class="hid">H8</div><div class="hyp-visual h8viz" role="img" aria-label="Полное ребро source relation target подсвечивается как единый контекст"><span class="mini-label">full-edge context</span><i class="node a"></i><i class="node c"></i><i class="edge"></i><b class="relation">source · relation · target</b></div><p><b>Contextual full-edge cost.</b> Оставить исходные domains, но заменить relation-only distance на cosine между полными рёбрами <i>source–relation–target</i>.</p><p class="result">Независимые 50: B4→H8 Accuracy 2%→8%, UNKNOWN 49→46, coverage 4/57→14/57. Cumulative 100: Accuracy 2%→16%, UNKNOWN 98→83, coverage 8/134→35/134; H8-only correct 14, B4-only 0, p=0,000122.</p><span class="status supported">пилот поддержан</span></article>
       <article class="hypothesis"><div class="hid">H9</div><div class="hyp-visual h9viz" role="img" aria-label="Одно query edge раскрывается в двухшаговый путь графа знаний"><span class="mini-label">edge → path</span><span class="badge">+2.61 pp</span><i class="node a"></i><i class="node b"></i><i class="node c"></i><i class="edge"></i><i class="edge e2"></i></div><p><b>Edge-to-path matching.</b> Разрешить одному query edge сопоставляться с направленным KG-путём длины 1–2 с штрафом 0,1 за hop.</p><p class="result">На 500 diagnostic claims coverage 219/767→239/767 (+2,61 п.п.), evidence 178→245; найдено 8 двухшаговых gold paths. Прирост ниже зафиксированного gate +5 п.п.</p><span class="status mixed">механизм работает, gate нет</span></article>
-      <article class="hypothesis"><div class="hid">H10</div><div class="hyp-visual h10viz" role="img" aria-label="Путь восстанавливает пропущенный endpoint и замыкает сопоставление"><span class="mini-label">recover endpoint</span><span class="badge">gate passed</span><i class="node a"></i><i class="node b"></i><i class="node c"></i><i class="edge"></i><i class="edge e2"></i></div><p><b>Path-guided endpoint linking.</b> К H9 добавить не более двух endpoint-кандидатов на query node, найденных по путям; добавить provenance penalty 0,15.</p><p class="result">На тех же 500 diagnostic claims coverage 239/767→321/767 (+10,69 п.п.), length-2 8→28, evidence 245→481. H10-only/H9-only paths 85/3; p=7,34e−22. Все retrieval gates пройдены.</p><span class="status pending">retrieval поддержан</span></article>
+      <article class="hypothesis"><div class="hid">H10</div><div class="hyp-visual h10viz" role="img" aria-label="Путь восстанавливает пропущенный endpoint и замыкает сопоставление"><span class="mini-label">recover endpoint</span><span class="badge">mixed result</span><i class="node a"></i><i class="node b"></i><i class="node c"></i><i class="edge"></i><i class="edge e2"></i></div><p><b>Path-guided endpoint linking.</b> К H9 добавить не более двух endpoint-кандидатов на query node, найденных по путям; добавить provenance penalty 0,15.</p><p class="result">Retrieval H9→H10: 31,16%→41,85%. Reader Accuracy: 22,0%→52,2%; H10-only/H9-only correct 153/2. Но B1 даёт 59,6%; H10-only/B1-only correct 43/80, p=0,00108.</p><span class="status mixed">лучше H9, хуже B1</span></article>
     </div>
   </section>
 
@@ -188,7 +188,7 @@
         <div class="barrow"><div class="barhead"><span>H10 · endpoint-aware edge-to-path</span><b>41,85%</b></div><div class="track"><div class="fill" style="width:41.85%"></div></div></div>
         <div class="barrow"><div class="barhead"><span>B1 · lexical triples</span><b>54,24%</b></div><div class="track"><div class="fill blue" style="width:54.24%"></div></div></div>
       </div>
-      <div class="panel"><h3>Один бюджет не предполагается</h3><p>H10 даёт в среднем 1,744 evidence triples на claim, B1 — 19,186. Поэтом B1 пока выше по coverage, но H10 делает более компактный структурный retrieval.</p><p><b>Корректный вывод:</b> H10 лучше H9 по retrieval в этом diagnostic run. Он ещё не лучше B1 и не проверен по Accuracy.</p></div>
+      <div class="panel"><h3>End-to-end reader</h3><p>H10 даёт в среднем 1,744 evidence triples на claim, B1 — 19,186. Компактность H10 не компенсировала потерю полезных фактов.</p><p><b>Результат:</b> H10 лучше H9 по Accuracy на 30,2 п.п., но хуже B1 на 7,4 п.п.; отличие от B1 значимо, p=0,00108.</p></div>
     </div>
     <div class="tablewrap" style="margin-top:14px"><table><thead><tr><th>Arm</th><th>Evidence claims</th><th>Mean triples</th><th>Covered paths</th><th>Length 1</th><th>Length 2</th><th>Статус</th></tr></thead><tbody>
       <tr><td>B1</td><td>481/500</td><td>19,186</td><td>416/767</td><td>387/517</td><td>29/242</td><td>Внешний baseline</td></tr>
@@ -196,6 +196,11 @@
       <tr><td>H8</td><td>178/500</td><td>0,458</td><td>219/767</td><td>219/517</td><td>0/242</td><td>Frozen component</td></tr>
       <tr><td>H9</td><td>245/500</td><td>0,826</td><td>239/767</td><td>231/517</td><td>8/242</td><td>Ablation H10</td></tr>
       <tr><td><b>H10</b></td><td><b>481/500</b></td><td><b>1,744</b></td><td><b>321/767</b></td><td><b>293/517</b></td><td><b>28/242</b></td><td><span class="status supported">retrieval gate passed</span></td></tr>
+    </tbody></table></div>
+    <div class="tablewrap" style="margin-top:14px"><table><thead><tr><th>Reader arm</th><th>Accuracy</th><th>Macro-F1</th><th>UNKNOWN</th><th>Парный результат</th></tr></thead><tbody>
+      <tr><td>H9</td><td>22,0%</td><td>0,352</td><td>374/500</td><td>H10-only/H9-only = 153/2; p=5,29e−43</td></tr>
+      <tr><td><b>H10</b></td><td><b>52,2%</b></td><td><b>0,644</b></td><td><b>199/500</b></td><td>Механизм H10 против H9 поддержан</td></tr>
+      <tr><td>B1</td><td>59,6%</td><td>0,699</td><td>160/500</td><td>H10-only/B1-only = 43/80; p=0,00108</td></tr>
     </tbody></table></div>
   </section>
 
@@ -220,15 +225,15 @@
       <article class="card"><h3>В чём отличие H10</h3><p>SimGRAG ищет изоморфную pattern-структуру и считает GSD. H10 сохраняет направление, но мягко заменяет query-edge путём 1–2 и может добавить endpoint.</p></article>
       <article class="card"><h3>Что считается сравнением</h3><p>Нужны одинаковые FactKG sample IDs, DBpedia snapshot, доступные поля и evaluator. До этого paper Accuracy SimGRAG — внешний ориентир, а не наш baseline.</p></article>
     </div>
-    <div class="callout" style="margin-top:14px"><p><strong>Что уже можно сказать:</strong> H10 лучше H9 по retrieval на diagnostic-500. <strong>Чего говорить нельзя:</strong> H10 превосходит SimGRAG по Accuracy или retrieval quality.</p></div>
+    <div class="callout" style="margin-top:14px"><p><strong>Что уже можно сказать:</strong> H10 лучше H9 по retrieval и Accuracy, но хуже B1 по Accuracy на diagnostic-500. <strong>Чего говорить нельзя:</strong> H10 превосходит SimGRAG или переносится на другие выборки.</p></div>
   </section>
 
   <section id="statusmap">
     <h2>Выполнено vs запланировано</h2>
     <div class="status-board">
-      <article class="status-column done"><h3>Выполнено</h3><ul><li>Выбран FactKG; загружен DBpedia light и индек 9,9 млн entities.</li><li>Запущены B0, B1 и E1/E4/H5–H10.</li><li>H8 поддержан на 50/100 claims.</li><li>H10 прошёл retrieval-gate на diagnostic-500.</li></ul></article>
-      <article class="status-column blocked"><h3>Заблокировано сейчас</h3><ul><li>Одинаковый Qwen-reader для H9/H10 на 500 claims.</li><li>End-to-end Accuracy, Macro-F1 и UNKNOWN для H10.</li><li>Причина: ITMO LiteLLM возвращает HTTP 500 для Qwen.</li></ul></article>
-      <article class="status-column planned"><h3>Условно запланировано</h3><ul><li>После reader-gate: independent FactKG dev ranks 1000–1499.</li><li>Затем fixed test subset и B0/B1.</li><li>Аудит воспроизводимости SimGRAG.</li><li>HotpotQA как transfer-проверка и точка связи с NGM-RAG.</li></ul></article>
+      <article class="status-column done"><h3>Выполнено</h3><ul><li>Выбран FactKG; загружен DBpedia light и индекс 9,9 млн entities.</li><li>Запущены B0, B1 и E1/E4/H5–H10.</li><li>H10 прошёл retrieval и reader gates относительно H9.</li><li>Выполнен парный контроль H10 против B1 на 500 claims.</li></ul></article>
+      <article class="status-column blocked"><h3>Отрицательный результат</h3><ul><li>H10 Accuracy 52,2% против 59,6% у B1.</li><li>H10 даёт больше UNKNOWN: 199 против 160.</li><li>Гипотеза превосходства над B1 отклонена; p=0,00108.</li></ul></article>
+      <article class="status-column planned"><h3>Следующий этап</h3><ul><li>Парный анализ 43 H10-only и 80 B1-only случаев.</li><li>Сформулировать H11 до запуска: вероятный hybrid/gating контроль.</li><li>Не переносить H10 на independent dev без новой гипотезы.</li><li>Аудит воспроизводимости SimGRAG и затем второй benchmark.</li></ul></article>
     </div>
   </section>
 
@@ -238,16 +243,16 @@
       <article class="card"><h3>Diagnostic ≠ confirmation</h3><p>H9 и H10 выведены из анализа ranks 500–999, поэтому их цифры на этих 500 claims — диагностика механизма. Независимый диапазон ещё не запущен.</p></article>
       <article class="card"><h3>Retrieval ≠ Accuracy</h3><p>Высокое gold-path coverage не гарантирует правильный verdict. H6 уже показала, что retrieval может вырасти, а Accuracy — снизиться.</p></article>
       <article class="card"><h3>Нет прямой победы над SimGRAG</h3><p>В текущей среде не воспроизведён авторский SimGRAG с теми же KG, sample IDs, model и budget. Paper numbers можно приводить только как внешний ориентир.</p></article>
-      <article class="card"><h3>Внешний блокер</h3><p><code>iairlab/qwen3.8-27b</code> через ITMO LiteLLM возвращает HTTP 500 <code>model group connection error</code>. Из-за этого не завершены H10 reader и extraction новых claims.</p></article>
+      <article class="card"><h3>Нестабильность сервиса</h3><p>Reader завершён с возобновлением после трёх зависших запросов. Кэш по claim и SHA-256 evidence предотвращает повтор уже сохранённых результатов.</p></article>
     </div>
   </section>
 
   <section id="next">
     <h2>Что делать дальше</h2>
     <div class="decision">
-      <article class="card"><h3>1. End-to-end gate</h3><p>Один reader оценивает H9/H10 на текущих 500. Gate зафиксирован до результата: H10 должен дать ≥+5 п.п. Accuracy, меньше UNKNOWN, Macro-F1 не хуже более чем на 1 п.п. и paired p&lt;0,05.</p></article>
-      <article class="card"><h3>2. Independent dev</h3><p>Только при прохождении reader-gate извлечь графы для FactKG dev SHA-ranks 1000–1499 и повторить замороженные H9/H10 без изменения параметров.</p></article>
-      <article class="card"><h3>3. Test и второй benchmark</h3><p>При подтверждении на independent dev — зафиксировать test subset, сравнить с B1/B0 и после этого проверять перенос на HotpotQA.</p></article>
+      <article class="card"><h3>1. Error analysis</h3><p>Сравнить 43 H10-only и 80 B1-only правильных случая: тип claim, длину gold path, размер evidence, verdict и причину UNKNOWN.</p></article>
+      <article class="card"><h3>2. H11 до запуска</h3><p>Заранее задать hybrid/gating правило, использующее компактный H10 только там, где его структурный сигнал надёжен, а иначе сохраняющее B1.</p></article>
+      <article class="card"><h3>3. Новый gate</h3><p>Сначала paired diagnostic против B1; только при значимом выигрыше — independent dev ranks 1000–1499, test и затем HotpotQA.</p></article>
     </div>
   </section>
 
