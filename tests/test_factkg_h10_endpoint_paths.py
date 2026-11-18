@@ -73,3 +73,27 @@ def test_proposal_expansion_is_capped_per_query_node():
     assert len(expanded["t"]) == 1 + h10.NEW_CANDIDATES_PER_NODE
     assert len([record for record in proposals if record["node"] == "t"]) == 2
     assert len([key for key in penalties if key[0] == "t"]) == 2
+
+
+def test_one_hop_ablation_excludes_two_hop_proposals():
+    arcs = directed_arcs(
+        [triple("Film", "producer", "Person"), triple("Person", "birthPlace", "City")]
+    )
+    _, _, proposals = h10.propose_domains(
+        graph(), {"s": ["Film"], "t": []}, arcs, FakeEncoder(), max_path_length=1
+    )
+    assert all(len(item["path_evidence"]) == 1 for item in proposals)
+
+
+def test_candidate_count_and_penalty_are_configurable():
+    arcs = directed_arcs([triple("Film", "location", "CityA"), triple("Film", "location", "CityB")])
+    expanded, penalties, _ = h10.propose_domains(
+        graph(),
+        {"s": ["Film"], "t": []},
+        arcs,
+        FakeEncoder(),
+        candidates_per_node=1,
+        expanded_node_penalty=0.0,
+    )
+    assert len(expanded["t"]) == 1
+    assert set(penalties.values()) == {0.0}

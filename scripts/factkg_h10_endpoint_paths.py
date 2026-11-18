@@ -45,9 +45,13 @@ def relation_sequence_text(path: list[dict]) -> str:
     return " then ".join(parts)
 
 
-def forward_paths(anchor: str, outgoing: dict[str, list[dict]]) -> Iterator[list[dict]]:
+def forward_paths(
+    anchor: str, outgoing: dict[str, list[dict]], max_length: int = 2
+) -> Iterator[list[dict]]:
     for first in outgoing.get(anchor, []):
         yield [first]
+        if max_length < 2:
+            continue
         middle = first["target"]
         if middle == anchor:
             continue
@@ -57,9 +61,13 @@ def forward_paths(anchor: str, outgoing: dict[str, list[dict]]) -> Iterator[list
             yield [first, second]
 
 
-def backward_paths(anchor: str, incoming: dict[str, list[dict]]) -> Iterator[list[dict]]:
+def backward_paths(
+    anchor: str, incoming: dict[str, list[dict]], max_length: int = 2
+) -> Iterator[list[dict]]:
     for second in incoming.get(anchor, []):
         yield [second]
+        if max_length < 2:
+            continue
         middle = second["source"]
         if middle == anchor:
             continue
@@ -74,10 +82,11 @@ def raw_proposals(
     initial: dict[str, list[str]],
     outgoing: dict[str, list[dict]],
     incoming: dict[str, list[dict]],
+    max_path_length: int = 2,
 ) -> Iterator[dict]:
     for edge_index, edge in enumerate(graph["edges"]):
         for anchor in initial.get(edge["source"], []):
-            for path in forward_paths(anchor, outgoing):
+            for path in forward_paths(anchor, outgoing, max_path_length):
                 yield {
                     "node": edge["target"],
                     "candidate": path[-1]["target"],
@@ -87,7 +96,7 @@ def raw_proposals(
                     "path": path,
                 }
         for anchor in initial.get(edge["target"], []):
-            for path in backward_paths(anchor, incoming):
+            for path in backward_paths(anchor, incoming, max_path_length):
                 yield {
                     "node": edge["source"],
                     "candidate": path[0]["source"],
@@ -119,18 +128,22 @@ def propose_domains(
     initial: dict[str, list[str]],
     arcs: list[dict],
     encoder: OnnxRelationEncoder,
+    *,
+    max_path_length: int = 2,
+    candidates_per_node: int = NEW_CANDIDATES_PER_NODE,
+    expanded_node_penalty: float = EXPANDED_NODE_PENALTY,
 ) -> tuple[dict[str, list[str]], dict[tuple[str, str], float], list[dict]]:
     outgoing, incoming, _ = indices(arcs)
     labels = {node["id"]: node["label"] for node in graph["nodes"]}
     relation_queries = [relation_text(edge["relation"]) for edge in graph["edges"]]
     relation_sequences = {
         relation_sequence_text(proposal["path"])
-        for proposal in raw_proposals(graph, initial, outgoing, incoming)
+        for proposal in raw_proposals(graph, initial, outgoing, incoming, max_path_length)
     }
     encoder.encode_many({*relation_queries, *relation_sequences})
 
     best: dict[tuple[str, str], dict] = {}
-    for proposal in raw_proposals(graph, initial, outgoing, incoming):
+    for proposal in raw_proposals(graph, initial, outgoing, incoming, max_path_length):
         node_id, candidate = proposal["node"], proposal["candidate"]
         if candidate in initial.get(node_id, []):
             continue
@@ -173,23 +186,39 @@ def propose_domains(
     for node_id in sorted(labels):
         choices = [record for (node, _), record in best.items() if node == node_id]
         choices.sort(key=lambda record: (-record["score"], record["candidate"]))
-        selected.extend(choices[:NEW_CANDIDATES_PER_NODE])
+        selected.extend(choices[:candidates_per_node])
 
     expanded = {node: list(values) for node, values in initial.items()}
     penalties = {}
     for record in selected:
         node_id, candidate = record["node"], record["candidate"]
         expanded.setdefault(node_id, []).append(candidate)
-        penalties[node_id, candidate] = EXPANDED_NODE_PENALTY
+        penalties[node_id, candidate] = expanded_node_penalty
         record.pop("path")
     return expanded, penalties, selected
 
 
-def score_row(row: dict, h9: dict, encoder: OnnxRelationEncoder) -> dict:
+def match_row(
+    row: dict,
+    encoder: OnnxRelationEncoder,
+    *,
+    max_proposal_path_length: int = 2,
+    candidates_per_node: int = NEW_CANDIDATES_PER_NODE,
+    expanded_node_penalty: float = EXPANDED_NODE_PENALTY,
+    max_alignment_path_length: int = 2,
+) -> dict:
     graph = row["graph"]
     arcs = directed_arcs(row.get("pool_triples", []))
     initial = {node: list(values) for node, values in row.get("candidate_ids", {}).items()}
-    expanded, penalties, proposals = propose_domains(graph, initial, arcs, encoder)
+    expanded, penalties, proposals = propose_domains(
+        graph,
+        initial,
+        arcs,
+        encoder,
+        max_path_length=max_proposal_path_length,
+        candidates_per_node=candidates_per_node,
+        expanded_node_penalty=expanded_node_penalty,
+    )
     allowed_pairs = {
         (source, target)
         for edge in graph["edges"]
@@ -197,6 +226,11 @@ def score_row(row: dict, h9: dict, encoder: OnnxRelationEncoder) -> dict:
         for target in expanded.get(edge["target"], [])
     }
     path_index = build_path_index(arcs, allowed_pairs)
+    if max_alignment_path_length < 2:
+        path_index = {
+            pair: [path for path in paths if len(path) <= max_alignment_path_length]
+            for pair, paths in path_index.items()
+        }
     labels = {node["id"]: node["label"] for node in graph["nodes"]}
     encoder.encode_many(
         {
@@ -227,18 +261,27 @@ def score_row(row: dict, h9: dict, encoder: OnnxRelationEncoder) -> dict:
         if image is not None and (node_id, image) in penalties
     )
     return {
+        "match": {**best, "evidence": evidence, "alignments": alignments},
+        "proposals": proposals,
+        "used_expanded_nodes": used_expanded,
+    }
+
+
+def score_row(row: dict, h9: dict, encoder: OnnxRelationEncoder) -> dict:
+    result = match_row(row, encoder)
+    return {
         "id": row["id"],
         "text": row["text"],
-        "graph": graph,
+        "graph": row["graph"],
         "arms": {
             "B1": h9["arms"]["B1"],
             "H8": h9["arms"]["H8"],
             "H9": h9["arms"]["H9"],
-            "H10": {**best, "evidence": evidence, "alignments": alignments},
+            "H10": result["match"],
         },
-        "proposals": proposals,
-        "used_expanded_nodes": used_expanded,
-        "mapping_changed_h9_h10": h9["arms"]["H9"].get("mapping") != best.get("mapping"),
+        "proposals": result["proposals"],
+        "used_expanded_nodes": result["used_expanded_nodes"],
+        "mapping_changed_h9_h10": h9["arms"]["H9"].get("mapping") != result["match"].get("mapping"),
     }
 
 

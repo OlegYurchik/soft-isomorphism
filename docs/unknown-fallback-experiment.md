@@ -143,6 +143,43 @@ Accuracy 65,0%, Macro-F1 0,7197, UNKNOWN 106. Значит, оптимизаци
 Реализация: `scripts/factkg_h11_lazy_retrieval.py`; двухфазный reader:
 `scripts/factkg_h11_unknown_fallback.py --phase b1|fallback`.
 
+## Component ablation H10
+
+После подтверждения H11 выполнена post-hoc ablation внутренних компонентов
+H10. Выбор упрощённой конфигурации сделан на confirmatory dev-500; test-500
+использован один раз только для проверки уже выбранного варианта. Reader,
+модель и B1 UNKNOWN gate не менялись. Ответ полного H10 переиспользовался при
+совпадающем evidence, поэтому новые model calls делались только для
+изменившихся prompts.
+
+| Конфигурация на dev-500 | Accuracy | Macro-F1 | UNKNOWN | Correct сверх B1 |
+|---|---:|---:|---:|---:|
+| Полный H10 | 66,8% | 0,751 | 112 | +39 |
+| Только одношаговые endpoint proposals | 66,6% | 0,748 | 112 | +38 |
+| Один новый кандидат на вершину | 67,0% | 0,753 | 113 | +40 |
+| Без штрафа нового кандидата | 66,8% | 0,751 | 112 | +39 |
+| Только прямые edge alignments | 66,4% | 0,747 | 113 | +37 |
+| `lean`: один кандидат, без штрафа | **67,0%** | **0,752** | **112** | **+40** |
+| `lean` + одношаговые proposals | 66,6% | 0,750 | 115 | +38 |
+| `minimal`: также только прямые alignments | 66,2% | 0,744 | 114 | +36 |
+
+По dev выбран `lean`: для каждой query-вершины добавляется только лучший
+новый endpoint-кандидат, отдельный penalty для него не применяется.
+Одно-/двухшаговые proposal-пути и одно-/двухшаговые edge alignments
+сохранены: их удаление снизило dev accuracy.
+
+На test-500 выбранный `lean` получил Accuracy **65,4%** против 65,0% полного
+H10, Macro-F1 **0,7249** против 0,7197 и 34 correct сверх B1 против 32.
+UNKNOWN изменился с 106 до 107. Следовательно, второй endpoint-кандидат и
+expanded-node penalty не нужны для наблюдаемого прироста; их удаление не
+ухудшило качество на dev и test. При этом прямой вызов ядра H10 без B4/H8/H9
+дал 153/153 точных совпадения с прежним test retrieval, поэтому эти три
+ступени остаются только экспериментальными controls, а не частью production
+алгоритма.
+
+Скрипты: `scripts/factkg_h10_component_ablation.py` и
+`scripts/factkg_h10_ablation_reader.py`.
+
 ## Артефакты
 
 - diagnostic B1 predictions: `data/evaluation/h8-dev-500-c7/predictions.jsonl`;
@@ -156,3 +193,6 @@ Accuracy 65,0%, Macro-F1 0,7197, UNKNOWN 106. Значит, оптимизаци
   `data/evaluation/h11-dev-500-confirm-reader/reader-summary.json`.
 - test lazy-retrieval verification:
   `data/evaluation/h11-test-500-lazy/summary.json`.
+- H10 component ablation:
+  `data/evaluation/h10-component-ablation-dev-500-confirm/` и
+  `data/evaluation/h10-component-ablation-test-500/`.
