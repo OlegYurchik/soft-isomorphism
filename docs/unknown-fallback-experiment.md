@@ -115,6 +115,14 @@ Production-вариант H11 (`B1` + `H10`, без ablation arms) потреб�
 остаются замороженными; следующий этап — заранее фиксированный FactKG test
 subset, после него перенос на второй benchmark.
 
+## Замороженный test protocol
+
+Test subset был выбран в исходном experiment design до экспериментов H9–H11:
+первые 500 FactKG test claims после стабильной сортировки по SHA-256,
+`offset = 0`. На test без изменений переносятся extraction prompt, Qwen model,
+B1 budget, H10 matcher и UNKNOWN gate. Повторно применяются те же шесть gates,
+что и на confirmatory dev; дополнительная настройка по test запрещена.
+
 ## Артефакты
 
 - diagnostic B1 predictions: `data/evaluation/h8-dev-500-c7/predictions.jsonl`;
