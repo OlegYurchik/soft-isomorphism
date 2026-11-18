@@ -116,28 +116,76 @@ def arm_metrics(records: list[dict], arm: str) -> dict:
     }
 
 
+def b1_rows(candidate_file: Path) -> list[dict]:
+    """Adapt candidate pools to the reader format without graph scoring."""
+    return [
+        {
+            "id": row["id"],
+            "text": row["text"],
+            "arms": {"B1": {"evidence": row.get("b1_evidence", [])}},
+        }
+        for row in read_jsonl(candidate_file)
+    ]
+
+
+def seed_cache(predictions: dict[str, dict]) -> dict[tuple[str, str], tuple[str, dict, float]]:
+    return {
+        (identifier, row["evidence_sha256"]): (
+            row["verdict"],
+            row.get("usage", {}),
+            row.get("reader_seconds", 0.0),
+        )
+        for identifier, row in predictions.items()
+    }
+
+
 def read(args: argparse.Namespace) -> None:
-    rows = read_jsonl(args.retrieval_file)
     with (args.data_dir / f"factkg_{args.split}.pickle").open("rb") as stream:
         raw = pickle.load(stream)
     gold = {digest(claim): entry["Label"][0] for claim, entry in raw.items()}
-    row_ids = {row["id"] for row in rows}
-    cache: dict[tuple[str, str], tuple[str, dict, float]] = {}
 
-    predictions = {
-        "B1": read_arm(args, rows, gold, "B1", row_ids, cache),
-    }
+    if args.phase in ("all", "b1"):
+        rows = (
+            b1_rows(args.candidate_file) if args.phase == "b1" else read_jsonl(args.retrieval_file)
+        )
+        row_ids = {row["id"] for row in rows}
+        b1_predictions = read_arm(args, rows, gold, "B1", row_ids, {})
+        if args.phase == "b1":
+            print(
+                json.dumps(
+                    {
+                        "split": args.split,
+                        "claims": len(row_ids),
+                        "unknown": sum(
+                            row["verdict"] == "UNKNOWN" for row in b1_predictions.values()
+                        ),
+                    },
+                    indent=2,
+                )
+            )
+            return
+    else:
+        rows = read_jsonl(args.retrieval_file)
+        b1_predictions = load_arm_predictions(
+            args.out_dir / "b1-predictions.jsonl", "B1", args.model
+        )
+
+    predictions = {"B1": b1_predictions}
     unknown_ids = {
         identifier
         for identifier, record in predictions["B1"].items()
         if record["verdict"] == "UNKNOWN"
     }
+    retrieval_ids = {row["id"] for row in rows}
+    missing = unknown_ids - retrieval_ids
+    if missing:
+        raise ValueError(f"retrieval is missing {len(missing)} B1 UNKNOWN claims")
+    cache = seed_cache(b1_predictions)
     for arm in FALLBACK_ARMS:
         predictions[arm] = read_arm(args, rows, gold, arm, unknown_ids, cache)
 
     records = []
-    for row in rows:
-        identifier = row["id"]
+    for identifier in predictions["B1"]:
         b1 = predictions["B1"][identifier]
         arms = {"B1": {"verdict": b1["verdict"], "correct": b1["correct"]}}
         for fallback in FALLBACK_ARMS:
@@ -162,8 +210,7 @@ def read(args: argparse.Namespace) -> None:
         "arms": {
             arm: {
                 **arm_metrics(records, arm),
-                "correct_over_b1": sum(row["arms"][arm]["correct"] for row in records)
-                - b1_correct,
+                "correct_over_b1": sum(row["arms"][arm]["correct"] for row in records) - b1_correct,
             }
             for arm in ("B1", *hybrid_arms)
         },
@@ -171,12 +218,10 @@ def read(args: argparse.Namespace) -> None:
     }
     for arm in hybrid_arms:
         method_only = sum(
-            row["arms"][arm]["correct"] and not row["arms"]["B1"]["correct"]
-            for row in records
+            row["arms"][arm]["correct"] and not row["arms"]["B1"]["correct"] for row in records
         )
         b1_only = sum(
-            row["arms"]["B1"]["correct"] and not row["arms"][arm]["correct"]
-            for row in records
+            row["arms"]["B1"]["correct"] and not row["arms"][arm]["correct"] for row in records
         )
         summary["paired_vs_b1"][arm] = {
             "method_only_correct": method_only,
@@ -202,7 +247,9 @@ def read(args: argparse.Namespace) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--retrieval-file", type=Path, required=True)
+    parser.add_argument("--phase", choices=("all", "b1", "fallback"), default="all")
+    parser.add_argument("--retrieval-file", type=Path)
+    parser.add_argument("--candidate-file", type=Path)
     parser.add_argument("--out-dir", type=Path, required=True)
     parser.add_argument("--data-dir", type=Path, default=Path("data/factkg/data/factkg_unzip"))
     parser.add_argument("--split", choices=("dev", "test"), default="dev")
@@ -212,6 +259,10 @@ def main() -> None:
     parser.add_argument("--api-key-env", default="OPENAI_API_KEY")
     parser.add_argument("--reader-max-tokens", type=int, default=256)
     args = parser.parse_args()
+    if args.phase in ("all", "fallback") and args.retrieval_file is None:
+        parser.error("--retrieval-file is required for all and fallback phases")
+    if args.phase == "b1" and args.candidate_file is None:
+        parser.error("--candidate-file is required for the b1 phase")
     args.out_dir.mkdir(parents=True, exist_ok=True)
     read(args)
 

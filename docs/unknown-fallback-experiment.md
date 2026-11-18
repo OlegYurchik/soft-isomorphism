@@ -123,6 +123,26 @@ Test subset был выбран в исходном experiment design до эк�
 B1 budget, H10 matcher и UNKNOWN gate. Повторно применяются те же шесть gates,
 что и на confirmatory dev; дополнительная настройка по test запрещена.
 
+## Безопасная оптимизация исполнения
+
+Изначальный исследовательский конвейер вычислял B4, H8, H9 и H10 для всех
+claims, хотя H11 использует эти результаты только после `B1 = UNKNOWN`.
+Оптимизированный конвейер разделён на две фазы: B1-reader работает для всех
+claims, а графовый retrieval запускается только для UNKNOWN. Параметры,
+формулы стоимости, пороги и reader prompt не менялись. Один и тот же
+экземпляр замороженного ONNX encoder переиспользуется между B4–H10.
+
+На фиксированном test-500 B1 вернул 153 UNKNOWN. Поэтому графовый retrieval
+был полностью пропущен для 347 из 500 claims (69,4%). Строгая проверка по
+эталонным артефактам дала 153/153 точных совпадения на каждом этапе B4, H8,
+H9 и H10. Итоговый `reader-summary.json` также совпал побайтно
+(`SHA-256 e1330507d9fe6ac84333a0ec8bf2dd070bec86377c79b43f4411247305134b49`):
+Accuracy 65,0%, Macro-F1 0,7197, UNKNOWN 106. Значит, оптимизация сокращает
+лишнюю работу, но не меняет экспериментальный результат.
+
+Реализация: `scripts/factkg_h11_lazy_retrieval.py`; двухфазный reader:
+`scripts/factkg_h11_unknown_fallback.py --phase b1|fallback`.
+
 ## Артефакты
 
 - diagnostic B1 predictions: `data/evaluation/h8-dev-500-c7/predictions.jsonl`;
@@ -134,3 +154,5 @@ B1 budget, H10 matcher и UNKNOWN gate. Повторно применяются 
   `data/evaluation/h11-dev-500-confirm-h10/retrieval-summary.json`;
 - confirmatory reader:
   `data/evaluation/h11-dev-500-confirm-reader/reader-summary.json`.
+- test lazy-retrieval verification:
+  `data/evaluation/h11-test-500-lazy/summary.json`.
