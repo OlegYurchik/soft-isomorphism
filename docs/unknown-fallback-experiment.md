@@ -82,10 +82,47 @@ H11 подтверждается, только если одновременно
 При провале любого quality gate H11 не переносится на test. При успехе
 параметры остаются замороженными и запускается заранее выбранный test subset.
 
+## Confirmatory result on ranks 1000–1499
+
+Независимый прогон выполнен без изменения алгоритма, reader, budgets или
+gates. Все 500 claims обработаны одной моделью `iairlab/qwen3.8-27b`.
+
+| Метод | Accuracy | Macro-F1 | UNKNOWN | Correct сверх B1 |
+|---|---:|---:|---:|---:|
+| B1 | 59,0% | 0,703 | 164 | — |
+| B1→H8 | 61,2% | 0,720 | 152 | +11 |
+| B1→H9 | 62,2% | 0,725 | 144 | +16 |
+| B1→H10 (H11) | **66,8%** | **0,751** | **112** | **+39** |
+
+Для главного контраста H11-only/B1-only correct = 39/0, exact two-sided
+paired `p = 3,64e-12`. Fallback был вызван для 164/500 (32,8%) claims.
+H11 восстановил на 23 правильных ответа больше, чем контроль `B1→H9`.
+
+Все заранее зафиксированные gates пройдены:
+
+- Accuracy gain: `+7,8` п.п. при пороге `+3`;
+- paired `p = 3,64e-12` при пороге `0,05`;
+- Macro-F1 вырос на `0,047`, а не снизился;
+- UNKNOWN снизился на 31,7% при пороге 15%;
+- преимущество восстановлений над `B1→H9`: 23 при пороге 10;
+- fallback rate 32,8% при максимуме 40%.
+
+Production-вариант H11 (`B1` + `H10`, без ablation arms) потребовал 646
+уникальных model calls, 345 655 токенов и 402,37 с суммарного reader time.
+Полный confirmatory run с H8/H9 controls потребовал 685 уникальных calls.
+
+**Решение:** H11 подтверждена на независимой dev-выборке. Параметры
+остаются замороженными; следующий этап — заранее фиксированный FactKG test
+subset, после него перенос на второй benchmark.
+
 ## Артефакты
 
 - diagnostic B1 predictions: `data/evaluation/h8-dev-500-c7/predictions.jsonl`;
 - diagnostic H9/H10 predictions:
   `data/evaluation/h10-dev-500-diagnostic/predictions.jsonl`;
 - независимые артефакты должны храниться в каталогах с суффиксом
-  `dev-500-confirm` и offset 1000.
+  `dev-500-confirm` и offset 1000;
+- confirmatory retrieval:
+  `data/evaluation/h11-dev-500-confirm-h10/retrieval-summary.json`;
+- confirmatory reader:
+  `data/evaluation/h11-dev-500-confirm-reader/reader-summary.json`.
