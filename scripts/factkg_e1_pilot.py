@@ -403,8 +403,7 @@ def extract(args: argparse.Namespace) -> None:
         }
 
     pending = [claim for claim in claims if digest(claim) not in existing]
-    with ThreadPoolExecutor(max_workers=args.workers) as executor:
-        results = executor.map(extract_claim, pending)
+    def save_results(results) -> None:
         for row in results:
             identifier = row["id"]
             existing[identifier] = row
@@ -416,6 +415,12 @@ def extract(args: argparse.Namespace) -> None:
                 f"extracted {len(existing)}/{len(claims)} {identifier[:12]} edges={edge_count}",
                 flush=True,
             )
+
+    if args.workers == 1:
+        save_results(map(extract_claim, pending))
+    else:
+        with ThreadPoolExecutor(max_workers=args.workers) as executor:
+            save_results(executor.map(extract_claim, pending))
 
 
 def reparse(args: argparse.Namespace) -> None:
