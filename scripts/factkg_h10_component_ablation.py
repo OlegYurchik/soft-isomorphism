@@ -9,7 +9,7 @@ from pathlib import Path
 
 from factkg_e1_pilot import read_jsonl, write_jsonl
 from factkg_e4_experiment import OnnxRelationEncoder
-from factkg_h10_endpoint_paths import match_row
+from factkg_h10_endpoint_paths import independent_edge_match, match_row
 from factkg_h11_lazy_retrieval import unknown_ids
 
 VARIANTS = {
@@ -30,11 +30,16 @@ VARIANTS = {
         "expanded_node_penalty": 0.0,
         "max_alignment_path_length": 1,
     },
+    "independent-edges": None,
 }
 
 
 def arm_row(row: dict, variant: str, encoder: OnnxRelationEncoder) -> dict:
-    result = match_row(row, encoder, **VARIANTS[variant])
+    result = (
+        independent_edge_match(row, encoder)
+        if variant == "independent-edges"
+        else match_row(row, encoder, **VARIANTS[variant])
+    )
     return {"id": row["id"], "text": row["text"], "variant": variant, **result}
 
 

@@ -12,9 +12,10 @@ import re
 import sqlite3
 import time
 import unicodedata
+import urllib.error
 import urllib.request
 from collections import Counter, deque
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 from soft_isomorphism.matching import Edge, Node, Triple, _edge_distance, label_distance
@@ -356,30 +357,38 @@ def extract(args: argparse.Namespace) -> None:
             else relation_candidates(relations, claim, args.relation_limit)
         )
         for instruction in PROMPTS[: args.extract_views]:
-            raw, tokens, seconds = call_model(
-                args.server_url,
-                "Return one JSON object only. Do not decide whether the claim is true. "
-                "Use local node IDs. Copy named entity labels literally from the claim; "
-                "never replace a name by a generic class like Person or Award. "
-                "Use '?' only for an unspecified entity. "
-                "Polarity must be positive or negative. "
-                "Every quote must be an exact substring of the claim.",
-                instruction
-                + (
-                    "\nUse a concise relation phrase from the claim."
-                    if args.open_relations
-                    else "\nAllowed relation labels (choose one or 'unknown'): "
-                    + ", ".join(relevant_relations)
-                )
-                + "\nClaim: "
-                + claim
-                + "\nSchema: {nodes:[{id,label}],edges:[{source,relation,target,polarity,quote}]}",
-                args.extract_max_tokens,
-                schema=GRAPH_SCHEMA,
-                model=args.model,
-                api_key=key,
-                json_mode=args.json_mode,
-            )
+            for attempt in range(3):
+                try:
+                    raw, tokens, seconds = call_model(
+                        args.server_url,
+                        "Return one JSON object only. Do not decide whether the claim is true. "
+                        "Use local node IDs. Copy named entity labels literally from the claim; "
+                        "never replace a name by a generic class like Person or Award. "
+                        "Use '?' only for an unspecified entity. "
+                        "Polarity must be positive or negative. "
+                        "Every quote must be an exact substring of the claim.",
+                        instruction
+                        + (
+                            "\nUse a concise relation phrase from the claim."
+                            if args.open_relations
+                            else "\nAllowed relation labels (choose one or 'unknown'): "
+                            + ", ".join(relevant_relations)
+                        )
+                        + "\nClaim: "
+                        + claim
+                        + "\nSchema: {nodes:[{id,label}],"
+                        "edges:[{source,relation,target,polarity,quote}]}",
+                        args.extract_max_tokens,
+                        schema=GRAPH_SCHEMA,
+                        model=args.model,
+                        api_key=key,
+                        json_mode=args.json_mode,
+                    )
+                    break
+                except (TimeoutError, urllib.error.URLError):
+                    if attempt == 2:
+                        raise
+                    time.sleep(2**attempt)
             raw_views.append(raw)
             usage.append({"tokens": tokens, "seconds": seconds})
             try:
@@ -403,6 +412,7 @@ def extract(args: argparse.Namespace) -> None:
         }
 
     pending = [claim for claim in claims if digest(claim) not in existing]
+
     def save_results(results) -> None:
         for row in results:
             identifier = row["id"]
@@ -420,7 +430,8 @@ def extract(args: argparse.Namespace) -> None:
         save_results(map(extract_claim, pending))
     else:
         with ThreadPoolExecutor(max_workers=args.workers) as executor:
-            save_results(executor.map(extract_claim, pending))
+            futures = [executor.submit(extract_claim, claim) for claim in pending]
+            save_results(future.result() for future in as_completed(futures))
 
 
 def reparse(args: argparse.Namespace) -> None:

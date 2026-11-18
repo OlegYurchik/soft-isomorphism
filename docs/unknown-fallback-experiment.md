@@ -180,6 +180,34 @@ expanded-node penalty не нужны для наблюдаемого приро
 Скрипты: `scripts/factkg_h10_component_ablation.py` и
 `scripts/factkg_h10_ablation_reader.py`.
 
+## Нужна ли глобальная согласованность графа
+
+Следующая ablation проверяет центральную часть soft graph matching. Контроль
+`independent-edges` использует тот же lean endpoint expansion, тот же
+MiniLM encoder и те же одно-/двухшаговые KG paths, но выбирает лучший путь
+для каждого query-ребра отдельно. Общего отображения query-вершин,
+инъективности и graph-level beam search в контроле нет; одна общая
+query-вершина может получить разные KG-образы в соседних рёбрах.
+
+На confirmatory dev-500 evidence изменился в 103/164 fallback claims:
+
+| Метод | Accuracy | Macro-F1 | UNKNOWN | Correct сверх B1 |
+|---|---:|---:|---:|---:|
+| H10-lean, согласованный граф | **67,0%** | 0,7519 | **112** | **+40** |
+| Независимые рёбра | 66,8% | **0,7521** | 115 | +39 |
+
+Verdict совпал в 151/164 fallback claims. Lean был единственным правильным
+в 6 случаях, independent-edges — в 5. Разность одного правильного ответа не
+даёт свидетельства, что глобальная согласованность необходима. Поэтому на
+этом наборе гипотеза о преимуществе joint soft graph matching **не
+подтверждена**; aggregate accuracy полного H10 и independent-edges одинакова.
+
+Для независимой проверки до просмотра результата зафиксирован следующий
+dev-срез: SHA-256 ranks 1500–1999. Extraction выполнен тем же
+`iairlab/qwen3.8-27b`, одним open-relation view; lean и independent-edges
+заморожены без последующей настройки. Срез не следует использовать для
+нового выбора параметров.
+
 ## Артефакты
 
 - diagnostic B1 predictions: `data/evaluation/h8-dev-500-c7/predictions.jsonl`;

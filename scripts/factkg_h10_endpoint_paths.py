@@ -13,8 +13,9 @@ from typing import Callable
 
 from factkg_e1_pilot import api_key_for, call_model, digest, read_jsonl, write_jsonl
 from factkg_e4_experiment import OnnxRelationEncoder, has_annotated_path, relation_text
-from factkg_h7_soft_matching import directed_arcs, indices
+from factkg_h7_soft_matching import EDGE_WEIGHT, NODE_WEIGHT, directed_arcs, indices
 from factkg_h9_edge_path import (
+    best_alignment,
     build_path_index,
     exact_paired_pvalue,
     macro_f1,
@@ -264,6 +265,103 @@ def match_row(
         "match": {**best, "evidence": evidence, "alignments": alignments},
         "proposals": proposals,
         "used_expanded_nodes": used_expanded,
+    }
+
+
+def independent_edge_match(row: dict, encoder: OnnxRelationEncoder) -> dict:
+    """Match every query edge independently using the same lean H10 candidates."""
+    graph = row["graph"]
+    arcs = directed_arcs(row.get("pool_triples", []))
+    initial = {node: list(values) for node, values in row.get("candidate_ids", {}).items()}
+    domains, _, proposals = propose_domains(
+        graph,
+        initial,
+        arcs,
+        encoder,
+        candidates_per_node=1,
+        expanded_node_penalty=0.0,
+    )
+    allowed_pairs = {
+        (source, target)
+        for edge in graph["edges"]
+        for source in domains.get(edge["source"], [])
+        for target in domains.get(edge["target"], [])
+    }
+    path_index = build_path_index(arcs, allowed_pairs)
+    labels = {node["id"]: node["label"] for node in graph["nodes"]}
+    encoder.encode_many(
+        {
+            *(query_edge_text(edge, labels) for edge in graph["edges"]),
+            *(path_text(path) for paths in path_index.values() for path in paths),
+        }
+    )
+    evidence = []
+    alignments = []
+    edge_mappings = []
+    costs = []
+    used_expanded = set()
+    for edge in graph["edges"]:
+        query = query_edge_text(edge, labels)
+        choices = []
+        for source in domains.get(edge["source"], []):
+            for target in domains.get(edge["target"], []):
+                if edge["source"] != edge["target"] and source == target:
+                    continue
+                path, similarity = best_alignment(
+                    query, path_index.get((source, target), []), encoder.similarity
+                )
+                if path is None:
+                    continue
+                source_cost = (
+                    0.0
+                    if labels[edge["source"]] == "?"
+                    else label_distance(labels[edge["source"]], source)
+                )
+                target_cost = (
+                    0.0
+                    if labels[edge["target"]] == "?"
+                    else label_distance(labels[edge["target"]], target)
+                )
+                cost = NODE_WEIGHT * (source_cost + target_cost) / 2 + EDGE_WEIGHT * (
+                    1.0 - similarity
+                )
+                choices.append((cost, source, target, path, similarity))
+        if not choices:
+            continue
+        cost, source, target, path, similarity = min(
+            choices,
+            key=lambda item: (
+                item[0],
+                item[1],
+                item[2],
+                path_text(item[3]),
+            ),
+        )
+        costs.append(cost)
+        edge_mappings.append({"query_edge": edge, "source": source, "target": target})
+        alignments.append(
+            {
+                "query_edge": edge,
+                "kg_path_length": len(path),
+                "adjusted_similarity": similarity,
+                "kg_path": [arc["evidence"] for arc in path],
+            }
+        )
+        for node_id, image in ((edge["source"], source), (edge["target"], target)):
+            if image not in initial.get(node_id, []):
+                used_expanded.add(node_id)
+        for arc in path:
+            if arc["evidence"] not in evidence:
+                evidence.append(arc["evidence"])
+    return {
+        "match": {
+            "edge_mappings": edge_mappings,
+            "cost": sum(costs) / len(costs) if costs else None,
+            "evidence": evidence[:20],
+            "alignments": alignments,
+        },
+        "proposals": proposals,
+        "used_expanded_nodes": sorted(used_expanded),
     }
 
 

@@ -97,3 +97,32 @@ def test_candidate_count_and_penalty_are_configurable():
     )
     assert len(expanded["t"]) == 1
     assert set(penalties.values()) == {0.0}
+
+
+def test_independent_edges_can_use_inconsistent_shared_node_images():
+    class RelationEncoder(FakeEncoder):
+        def similarity(self, query, candidate):
+            return float(
+                ("relation: r;" in query and "relation: r;" in candidate)
+                or ("relation: s;" in query and "relation: s;" in candidate)
+            )
+
+    row = {
+        "graph": {
+            "nodes": [
+                {"id": "x", "label": "?"},
+                {"id": "y", "label": "?"},
+                {"id": "z", "label": "?"},
+            ],
+            "edges": [
+                {"source": "x", "relation": "r", "target": "y"},
+                {"source": "x", "relation": "s", "target": "z"},
+            ],
+        },
+        "candidate_ids": {"x": ["A", "B"], "y": ["Y"], "z": ["Z"]},
+        "pool_triples": [triple("A", "r", "Y"), triple("B", "s", "Z")],
+    }
+    result = h10.independent_edge_match(row, RelationEncoder())
+    sources = {item["source"] for item in result["match"]["edge_mappings"]}
+    assert sources == {"A", "B"}
+    assert len(result["match"]["evidence"]) == 2
