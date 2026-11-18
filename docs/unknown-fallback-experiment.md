@@ -1,0 +1,91 @@
+# H11: H10 как структурный fallback после B1 UNKNOWN
+
+Дата фиксации: 18.11.2026. Дизайн зафиксирован до запуска на независимых
+FactKG dev SHA-256 ranks 1000–1499.
+
+## Мотивация
+
+На диагностических ranks 500–999 H10 улучшил H9, но уступил B1:
+
+| Arm | Accuracy | Macro-F1 | UNKNOWN |
+|---|---:|---:|---:|
+| H9 | 22,0% | 0,352 | 374/500 |
+| H10 | 52,2% | 0,644 | 199/500 |
+| B1 | 59,6% | 0,699 | 160/500 |
+
+Парный анализ показал, что H10 правильно решил 43 примера, ошибочных для
+B1; в 32 из них B1 вернул UNKNOWN. Напротив, в 80 B1-only correct случаях
+H10 вернул UNKNOWN 71 раз. UNKNOWN доступен во время inference и не требует
+gold label, поэтому его можно использовать как заранее определённый gate.
+
+## Гипотеза и алгоритм
+
+**H11.** Если сначала запускать широкий lexical baseline B1, а H10-reader
+вызывать только после ответа B1=UNKNOWN, структурное evidence H10 восстановит
+часть нерешённых claims без потери уже правильных B1 verdicts.
+
+1. Построить B1 evidence с теми же лимитом 20 и ranking, что в H10 diagnostic.
+2. Qwen-reader возвращает `TRUE`, `FALSE` или `UNKNOWN` только по B1 evidence.
+3. При `TRUE/FALSE` этот verdict окончательный; H10-reader не вызывается.
+4. Только при `UNKNOWN` выполнить замороженный H10 retrieval: не более двух
+   endpoint proposals на query node, path length 1–2, beam 64, weights
+   node/edge 0,3/0,7, path penalty 0,1 и provenance penalty 0,15.
+5. Если H10-reader вернул `TRUE/FALSE`, использовать его verdict; иначе
+   сохранить UNKNOWN.
+
+Reader фиксирован: `iairlab/qwen3.8-27b`, temperature 0, seed 42, thinking
+disabled, одинаковый KG-only prompt. UNKNOWN считается ошибкой. Gold label и
+gold Evidence не используются ни retrieval, ни gate.
+
+## Arms и контроли
+
+- `B1`: сильный основной baseline;
+- `B1→H8`: fallback с contextual direct-edge evidence;
+- `B1→H9`: fallback с edge-to-path, но без endpoint recovery;
+- `B1→H10` (`H11`): полный предлагаемый метод.
+
+Все fallback arms заменяют только B1=UNKNOWN. Поэтому они по конструкции не
+могут потерять B1-correct claim в Accuracy; научный вопрос — сколько ошибок
+они исправляют и нужен ли для этого именно механизм H10.
+
+## Post-hoc diagnostic, не подтверждение
+
+Правило сформулировано после просмотра ranks 500–999, поэтому цифры ниже
+используются только для выбора H11 и не являются evidence её обобщаемости.
+
+| Метод | Accuracy | Macro-F1 | UNKNOWN | Correct сверх B1 |
+|---|---:|---:|---:|---:|
+| B1 | 59,6% | 0,699 | 160 | — |
+| B1→H8 | 61,0% | 0,710 | 152 | +7 |
+| B1→H9 | 61,6% | 0,712 | 146 | +10 |
+| B1→H10 | 66,0% | 0,740 | 119 | +32 |
+
+Для post-hoc B1→H10: H11-only/B1-only correct = 32/0, exact two-sided
+paired `p = 4,66e-10`; fallback был вызван для 160/500 (32%) claims.
+
+## Независимый confirmatory run
+
+Выборка: FactKG dev, стабильная сортировка по SHA-256, ranks 1000–1499.
+Она не использовалась при формулировке H9–H11 и не пересекается с
+diagnostic ranks 500–999. До результата запрещено менять retrieval,
+reader, budgets, prompt, gate или пороги.
+
+H11 подтверждается, только если одновременно:
+
+- Accuracy выше B1 минимум на 3 п.п. (15/500 claims);
+- H11-only correct > B1-only correct при exact two-sided paired `p < 0,05`;
+- Macro-F1 не ниже B1 более чем на 0,01;
+- UNKNOWN снижен минимум на 15% относительно B1;
+- H11 восстанавливает минимум на 10 claims больше, чем `B1→H9`;
+- fallback rate не выше 40%; отдельно считаются calls и токены reader.
+
+При провале любого quality gate H11 не переносится на test. При успехе
+параметры остаются замороженными и запускается заранее выбранный test subset.
+
+## Артефакты
+
+- diagnostic B1 predictions: `data/evaluation/h8-dev-500-c7/predictions.jsonl`;
+- diagnostic H9/H10 predictions:
+  `data/evaluation/h10-dev-500-diagnostic/predictions.jsonl`;
+- независимые артефакты должны храниться в каталогах с суффиксом
+  `dev-500-confirm` и offset 1000.
