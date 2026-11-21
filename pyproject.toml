@@ -5,6 +5,14 @@ description = "Soft isomorphism between document graphs and knowledge graphs"
 requires-python = ">=3.11"
 dependencies = []
 
+[project.optional-dependencies]
+e4 = [
+    "huggingface-hub==2.4.0",
+    "numpy==2.3.5",
+    "onnxruntime==1.31.1",
+    "tokenizers==0.23.3",
+]
+
 [dependency-groups]
 dev = [
     "ruff>=0.9",
