@@ -19,6 +19,7 @@ def test_candidate_domains_leave_unknown_for_path_proposal() -> None:
     }
     triples = [{"source": "alice", "relation": "wrote", "target": "book"}]
     assert candidate_domains(graph, triples) == {"a": ["alice", "book"], "x": []}
+    assert candidate_domains(graph, triples, freeze_exact=True) == {"a": ["alice"], "x": []}
 
 
 def test_graph_evidence_is_first_and_bm25_fills_budget() -> None:

@@ -114,8 +114,12 @@ def proposal_score(
     candidate: str,
     path: list[dict],
     similarity: Callable[[str, str], float],
+    contextual_query: str | None = None,
 ) -> float:
-    relation_score = similarity(query_relation, relation_sequence_text(path))
+    relation_score = similarity(
+        contextual_query or query_relation,
+        path_text(path) if contextual_query is not None else relation_sequence_text(path),
+    )
     label_score = 0.0 if query_label == "?" else 1.0 - label_distance(query_label, candidate)
     return (
         PROPOSAL_RELATION_WEIGHT * relation_score
@@ -133,6 +137,7 @@ def propose_domains(
     max_path_length: int = 2,
     candidates_per_node: int = NEW_CANDIDATES_PER_NODE,
     expanded_node_penalty: float = EXPANDED_NODE_PENALTY,
+    contextual_proposals: bool = False,
 ) -> tuple[dict[str, list[str]], dict[tuple[str, str], float], list[dict]]:
     outgoing, incoming, _ = indices(arcs)
     labels = {node["id"]: node["label"] for node in graph["nodes"]}
@@ -155,6 +160,7 @@ def propose_domains(
             candidate,
             proposal["path"],
             encoder.similarity,
+            query_edge_text(edge, labels) if contextual_proposals else None,
         )
         record = {
             **proposal,
@@ -207,6 +213,7 @@ def match_row(
     candidates_per_node: int = NEW_CANDIDATES_PER_NODE,
     expanded_node_penalty: float = EXPANDED_NODE_PENALTY,
     max_alignment_path_length: int = 2,
+    contextual_proposals: bool = False,
 ) -> dict:
     graph = row["graph"]
     arcs = directed_arcs(row.get("pool_triples", []))
@@ -219,6 +226,7 @@ def match_row(
         max_path_length=max_proposal_path_length,
         candidates_per_node=candidates_per_node,
         expanded_node_penalty=expanded_node_penalty,
+        contextual_proposals=contextual_proposals,
     )
     allowed_pairs = {
         (source, target)

@@ -24,15 +24,17 @@ from soft_isomorphism.hotpotqa import (
 from soft_isomorphism.matching import label_distance
 
 
-def candidate_domains(graph: dict, triples: list[dict], limit: int = 5) -> dict[str, list[str]]:
+def candidate_domains(
+    graph: dict, triples: list[dict], limit: int = 5, *, freeze_exact: bool = False
+) -> dict[str, list[str]]:
     entities = sorted({triple[key] for triple in triples for key in ("source", "target")})
     domains = {}
     for node in graph["nodes"]:
         label = node["label"]
+        ranked = sorted(entities, key=lambda value: (label_distance(label, value), value))
+        exact = [value for value in ranked if label_distance(label, value) == 0.0]
         domains[node["id"]] = (
-            []
-            if label == "?"
-            else sorted(entities, key=lambda value: (label_distance(label, value), value))[:limit]
+            [] if label == "?" else (exact if freeze_exact and exact else ranked[:limit])
         )
     return domains
 
@@ -146,13 +148,16 @@ def run(args: argparse.Namespace) -> None:
             row = {
                 "graph": query["graph"],
                 "pool_triples": triples,
-                "candidate_ids": candidate_domains(query["graph"], triples),
+                "candidate_ids": candidate_domains(
+                    query["graph"], triples, freeze_exact=args.freeze_exact
+                ),
             }
             result = match_row(
                 row,
                 encoder,
                 candidates_per_node=1,
                 expanded_node_penalty=0.0,
+                contextual_proposals=args.contextual_proposals,
             )
         graph_evidence = result["match"]["evidence"] if result else []
         evidence, graph_count = evidence_from_match(example, graph_evidence, args.evidence_budget)
@@ -176,6 +181,31 @@ def run(args: argparse.Namespace) -> None:
     (args.out_dir / "structured-retrieval.jsonl").write_text(
         "".join(json.dumps(row, ensure_ascii=False) + "\n" for row in retrieval_rows)
     )
+
+    retrieval_summary = {
+        "split": "development",
+        "claims": len(inputs),
+        "evidence_budget": args.evidence_budget,
+        "paragraph_limit": args.paragraph_limit,
+        "anchor_first": args.anchor_first,
+        "freeze_exact": args.freeze_exact,
+        "contextual_proposals": args.contextual_proposals,
+        "hypothetical_extraction_calls": len(inputs)
+        + sum(row["selected_contexts"] for row in retrieval_rows),
+        "retrieval_seconds": retrieval_seconds,
+        "graph_mode": sum(row["mode"] == "graph" for row in retrieval_rows),
+        "fallback_mode": sum(row["mode"] == "fallback" for row in retrieval_rows),
+        "support_em": mean(support_rows, "support_em"),
+        "support_precision": mean(support_rows, "support_precision"),
+        "support_recall": mean(support_rows, "support_recall"),
+        "support_f1": mean(support_rows, "support_f1"),
+    }
+    (args.out_dir / "structured-retrieval-summary.json").write_text(
+        json.dumps(retrieval_summary, indent=2) + "\n"
+    )
+    if args.retrieval_only:
+        print(json.dumps(retrieval_summary, indent=2))
+        return
 
     predictions_path = args.out_dir / "structured-predictions.jsonl"
     existing = (
@@ -219,16 +249,7 @@ def run(args: argparse.Namespace) -> None:
         answer_rows.append(answer_metrics(existing[identifier]["answer"], gold[identifier].answer))
 
     summary = {
-        "split": "development",
-        "claims": len(inputs),
-        "evidence_budget": args.evidence_budget,
-        "paragraph_limit": args.paragraph_limit,
-        "anchor_first": args.anchor_first,
-        "hypothetical_extraction_calls": len(inputs)
-        + sum(row["selected_contexts"] for row in retrieval_rows),
-        "retrieval_seconds": retrieval_seconds,
-        "graph_mode": sum(row["mode"] == "graph" for row in retrieval_rows),
-        "fallback_mode": sum(row["mode"] == "fallback" for row in retrieval_rows),
+        **retrieval_summary,
         "answer_em": mean(answer_rows, "answer_em"),
         "answer_f1": mean(answer_rows, "answer_f1"),
         "support_em": mean(support_rows, "support_em"),
@@ -254,6 +275,9 @@ def main() -> None:
     parser.add_argument("--evidence-budget", type=int, default=5)
     parser.add_argument("--paragraph-limit", type=int)
     parser.add_argument("--anchor-first", action="store_true")
+    parser.add_argument("--freeze-exact", action="store_true")
+    parser.add_argument("--contextual-proposals", action="store_true")
+    parser.add_argument("--retrieval-only", action="store_true")
     parser.add_argument("--graph-dir", type=Path, required=True)
     parser.add_argument("--out-dir", type=Path, required=True)
     parser.add_argument("--server-url", default="https://api.duckduck.cloud")

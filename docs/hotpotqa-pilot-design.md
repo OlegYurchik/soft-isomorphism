@@ -165,3 +165,48 @@ metrics, поэтому gate снова не пройден. Детальный 
 разрешить unknown node вернуть множество соседей, удовлетворяющих одному и
 тому же query relation. Его надо отдельно оценить на single-answer и
 multi-answer вопросах, не меняя extraction prompt и reader.
+
+До set-valued operator проверяется более ранний failure point: proposal stage
+поставил корректный `Caesars Palace ← took place at — WrestleMania IX` лишь
+на 10-е место, поскольку сравнивал голые relations `hosted` и
+`inverse took place at`. Exact anchor также не был фиксирован и позже был
+заменён на `WrestleMania XXVI`. Диагностическая абляция на тех же 20 IDs и
+полном context pool содержит четыре arms: исходный matcher; только фиксация
+нулевого label-distance anchor; только proposal similarity по полному
+labeled edge/path; обе модификации. Сначала считаются только retrieval
+metrics, без новых reader calls. Комбинация допускается к reader лишь если
+supporting recall не ниже B1 53,75%; иначе set-valued operator откладывается,
+поскольку он не исправит неверное сопоставление anchor.
+
+Результат абляции:
+
+| Proposal arm | Support Recall | Support F1 |
+|---|---:|---:|
+| Исходный | 52,92% | 33,51% |
+| Только freeze exact anchors | 52,92% | 33,51% |
+| Contextual full edge/path | **54,58%** | **34,76%** |
+| Contextual + freeze | **54,58%** | **34,76%** |
+
+Минимальный contextual arm прошёл gate; freeze exact anchors не добавляет
+качества и исключается. Reader при contextual evidence получил Answer EM
+35,00% и token F1 52,96% против 35,00% и 50,96% у B1. В paired разборе это
+одно улучшение, ноль ухудшений и 19 ties. На 20 примерах это перспективный,
+но не подтверждающий результат: статистической мощности недостаточно.
+
+Последний feasibility-контроль до масштабирования фиксируется как
+`anchor-first shortlist-3 + contextual proposals`: он объединяет единственную
+полезную matcher-модификацию с 80-call retrieval design. Gate: supporting
+recall не ниже B1 53,75%. Reader вызывается только после прохождения gate.
+
+Shortlist-3 + contextual proposal сохранил 80 calls, но получил recall 52,92%
+и gate не прошёл; reader не запускался. Последний допустимый размер без
+изменения метода — anchor-first shortlist-4: 100 calls, то есть меньше
+половины полного 220-call design. Если его recall ниже 53,75%, дальнейший
+подбор shortlist size прекращается как post-hoc tuning.
+
+Shortlist-4 также получил recall 52,92% и gate не прошёл. Подбор размера
+остановлен, reader не запускался. Итог feasibility: contextual proposal
+улучшает soft graph matching при полном context pool, но дешёвый lexical
+shortlist теряет нужный paragraph раньше matcher. Поэтому development-200
+пока не запускается: сначала нужен отдельный graph-aware paragraph retrieval
+design, а не дополнительная настройка весов текущего matcher.

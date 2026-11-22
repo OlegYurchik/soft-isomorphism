@@ -43,6 +43,31 @@ def test_forward_and_backward_paths_preserve_direction():
     assert any([arc["relation"] for arc in path] == ["producer", "birthPlace"] for path in backward)
 
 
+def test_contextual_proposal_scores_full_labeled_edge():
+    path = [
+        {
+            "source": "Caesars Palace",
+            "relation": "~took_place_at",
+            "target": "WrestleMania IX",
+            "evidence": triple("WrestleMania IX", "took_place_at", "Caesars Palace"),
+        }
+    ]
+
+    def similarity(left, right):
+        return 0.9 if left.startswith("source: hotel") and right.startswith("source:") else 0.1
+
+    relation_only = h10.proposal_score("hosted", "hotel", "Caesars Palace", path, similarity)
+    contextual = h10.proposal_score(
+        "hosted",
+        "hotel",
+        "Caesars Palace",
+        path,
+        similarity,
+        "source: hotel; relation: hosted; target: wrestlemania ix",
+    )
+    assert contextual > relation_only
+
+
 def test_path_guided_proposal_recovers_missing_endpoint():
     arcs = directed_arcs(
         [triple("Film", "producer", "Person"), triple("Person", "birthPlace", "City")]
