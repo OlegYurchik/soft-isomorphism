@@ -246,7 +246,7 @@
   <header class="hero page">
     <div class="kicker">Ответы по итогам созвона · 21 ноября 2026</div>
     <h1>НИР без тумана</h1>
-    <p class="lead">Что именно мы сопоставляем, откуда берётся <code>UNKNOWN</code>, чем B1 отличается от H10-lean, что уже доказано и какой один эксперимент отделит настоящий graph matching от просто хорошего поиска фактов.</p>
+    <p class="lead">Что именно мы сопоставляем, откуда берётся <code>UNKNOWN</code> и что показал свежий контроль: структурный поиск путей полезен, но преимущество единого глобального mapping пока не доказано.</p>
     <div class="hero-meta">
       <span class="pill">FactKG + DBpedia 2015 Light</span>
       <span class="pill">Qwen3.8-27B + MiniLM</span>
@@ -279,7 +279,7 @@
         </article>
         <article class="callout warn">
           <h3>Что пока неясно</h3>
-          <p>Мы ещё не доказали, что прирост даёт именно единое согласованное отображение графа. Возможно, достаточно просто показать reader хорошие факты из двухшаговой окрестности.</p>
+          <p>Плоский контроль уже исключил объяснение «достаточно любых семантически близких 2-hop фактов». Но единый joint mapping всё ещё не лучше независимого выбора пути для каждого ребра со статистической значимостью.</p>
         </article>
         <article class="callout bad">
           <h3>Что нельзя заявлять</h3>
@@ -291,6 +291,16 @@
         <article class="card metric primary"><strong class="big-number">67,0%</strong><small>B1 → H10-lean · dev-500</small></article>
         <article class="card metric"><strong class="big-number">58,6%</strong><small>B1 Accuracy · test-500</small></article>
         <article class="card metric"><strong class="big-number">65,4%</strong><small>B1 → H10-lean · test-500</small></article>
+      </div>
+      <div class="panel" style="margin-top:16px">
+        <h3>Свежий preregistered control · dev SHA ranks 1500–1999</h3>
+        <div class="grid cols-4" style="margin-top:16px">
+          <article class="card metric"><strong class="big-number">45,8%</strong><small>B1</small></article>
+          <article class="card metric"><strong class="big-number">48,8%</strong><small>Flat-2hop</small></article>
+          <article class="card metric"><strong class="big-number">50,2%</strong><small>Independent edges</small></article>
+          <article class="card metric primary"><strong class="big-number">51,0%</strong><small>H10-lean</small></article>
+        </div>
+        <p class="muted" style="margin-top:13px">Lean против Flat: 15 unique wins против 4, net +11 claims, exact p=0,0192. Lean против independent edges: 4 против 0, p=0,125.</p>
       </div>
     </section>
 
@@ -520,7 +530,7 @@
       <div class="grid cols-3" style="margin-top:20px">
         <article class="card"><span class="tag yes">подтверждено</span><h3 style="margin-top:12px">Fallback улучшает B1</h3><p>На confirmatory dev-500: 59,0% → 66,8% для полного H10 и 67,0% для lean. На frozen test-500: 58,6% → 65,0% и 65,4% соответственно.</p></article>
         <article class="card"><span class="tag yes">подтверждено</span><h3 style="margin-top:12px">Алгоритм можно упростить</h3><p>Второй endpoint candidate и provenance penalty не нужны. B4, H8 и H9 тоже не нужны в production runtime.</p></article>
-        <article class="card"><span class="tag open">не доказано</span><h3 style="margin-top:12px">Нужен ли joint mapping</h3><p>H10-lean дал 67,0%, independent edges — 66,8%. Разница — один правильный claim. Этого недостаточно для сильного научного вывода.</p></article>
+        <article class="card"><span class="tag open">не доказано</span><h3 style="margin-top:12px">Нужен ли joint mapping</h3><p>На свежем срезе lean дал 51,0%, independent edges — 50,2%: 4 unique wins против 0, но p=0,125. Этого всё ещё недостаточно для сильного вывода о глобальной согласованности.</p></article>
       </div>
 
       <div class="panel" style="margin-top:16px">
@@ -555,14 +565,15 @@
       <div class="panel" style="margin-top:16px">
         <h3>Почему результат ещё не равен научному объяснению</h3>
         <details open><summary>Мы знаем, что дополнительные evidence помогают</summary><div>H10-lean исправляет часть B1=UNKNOWN и устойчиво повышает Accuracy. Это воспроизвелось на confirmatory dev и frozen test.</div></details>
-        <details><summary>Мы не знаем, какая минимальная часть механизма необходима</summary><div>Independent edges почти не уступают joint mapping. Значит, общая инъективная карта и beam search могут быть лишними.</div></details>
-        <details><summary>Reader может выигрывать просто от доступа к лучшим фактам</summary><div>Если плоско выбрать хорошие двухшаговые факты и получить тот же результат, вклад — selective retrieval, а не soft graph matching.</div></details>
+        <details><summary>Мы знаем, что плоского доступа к 2-hop фактам недостаточно</summary><div>При одинаковом pool и evidence budget H10-lean получил 51,0%, Flat-2hop — 48,8%. Парное сравнение: 15 unique wins против 4, p=0,0192. Значит, query-edge/path structure действительно помогает выбирать evidence.</div></details>
+        <details><summary>Но минимальная необходимая структура ещё уже</summary><div>Independent edges почти не уступают joint mapping: 50,2% против 51,0%, p=0,125. Подтверждён endpoint/path retrieval, но не общая инъективная карта и beam search.</div></details>
+        <details><summary>Новый bottleneck — extraction output limit</summary><div>На свежем срезе 122/500 query graphs пусты. В 107 случаях JSON обрезан лимитом 256 output-токенов; ещё 15 ответов не прошли строгую валидацию. Для них pool и evidence пусты у всех методов, поэтому B1 fallback rate вырос до 46,8%.</div></details>
       </div>
     </section>
 
     <section id="control">
-      <h2>Решающий контроль: Flat-2hop</h2>
-      <p class="section-lead">Это прямой ответ на предложение руководителя: дать той же модели отдельные факты из двухшаговой окрестности, выбранные по текстовой близости, и проверить, нужен ли сложный графовый механизм.</p>
+      <h2>Решающий контроль Flat-2hop: завершён</h2>
+      <p class="section-lead">Мы дали той же модели отдельные факты из той же двухшаговой окрестности, выбранные по текстовой близости, с тем же количеством evidence. Так изолирован вклад структурного выбора путей.</p>
       <div class="experiment">
         <article class="base"><span class="eyebrow">Baseline</span><h3>B1</h3><p>До 20 KG-троек по BM25. Если reader ответил TRUE/FALSE — останавливаемся.</p></article>
         <article class="control"><span class="eyebrow">Новый простой контроль</span><h3>Flat-2hop</h3><p>После UNKNOWN берём отдельные тройки из того же 2-hop pool по текстовой близости. Никакого общего mapping и beam search.</p></article>
@@ -571,25 +582,37 @@
       </div>
 
       <div class="grid cols-3" style="margin-top:16px">
-        <article class="callout good"><h3>Если H10-lean лучше</h3><p>Получаем свидетельство, что структурная согласованность действительно добавляет качество поверх простого доступа к фактам.</p></article>
-        <article class="callout warn"><h3>Если методы равны</h3><p>Честный вывод: прирост даёт selective two-hop retrieval. Production-алгоритм можно упростить, а graph-level novelty не подтверждена.</p></article>
-        <article class="callout bad"><h3>Если Flat-2hop лучше</h3><p>Убираем joint mapping и beam из текущего метода. Это отрицательный научный результат, но полезная инженерная оптимизация.</p></article>
+        <article class="callout good"><h3>Полученный результат</h3><p>H10-lean лучше Flat-2hop на 2,2 п.п.; net +11 correct, p=0,0192. Простого доступа к тем же дополнительным фактам недостаточно.</p></article>
+        <article class="callout warn"><h3>Что именно подтверждено</h3><p>Endpoint recovery и сопоставление query edge с KG path выбирают более полезное evidence, чем плоский ranking полных троек.</p></article>
+        <article class="callout bad"><h3>Что не подтверждено</h3><p>Joint mapping против independent edges: net +4, p=0,125. Нельзя приписывать результат общей инъективной карте или beam search.</p></article>
       </div>
 
       <div class="callout" style="margin-top:16px">
         <h3>Как сделать сравнение честным</h3>
-        <p>Одинаковые B1=UNKNOWN claims, query graphs, entity anchors, KG pools, MiniLM, reader и per-claim evidence budget. Меняется только способ выбора evidence. Параметры Flat-2hop надо зафиксировать до просмотра verdicts нового среза.</p>
+        <p>Одинаковые B1=UNKNOWN claims, query graphs, entity anchors, KG pools, MiniLM, reader и per-claim evidence budget. Менялся только способ выбора evidence. Параметры и decision rule были зафиксированы до получения reader verdicts.</p>
+      </div>
+
+      <div class="table-wrap" style="margin-top:16px">
+        <table>
+          <thead><tr><th>Arm</th><th class="num">Accuracy</th><th class="num">Macro-F1</th><th class="num">UNKNOWN</th><th>Интерпретация</th></tr></thead>
+          <tbody>
+            <tr><td>B1</td><td class="num">45,8%</td><td class="num">0,5957</td><td class="num">234</td><td>Простой lexical baseline.</td></tr>
+            <tr><td>Flat-2hop</td><td class="num">48,8%</td><td class="num">0,6087</td><td class="num">203</td><td>Дополнительные факты без query-graph structure.</td></tr>
+            <tr><td>Independent edges</td><td class="num">50,2%</td><td class="num">0,6259</td><td class="num">201</td><td>Структурные пути, но без общего mapping.</td></tr>
+            <tr class="highlight"><td><b>H10-lean</b></td><td class="num"><b>51,0%</b></td><td class="num"><b>0,6337</b></td><td class="num"><b>199</b></td><td><b>Структурные пути + joint mapping.</b></td></tr>
+          </tbody>
+        </table>
       </div>
     </section>
 
     <section id="plan">
-      <h2>План до следующего созвона</h2>
+      <h2>Что делаем дальше</h2>
       <div class="timeline">
         <article class="task"><div class="task-num">1</div><div class="task-body"><h3>Устаканить определения</h3><p>В отчёте заменить «граф текста» на query graph и явно разделить extraction, candidate generation, matching, evidence и reader.</p><p class="done-when">Готово, когда: алгоритм можно объяснить без обозначений H10/H11.</p></div></article>
-        <article class="task"><div class="task-num">2</div><div class="task-body"><h3>Зафиксировать Flat-2hop</h3><p>Описать ranking, evidence budget, выборку и decision rule до просмотра новых результатов. Добавить тесты на отсутствие joint mapping и детерминированность.</p><p class="done-when">Готово, когда: Flat-2hop отличается от H10 только способом выбора evidence.</p></div></article>
-        <article class="task"><div class="task-num">3</div><div class="task-body"><h3>Завершить свежий FactKG-срез 1500–1999</h3><p>Extraction уже готов 500/500; candidate pools сейчас готовы только 9/500. Затем запустить B1, Flat-2hop, independent edges и H10-lean.</p><p class="done-when">Готово, когда: есть paired Accuracy/F1/UNKNOWN и wins/losses четырёх arms.</p></div></article>
-        <article class="task"><div class="task-num">4</div><div class="task-body"><h3>Посчитать полную цену</h3><p>Qwen calls и tokens; wall/CPU time по стадиям; peak RSS; стоимость на claim, fallback claim и дополнительный correct; зависимость времени от размера pool.</p><p class="done-when">Готово, когда: прирост качества можно сопоставить с вычислительным overhead.</p></div></article>
-        <article class="task"><div class="task-num">5</div><div class="task-body"><h3>Зафиксировать научный claim</h3><p>По результату выбрать честную формулировку: graph-level consistency, selective two-hop retrieval или отрицательный результат для joint matching.</p><p class="done-when">Готово, когда: мы точно знаем, какая минимальная часть алгоритма даёт прирост.</p></div></article>
+        <article class="task"><div class="task-num">2</div><div class="task-body"><h3>Готово: Flat-2hop зафиксирован и запущен</h3><p>Ranking, budget, выборка и decision rule зафиксированы заранее; добавлены resumable cache и unit tests.</p><p class="done-when">Результат: lean 51,0% против flat 48,8%, p=0,0192.</p></div></article>
+        <article class="task"><div class="task-num">3</div><div class="task-body"><h3>Готово: сравнение четырёх arms</h3><p>Получены paired Accuracy, Macro-F1, UNKNOWN и wins/losses на новых 500 claims.</p><p class="done-when">Вывод: структурные пути полезны; joint mapping не подтверждён.</p></div></article>
+        <article class="task"><div class="task-num">4</div><div class="task-body"><h3>Следующий эксперимент: extraction retry</h3><p>Из 122 пустых графов 107 вызваны обрезанным JSON при лимите 256 токенов, ещё 15 — ошибкой валидации. Повторяем только невалидные ответы с лимитом 512, не меняя matcher.</p><p class="done-when">Готово, когда: измерены valid graph recovery, fallback rate, качество и дополнительная стоимость.</p></div></article>
+        <article class="task"><div class="task-num">5</div><div class="task-body"><h3>Упростить научный claim и runtime</h3><p>Описывать новизну как structured endpoint/path retrieval. Отдельно проверить, можно ли убрать joint beam без статистически значимой потери.</p><p class="done-when">Готово, когда: минимальный production matcher заморожен.</p></div></article>
         <article class="task"><div class="task-num">6</div><div class="task-body"><h3>Только потом — второй benchmark</h3><p>Перенести уже понятный и замороженный механизм на HotpotQA, заранее определив адаптацию query graph, target и метрик.</p><p class="done-when">Готово, когда: перенос проверяет обобщаемость, а не продолжает настройку по FactKG.</p></div></article>
       </div>
     </section>
@@ -597,7 +620,7 @@
     <section id="oral">
       <h2>Ответ руководителю за одну минуту</h2>
       <div class="oral" style="margin-top:20px">
-        <p>Я разобрал слои pipeline. Входной claim преобразуется Qwen в query graph. B1 выбирает до 20 KG-троек с помощью BM25, а UNKNOWN выдаёт отдельный KG-only reader, когда этих фактов недостаточно. Только после UNKNOWN H10-lean рассматривает пути длины 1–2, добавляет один лучший endpoint на вершину и выбирает новое evidence мягким сопоставлением. Прирост подтверждён на независимом dev и test, но польза единого graph mapping пока не доказана: independent edges почти равны ему. Поэтому до HotpotQA я добавляю Flat-2hop — плоский контроль на той же двухшаговой окрестности — и считаю полную стоимость по токенам, времени CPU и памяти. После этого будет понятно, является ли вклад именно graph matching или более простым selective retrieval.</p>
+        <p>Я завершил заранее зафиксированный Flat-2hop control на новом срезе из 500 FactKG claims. B1 получил 45,8%, плоский выбор двухшаговых фактов — 48,8%, independent edges — 50,2%, H10-lean — 51,0%. Lean превысил flat на 11 net correct claims, p=0,0192: значит, эффект нельзя объяснить только доступом к дополнительным фактам — структурное сопоставление query edge с KG path и восстановление endpoint действительно полезны. Но lean против independent edges дал только +4 claims, p=0,125, поэтому преимущество единого joint mapping не доказано. Следующий bottleneck уже диагностирован: из 122 пустых query graphs 107 вызваны обрезкой JSON лимитом 256 output-токенов. Следующий шаг — retry только таких extraction с лимитом 512.</p>
       </div>
     </section>
   </main>

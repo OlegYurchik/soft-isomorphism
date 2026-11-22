@@ -73,9 +73,11 @@ def run(args: argparse.Namespace) -> None:
         write_jsonl(args.out_dir / f"{variant}.jsonl", outputs[variant])
         print(f"{variant}: {len(rows)} claims in {seconds[variant]:.2f}s", flush=True)
 
-    full_rows = outputs.get("full")
-    if full_rows is None and args.full_reference is not None:
-        full_rows = [
+    reference_variant = "full" if "full" in outputs else "lean" if "lean" in outputs else None
+    reference_rows = outputs.get(reference_variant) if reference_variant is not None else None
+    if reference_rows is None and args.full_reference is not None:
+        reference_variant = "full"
+        reference_rows = [
             {
                 "id": row["id"],
                 "match": row["arms"]["H10"],
@@ -85,13 +87,14 @@ def run(args: argparse.Namespace) -> None:
             for row in read_jsonl(args.full_reference)
             if row["id"] in selected
         ]
-    if full_rows is None:
-        full_rows = read_jsonl(args.out_dir / "full.jsonl")
-    full = {row["id"]: row for row in full_rows}
+    if reference_rows is None:
+        raise ValueError("run full or lean, or provide --full-reference")
+    reference = {row["id"]: row for row in reference_rows}
     summary = {
         "claims": len(rows),
+        "comparison_reference": reference_variant,
         "variants": {
-            variant: {"seconds": seconds[variant], **comparison(result, full)}
+            variant: {"seconds": seconds[variant], **comparison(result, reference)}
             for variant, result in outputs.items()
         },
     }
