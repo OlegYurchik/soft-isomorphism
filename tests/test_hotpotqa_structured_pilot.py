@@ -5,7 +5,9 @@ sys.path.insert(0, str(Path(__file__).parents[1] / "scripts"))
 
 from hotpotqa_structured_pilot import (  # noqa: E402
     candidate_domains,
+    digest_paragraph,
     evidence_from_match,
+    graph_aware_titles,
     shortlisted_titles,
 )
 
@@ -63,3 +65,43 @@ def test_anchor_first_prioritizes_exact_query_entity_title() -> None:
     )
     graph = {"nodes": [{"id": "n0", "label": "wrestlemania ix"}], "edges": []}
     assert shortlisted_titles(example, 1, graph, anchor_first=True) == {"WrestleMania IX"}
+
+
+class FakeEncoder:
+    def similarity(self, _left, right):
+        return 1.0 if "caesars palace" in right else 0.0
+
+
+def test_graph_aware_retrieval_follows_grounded_entity_to_paragraph() -> None:
+    example = HotpotInput(
+        "id",
+        "Which hotel hosted WrestleMania IX?",
+        (
+            Sentence("Distractor", 0, "A hotel hosted an event."),
+            Sentence("WrestleMania IX", 0, "It took place at Caesars Palace."),
+            Sentence("Caesars Palace", 0, "The hotel is in Nevada."),
+        ),
+    )
+    graph = {
+        "nodes": [
+            {"id": "n0", "label": "?"},
+            {"id": "n1", "label": "wrestlemania ix"},
+        ],
+        "edges": [{"source": "n0", "relation": "hosted", "target": "n1"}],
+    }
+    contexts = {
+        digest_paragraph("WrestleMania IX", ["It took place at Caesars Palace."]): {
+            "valid": True,
+            "triples": [
+                {
+                    "source": "wrestlemania ix",
+                    "relation": "took place at",
+                    "target": "caesars palace",
+                }
+            ],
+        }
+    }
+    assert graph_aware_titles(example, contexts, graph, 2, FakeEncoder()) == [
+        "WrestleMania IX",
+        "Caesars Palace",
+    ]

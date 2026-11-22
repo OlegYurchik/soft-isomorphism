@@ -210,3 +210,56 @@ Shortlist-4 также получил recall 52,92% и gate не прошёл. �
 shortlist теряет нужный paragraph раньше matcher. Поэтому development-200
 пока не запускается: сначала нужен отдельный graph-aware paragraph retrieval
 design, а не дополнительная настройка весов текущего matcher.
+
+## Graph-aware paragraph retrieval: preregistration
+
+Новый arm меняет только выбор максимум четырёх context paragraphs; extraction
+prompt, contextual matcher, evidence budget 5 и reader остаются заморожены.
+Алгоритм не использует gold:
+
+1. Exact normalized query labels, совпадающие с paragraph titles, образуют
+   seed anchors. Если их нет, seed — первый paragraph по sentence BM25.
+2. Из grounded triples уже выбранного paragraph берутся endpoint labels,
+   точно совпадающие с ещё не выбранными titles.
+3. Такие переходы ранжируются по максимальной MiniLM similarity между полным
+   labeled query edge и полным направленным triple/reverse-triple.
+4. Лучшие новые titles добавляются в frontier до бюджета 4; незаполненные
+   места детерминированно дополняются прежним BM25 title order.
+5. Contextual soft matching работает только на triples этих paragraphs.
+
+На feasibility-20 это соответствует максимум 20 query + 80 context = 100
+extraction calls против 220 у full-context arm. Primary gate до reader:
+Supporting Recall ≥ 53,75% и Supporting F1 ≥ 33,69% (не хуже B1). Если хотя
+бы один gate не пройден, reader не вызывается и development-200 не запускается.
+
+## Graph-aware feasibility result
+
+Оба retrieval gate пройдены при фиксированном бюджете 4 paragraphs:
+
+| Метрика | B1 | Graph-aware | Δ |
+|---|---:|---:|---:|
+| Расчётные extraction calls | 220 | 100 | −54,5% |
+| Supporting Recall | 53,75% | **55,00%** | +1,25 п.п. |
+| Supporting F1 | 33,69% | **34,90%** | +1,21 п.п. |
+| Answer Exact Match | 35,00% | **40,00%** | +5,00 п.п. |
+| Answer token F1 | 50,96% | **56,08%** | +5,12 п.п. |
+
+Reader завершил 20/20 ответов без invalid. Paired answer F1: 2 улучшения,
+1 ухудшение, 17 ties; Exact Match: 1 win, 0 losses, 19 ties. Paired
+supporting F1: 3 улучшения, 2 ухудшения, 15 ties. Эксперимент использовал
+ранее извлечённый cache, но selector читал triples только четырёх выбранных
+paragraphs; 100 calls — стоимость эквивалентного запуска без cache.
+
+На диагностическом multi-answer примере selector восстановил переход
+`WrestleMania IX → Caesars Palace`, которого не было в lexical shortlist.
+Ответ всё ещё неверен, поскольку один узел `?` не представляет множество
+`Bellagio and The Mirage`; это отдельная следующая гипотеза, а не ошибка
+paragraph retrieval.
+
+Вывод ограничен feasibility-20: graph-aware retrieval прошёл критерии допуска,
+но эффект не считается подтверждённым. Перед development-200 параметры
+фиксируются: paragraph budget 4, exact-title seeds, exact endpoint-to-title
+expansion, contextual proposal scoring, evidence budget 5. Нужен реальный
+двухфазный extractor, который сначала извлекает query/seed paragraphs, а
+затем только обнаруженные frontier paragraphs; после этого можно запускать
+development-200 без предварительно извлечённого полного context pool.

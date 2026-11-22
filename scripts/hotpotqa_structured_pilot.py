@@ -9,6 +9,7 @@ from pathlib import Path
 
 from factkg_e1_pilot import call_model
 from factkg_e4_experiment import OnnxRelationEncoder
+from factkg_h7_soft_matching import directed_arcs, edge_text, query_edge_text
 from factkg_h10_endpoint_paths import match_row
 from hotpotqa_bm25_pilot import api_key, mean, parse_answer
 from hotpotqa_graph_pilot import digest_paragraph, read_jsonl
@@ -98,6 +99,84 @@ def shortlisted_titles(
     return set(titles if limit is None else titles[:limit])
 
 
+def normalized_label(value: str) -> str:
+    return " ".join(value.casefold().split())
+
+
+def graph_aware_titles(
+    example: HotpotInput,
+    contexts: dict[str, dict],
+    graph: dict | None,
+    limit: int,
+    encoder: OnnxRelationEncoder,
+) -> list[str]:
+    grouped: dict[str, list[str]] = {}
+    for sentence in example.sentences:
+        grouped.setdefault(sentence.title, []).append(sentence.text)
+    title_by_label = {normalized_label(title): title for title in grouped}
+    bm25_order = []
+    for sentence, _ in bm25_sentences(example, len(example.sentences)):
+        if sentence.title not in bm25_order:
+            bm25_order.append(sentence.title)
+
+    selected = []
+    if graph is not None:
+        query_labels = {
+            normalized_label(node["label"]) for node in graph["nodes"] if node["label"] != "?"
+        }
+        selected.extend(
+            sorted(title_by_label[label] for label in query_labels & title_by_label.keys())
+        )
+    if not selected and bm25_order:
+        selected.append(bm25_order[0])
+    selected = selected[:limit]
+
+    query_texts = (
+        [
+            query_edge_text(edge, {node["id"]: node["label"] for node in graph["nodes"]})
+            for edge in graph["edges"]
+        ]
+        if graph is not None
+        else []
+    )
+    frontier = 0
+    while len(selected) < limit and frontier < len(selected):
+        title = selected[frontier]
+        frontier += 1
+        row = contexts.get(digest_paragraph(title, grouped[title]))
+        if row is None or not row["valid"]:
+            continue
+        candidates: dict[str, float] = {}
+        for triple in row["triples"]:
+            arcs = directed_arcs([triple])
+            score = max(
+                (
+                    encoder.similarity(
+                        query_text,
+                        edge_text(arc["source"], arc["relation"], arc["target"]),
+                    )
+                    for query_text in query_texts
+                    for arc in arcs
+                ),
+                default=0.0,
+            )
+            for endpoint in (triple["source"], triple["target"]):
+                candidate = title_by_label.get(normalized_label(endpoint))
+                if candidate is not None and candidate not in selected:
+                    candidates[candidate] = max(candidates.get(candidate, 0.0), score)
+        for candidate in sorted(candidates, key=lambda value: (-candidates[value], value)):
+            selected.append(candidate)
+            if len(selected) == limit:
+                break
+
+    for title in bm25_order:
+        if len(selected) == limit:
+            break
+        if title not in selected:
+            selected.append(title)
+    return selected
+
+
 def paragraph_triples(
     example: HotpotInput,
     contexts: dict[str, dict],
@@ -105,13 +184,22 @@ def paragraph_triples(
     graph: dict | None = None,
     *,
     anchor_first: bool = False,
-) -> tuple[list[dict], int, int]:
+    graph_aware: bool = False,
+    encoder: OnnxRelationEncoder | None = None,
+) -> tuple[list[dict], int, list[str]]:
     grouped: dict[str, list[str]] = {}
     for sentence in example.sentences:
         grouped.setdefault(sentence.title, []).append(sentence.text)
     triples = []
     invalid = 0
-    selected = shortlisted_titles(example, paragraph_limit, graph, anchor_first=anchor_first)
+    if graph_aware:
+        if paragraph_limit is None or encoder is None:
+            raise ValueError("graph-aware retrieval requires paragraph limit and encoder")
+        selected = graph_aware_titles(example, contexts, graph, paragraph_limit, encoder)
+    else:
+        selected = sorted(
+            shortlisted_titles(example, paragraph_limit, graph, anchor_first=anchor_first)
+        )
     for title, texts in grouped.items():
         if title not in selected:
             continue
@@ -120,7 +208,7 @@ def paragraph_triples(
             invalid += 1
         else:
             triples.extend(row["triples"])
-    return triples, invalid, len(selected)
+    return triples, invalid, selected
 
 
 def run(args: argparse.Namespace) -> None:
@@ -136,12 +224,14 @@ def run(args: argparse.Namespace) -> None:
     started = time.monotonic()
     for index, example in enumerate(inputs, start=1):
         query = queries.get(example.id)
-        triples, invalid_contexts, selected_contexts = paragraph_triples(
+        triples, invalid_contexts, selected_titles = paragraph_triples(
             example,
             contexts,
             args.paragraph_limit,
             query["graph"] if query is not None and query["valid"] else None,
             anchor_first=args.anchor_first,
+            graph_aware=args.graph_aware,
+            encoder=encoder,
         )
         result = None
         if query is not None and query["valid"] and triples:
@@ -168,7 +258,8 @@ def run(args: argparse.Namespace) -> None:
             "mode": mode,
             "triples": len(triples),
             "invalid_contexts": invalid_contexts,
-            "selected_contexts": selected_contexts,
+            "selected_contexts": len(selected_titles),
+            "selected_titles": selected_titles,
             "graph_sentences": graph_count,
             "match_cost": result["match"]["cost"] if result else None,
             "evidence": evidence,
@@ -190,6 +281,7 @@ def run(args: argparse.Namespace) -> None:
         "anchor_first": args.anchor_first,
         "freeze_exact": args.freeze_exact,
         "contextual_proposals": args.contextual_proposals,
+        "graph_aware": args.graph_aware,
         "hypothetical_extraction_calls": len(inputs)
         + sum(row["selected_contexts"] for row in retrieval_rows),
         "retrieval_seconds": retrieval_seconds,
@@ -277,6 +369,7 @@ def main() -> None:
     parser.add_argument("--anchor-first", action="store_true")
     parser.add_argument("--freeze-exact", action="store_true")
     parser.add_argument("--contextual-proposals", action="store_true")
+    parser.add_argument("--graph-aware", action="store_true")
     parser.add_argument("--retrieval-only", action="store_true")
     parser.add_argument("--graph-dir", type=Path, required=True)
     parser.add_argument("--out-dir", type=Path, required=True)
@@ -292,6 +385,8 @@ def main() -> None:
         or (args.paragraph_limit is not None and args.paragraph_limit < 1)
     ):
         parser.error("limit, evidence-budget, and paragraph-limit must be positive")
+    if args.graph_aware and args.paragraph_limit is None:
+        parser.error("graph-aware retrieval requires paragraph-limit")
     run(args)
 
 
