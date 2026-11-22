@@ -311,6 +311,16 @@
         </div>
         <p class="muted" style="margin-top:13px">Retry восстановил 100/122 пустых графов. Новый B1 получил +62 correct, H10-lean добавил ещё +30 correct (p≈1,9×10⁻⁹).</p>
       </div>
+      <div class="panel" style="margin-top:16px">
+        <h3>H14: полный pipeline подтверждён на новых 500 claims</h3>
+        <div class="grid cols-4" style="margin-top:16px">
+          <article class="card metric"><strong class="big-number">89,7%</strong><small>Recovery невалидных extraction</small></article>
+          <article class="card metric"><strong class="big-number">62,4%</strong><small>Adaptive extraction → B1</small></article>
+          <article class="card metric primary"><strong class="big-number">68,0%</strong><small>B1 → H10-lean</small></article>
+          <article class="card metric"><strong class="big-number">29,4%</strong><small>Fallback rate</small></article>
+        </div>
+        <p class="muted" style="margin-top:13px">H10-lean добавил 28 correct, +5,6 п.п., p=7,45×10⁻⁹; Macro-F1 0,7177 → 0,7520. Все пять preregistered gates выполнены.</p>
+      </div>
     </section>
 
     <section id="objects">
@@ -620,16 +630,16 @@
         <article class="task"><div class="task-num">1</div><div class="task-body"><h3>Устаканить определения</h3><p>В отчёте заменить «граф текста» на query graph и явно разделить extraction, candidate generation, matching, evidence и reader.</p><p class="done-when">Готово, когда: алгоритм можно объяснить без обозначений H10/H11.</p></div></article>
         <article class="task"><div class="task-num">2</div><div class="task-body"><h3>Готово: Flat-2hop зафиксирован и запущен</h3><p>Ranking, budget, выборка и decision rule зафиксированы заранее; добавлены resumable cache и unit tests.</p><p class="done-when">Результат: lean 51,0% против flat 48,8%, p=0,0192.</p></div></article>
         <article class="task"><div class="task-num">3</div><div class="task-body"><h3>Готово: сравнение четырёх arms</h3><p>Получены paired Accuracy, Macro-F1, UNKNOWN и wins/losses на новых 500 claims.</p><p class="done-when">Вывод: структурные пути полезны; joint mapping не подтверждён.</p></div></article>
-        <article class="task"><div class="task-num">4</div><div class="task-body"><h3>Готово диагностически: extraction retry</h3><p>Восстановлено 100/122 графов; B1 вырос 45,8% → 58,2%, lean достиг 64,2%. Fallback rate снизился 46,8% → 31,6%.</p><p class="done-when">Следующее: подтвердить полный pipeline на новом, неиспользованном срезе.</p></div></article>
+        <article class="task"><div class="task-num">4</div><div class="task-body"><h3>Готово: adaptive pipeline подтверждён</h3><p>На новых 500 claims recovery 89,7%, B1 62,4%, H10-lean 68,0%, fallback rate 29,4%. Все пять gates выполнены.</p><p class="done-when">Результат подтверждён без настройки на H14.</p></div></article>
         <article class="task"><div class="task-num">5</div><div class="task-body"><h3>Упростить научный claim и runtime</h3><p>Описывать новизну как structured endpoint/path retrieval. Отдельно проверить, можно ли убрать joint beam без статистически значимой потери.</p><p class="done-when">Готово, когда: минимальный production matcher заморожен.</p></div></article>
-        <article class="task"><div class="task-num">6</div><div class="task-body"><h3>Только потом — второй benchmark</h3><p>Перенести уже понятный и замороженный механизм на HotpotQA, заранее определив адаптацию query graph, target и метрик.</p><p class="done-when">Готово, когда: перенос проверяет обобщаемость, а не продолжает настройку по FactKG.</p></div></article>
+        <article class="task"><div class="task-num">6</div><div class="task-body"><h3>Следующий научный этап — второй benchmark</h3><p>FactKG pipeline теперь заморожен и независимо подтверждён. Можно переносить его на HotpotQA, заранее определив query graph, target и метрики.</p><p class="done-when">Перенос проверяет междатасетную обобщаемость, а не продолжает настройку по FactKG.</p></div></article>
       </div>
     </section>
 
     <section id="oral">
       <h2>Ответ руководителю за одну минуту</h2>
       <div class="oral" style="margin-top:20px">
-        <p>Я завершил заранее зафиксированный Flat-2hop control на новом срезе из 500 FactKG claims. Lean превысил flat на 11 net correct claims, p=0,0192: структурное сопоставление query edge с KG path и восстановление endpoint полезны. Но lean против independent edges дал только +4 claims, p=0,125, поэтому преимущество единого joint mapping не доказано. Затем я диагностировал 122 пустых query graphs: 107 JSON были обрезаны лимитом 256 токенов. Retry с лимитом 512 восстановил 100 графов, не меняя 378 валидных. После этого B1 вырос с 45,8% до 58,2%, fallback rate упал с 46,8% до 31,6%, а замороженный H10-lean достиг 64,2% и добавил ещё 30 correct. Это post-hoc результат; следующий честный шаг — один запуск всего замороженного pipeline на новой выборке.</p>
+        <p>Я завершил независимую проверку всего замороженного pipeline на новых 500 FactKG claims. Adaptive retry восстановил 113 из 126 невалидных extraction — 89,7%. B1 получил 62,4% Accuracy и fallback rate 29,4%. H10-lean, запущенный только для 147 UNKNOWN, достиг 68,0%: +28 correct, +5,6 п.п., p=7,45×10⁻⁹; Macro-F1 вырос с 0,7177 до 0,7520. Все пять заранее заданных gates выполнены. Отдельный Flat-2hop control ранее показал, что структурный endpoint/path retrieval лучше плоского доступа к тем же фактам, но преимущество joint mapping над independent edges всё ещё не доказано. Поэтому честный научный claim — структурный selective path retrieval с adaptive extraction, а следующий этап — перенос замороженного метода на HotpotQA.</p>
       </div>
     </section>
   </main>

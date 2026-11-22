@@ -237,6 +237,15 @@ output budget без изменения уже замороженного matche
 после просмотра этого среза, результат остаётся post-hoc и требует проверки
 полного pipeline на новой выборке.
 
+Эта проверка выполнена как H14 на заранее зафиксированных FactKG dev
+SHA-256 ranks 2000–2499. Adaptive retry восстановил 113/126 невалидных
+extraction (89,7%). B1 получил Accuracy 62,4%, Macro-F1 0,7177, 147 UNKNOWN
+и fallback rate 29,4%. Замороженный H10-lean получил Accuracy 68,0%,
+Macro-F1 0,7520 и 108 UNKNOWN: +28 correct, +5,6 п.п., exact paired
+p=7,45×10⁻⁹. Все пять заранее заданных H14 gates выполнены. Поэтому
+adaptive extraction + selective H10-lean подтверждены на новой выборке без
+дополнительной настройки.
+
 ## Артефакты
 
 - diagnostic B1 predictions: `data/evaluation/h8-dev-500-c7/predictions.jsonl`;
