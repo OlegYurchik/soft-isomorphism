@@ -149,7 +149,12 @@ def read(args: argparse.Namespace) -> None:
             b1_rows(args.candidate_file) if args.phase == "b1" else read_jsonl(args.retrieval_file)
         )
         row_ids = {row["id"] for row in rows}
-        b1_predictions = read_arm(args, rows, gold, "B1", row_ids, {})
+        initial_cache = (
+            seed_cache(load_arm_predictions(args.reuse_predictions, "B1", args.model))
+            if args.reuse_predictions is not None
+            else {}
+        )
+        b1_predictions = read_arm(args, rows, gold, "B1", row_ids, initial_cache)
         if args.phase == "b1":
             print(
                 json.dumps(
@@ -250,6 +255,11 @@ def main() -> None:
     parser.add_argument("--phase", choices=("all", "b1", "fallback"), default="all")
     parser.add_argument("--retrieval-file", type=Path)
     parser.add_argument("--candidate-file", type=Path)
+    parser.add_argument(
+        "--reuse-predictions",
+        type=Path,
+        help="reuse reader verdicts only when id and evidence SHA-256 both match",
+    )
     parser.add_argument("--out-dir", type=Path, required=True)
     parser.add_argument("--data-dir", type=Path, default=Path("data/factkg/data/factkg_unzip"))
     parser.add_argument("--split", choices=("dev", "test"), default="dev")

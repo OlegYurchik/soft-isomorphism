@@ -21,3 +21,19 @@ def test_empty_graph_skips_pool_search():
     assert result["b1_evidence"] == []
     assert result["pool_wall_seconds"] >= 0
     assert result["pool_cpu_seconds"] >= 0
+
+
+def test_reuse_requires_exact_text_and_graph_match():
+    graph = {"nodes": [{"id": "n0", "label": "alice"}], "edges": []}
+    previous = [
+        {"id": "same", "text": "claim", "graph": graph, "pool_triples": [1]},
+        {"id": "changed", "text": "claim", "graph": graph, "pool_triples": [2]},
+    ]
+    current = [
+        {"id": "same", "text": "claim", "graph": graph},
+        {"id": "changed", "text": "claim", "graph": {"nodes": [], "edges": []}},
+    ]
+
+    reused = pools.reusable_rows(previous, current)
+
+    assert list(reused) == ["same"]

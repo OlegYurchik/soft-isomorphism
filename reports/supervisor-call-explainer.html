@@ -302,6 +302,15 @@
         </div>
         <p class="muted" style="margin-top:13px">Lean против Flat: 15 unique wins против 4, net +11 claims, exact p=0,0192. Lean против independent edges: 4 против 0, p=0,125.</p>
       </div>
+      <div class="panel" style="margin-top:16px">
+        <h3>После исправления обрезанного extraction · post-hoc diagnostic</h3>
+        <div class="grid cols-3" style="margin-top:16px">
+          <article class="card metric"><strong class="big-number">58,2%</strong><small>Исправленный B1 · было 45,8%</small></article>
+          <article class="card metric primary"><strong class="big-number">64,2%</strong><small>B1 → H10-lean</small></article>
+          <article class="card metric"><strong class="big-number">23,2%</strong><small>UNKNOWN после lean · было 46,8%</small></article>
+        </div>
+        <p class="muted" style="margin-top:13px">Retry восстановил 100/122 пустых графов. Новый B1 получил +62 correct, H10-lean добавил ещё +30 correct (p≈1,9×10⁻⁹).</p>
+      </div>
     </section>
 
     <section id="objects">
@@ -567,7 +576,7 @@
         <details open><summary>Мы знаем, что дополнительные evidence помогают</summary><div>H10-lean исправляет часть B1=UNKNOWN и устойчиво повышает Accuracy. Это воспроизвелось на confirmatory dev и frozen test.</div></details>
         <details><summary>Мы знаем, что плоского доступа к 2-hop фактам недостаточно</summary><div>При одинаковом pool и evidence budget H10-lean получил 51,0%, Flat-2hop — 48,8%. Парное сравнение: 15 unique wins против 4, p=0,0192. Значит, query-edge/path structure действительно помогает выбирать evidence.</div></details>
         <details><summary>Но минимальная необходимая структура ещё уже</summary><div>Independent edges почти не уступают joint mapping: 50,2% против 51,0%, p=0,125. Подтверждён endpoint/path retrieval, но не общая инъективная карта и beam search.</div></details>
-        <details><summary>Новый bottleneck — extraction output limit</summary><div>На свежем срезе 122/500 query graphs пусты. В 107 случаях JSON обрезан лимитом 256 output-токенов; ещё 15 ответов не прошли строгую валидацию. Для них pool и evidence пусты у всех методов, поэтому B1 fallback rate вырос до 46,8%.</div></details>
+        <details open><summary>Extraction output limit уже исправлен диагностически</summary><div>На свежем срезе 122/500 query graphs были пусты. Retry только этих строк с лимитом 512 восстановил 100 графов; среди 107 обрезанных — 99. Все 378 исходно валидных строк остались точно неизменными. Осталось 22 строгих validation failures.</div></details>
       </div>
     </section>
 
@@ -611,7 +620,7 @@
         <article class="task"><div class="task-num">1</div><div class="task-body"><h3>Устаканить определения</h3><p>В отчёте заменить «граф текста» на query graph и явно разделить extraction, candidate generation, matching, evidence и reader.</p><p class="done-when">Готово, когда: алгоритм можно объяснить без обозначений H10/H11.</p></div></article>
         <article class="task"><div class="task-num">2</div><div class="task-body"><h3>Готово: Flat-2hop зафиксирован и запущен</h3><p>Ranking, budget, выборка и decision rule зафиксированы заранее; добавлены resumable cache и unit tests.</p><p class="done-when">Результат: lean 51,0% против flat 48,8%, p=0,0192.</p></div></article>
         <article class="task"><div class="task-num">3</div><div class="task-body"><h3>Готово: сравнение четырёх arms</h3><p>Получены paired Accuracy, Macro-F1, UNKNOWN и wins/losses на новых 500 claims.</p><p class="done-when">Вывод: структурные пути полезны; joint mapping не подтверждён.</p></div></article>
-        <article class="task"><div class="task-num">4</div><div class="task-body"><h3>Следующий эксперимент: extraction retry</h3><p>Из 122 пустых графов 107 вызваны обрезанным JSON при лимите 256 токенов, ещё 15 — ошибкой валидации. Повторяем только невалидные ответы с лимитом 512, не меняя matcher.</p><p class="done-when">Готово, когда: измерены valid graph recovery, fallback rate, качество и дополнительная стоимость.</p></div></article>
+        <article class="task"><div class="task-num">4</div><div class="task-body"><h3>Готово диагностически: extraction retry</h3><p>Восстановлено 100/122 графов; B1 вырос 45,8% → 58,2%, lean достиг 64,2%. Fallback rate снизился 46,8% → 31,6%.</p><p class="done-when">Следующее: подтвердить полный pipeline на новом, неиспользованном срезе.</p></div></article>
         <article class="task"><div class="task-num">5</div><div class="task-body"><h3>Упростить научный claim и runtime</h3><p>Описывать новизну как structured endpoint/path retrieval. Отдельно проверить, можно ли убрать joint beam без статистически значимой потери.</p><p class="done-when">Готово, когда: минимальный production matcher заморожен.</p></div></article>
         <article class="task"><div class="task-num">6</div><div class="task-body"><h3>Только потом — второй benchmark</h3><p>Перенести уже понятный и замороженный механизм на HotpotQA, заранее определив адаптацию query graph, target и метрик.</p><p class="done-when">Готово, когда: перенос проверяет обобщаемость, а не продолжает настройку по FactKG.</p></div></article>
       </div>
@@ -620,7 +629,7 @@
     <section id="oral">
       <h2>Ответ руководителю за одну минуту</h2>
       <div class="oral" style="margin-top:20px">
-        <p>Я завершил заранее зафиксированный Flat-2hop control на новом срезе из 500 FactKG claims. B1 получил 45,8%, плоский выбор двухшаговых фактов — 48,8%, independent edges — 50,2%, H10-lean — 51,0%. Lean превысил flat на 11 net correct claims, p=0,0192: значит, эффект нельзя объяснить только доступом к дополнительным фактам — структурное сопоставление query edge с KG path и восстановление endpoint действительно полезны. Но lean против independent edges дал только +4 claims, p=0,125, поэтому преимущество единого joint mapping не доказано. Следующий bottleneck уже диагностирован: из 122 пустых query graphs 107 вызваны обрезкой JSON лимитом 256 output-токенов. Следующий шаг — retry только таких extraction с лимитом 512.</p>
+        <p>Я завершил заранее зафиксированный Flat-2hop control на новом срезе из 500 FactKG claims. Lean превысил flat на 11 net correct claims, p=0,0192: структурное сопоставление query edge с KG path и восстановление endpoint полезны. Но lean против independent edges дал только +4 claims, p=0,125, поэтому преимущество единого joint mapping не доказано. Затем я диагностировал 122 пустых query graphs: 107 JSON были обрезаны лимитом 256 токенов. Retry с лимитом 512 восстановил 100 графов, не меняя 378 валидных. После этого B1 вырос с 45,8% до 58,2%, fallback rate упал с 46,8% до 31,6%, а замороженный H10-lean достиг 64,2% и добавил ещё 30 correct. Это post-hoc результат; следующий честный шаг — один запуск всего замороженного pipeline на новой выборке.</p>
       </div>
     </section>
   </main>

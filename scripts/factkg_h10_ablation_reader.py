@@ -59,6 +59,10 @@ def run(args: argparse.Namespace) -> None:
     summary = {"split": args.split, "claims": len(b1), "fallback_claims": len(unknown), "arms": {}}
 
     for variant in args.variants:
+        if args.reuse_dir is not None:
+            reuse_file = args.reuse_dir / f"{variant}-predictions.jsonl"
+            if reuse_file.exists():
+                cache.update(seed_cache(load_arm_predictions(reuse_file, variant, args.model)))
         source = read_jsonl(args.retrieval_dir / f"{variant}.jsonl")
         rows = [
             {
@@ -140,6 +144,11 @@ def main() -> None:
     parser.add_argument("--full-predictions", type=Path)
     parser.add_argument("--full-arm", default="H10")
     parser.add_argument("--out-dir", type=Path, required=True)
+    parser.add_argument(
+        "--reuse-dir",
+        type=Path,
+        help="reuse arm predictions only when id and evidence SHA-256 both match",
+    )
     parser.add_argument("--variants", nargs="+", required=True)
     parser.add_argument("--data-dir", type=Path, default=Path("data/factkg/data/factkg_unzip"))
     parser.add_argument("--split", choices=("dev", "test"), default="dev")

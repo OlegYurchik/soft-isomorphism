@@ -10,7 +10,18 @@ import sqlite3
 import time
 from pathlib import Path
 
-from factkg_e1_pilot import bm25_incident, candidate_pool, read_jsonl
+from factkg_e1_pilot import bm25_incident, candidate_pool, read_jsonl, write_jsonl
+
+
+def reusable_rows(previous: list[dict], current: list[dict]) -> dict[str, dict]:
+    current_by_id = {row["id"]: row for row in current}
+    return {
+        row["id"]: row
+        for row in previous
+        if row["id"] in current_by_id
+        and row["text"] == current_by_id[row["id"]]["text"]
+        and row["graph"] == current_by_id[row["id"]]["graph"]
+    }
 
 
 def build_pool_row(row: dict, kg: dict, index: sqlite3.Connection) -> dict:
@@ -55,6 +66,9 @@ def run(args: argparse.Namespace) -> None:
     index = sqlite3.connect(args.name_index)
     output = args.out_dir / "candidate-pools.jsonl"
     existing = {row["id"]: row for row in read_jsonl(output)} if output.exists() else {}
+    if args.reuse_from is not None and not output.exists():
+        existing = reusable_rows(read_jsonl(args.reuse_from), rows)
+        write_jsonl(output, [existing[row["id"]] for row in rows if row["id"] in existing])
     started = time.monotonic()
     cpu_started = time.process_time()
     reused = 0
@@ -100,6 +114,11 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--extract-file", type=Path, required=True)
     parser.add_argument("--out-dir", type=Path, required=True)
+    parser.add_argument(
+        "--reuse-from",
+        type=Path,
+        help="seed exact text+graph matches from an earlier candidate-pools JSONL",
+    )
     parser.add_argument(
         "--kg", type=Path, default=Path("data/factkg/data/dbpedia_2015_undirected_light.pickle")
     )
