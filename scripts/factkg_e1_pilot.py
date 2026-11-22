@@ -10,6 +10,7 @@ import os
 import pickle
 import re
 import sqlite3
+import ssl
 import time
 import unicodedata
 import urllib.error
@@ -26,6 +27,10 @@ PROMPTS = [
     "Read each clause and extract its asserted relations; do not add background knowledge.",
     "Identify entities, then the relations actually asserted between them in this text.",
 ]
+
+# Constructing OpenSSL contexts concurrently can fail in the local Python
+# runtime. The immutable client context is safe to share between requests.
+HTTPS_CONTEXT = ssl.create_default_context()
 
 
 def digest(text: str) -> str:
@@ -115,7 +120,7 @@ def call_model(
         headers=headers,
     )
     started = time.perf_counter()
-    with urllib.request.urlopen(request, timeout=300) as response:
+    with urllib.request.urlopen(request, timeout=300, context=HTTPS_CONTEXT) as response:
         data = json.load(response)
     choice = data["choices"][0]
     usage = {**data.get("usage", {}), "finish_reason": choice.get("finish_reason")}
@@ -385,7 +390,7 @@ def extract(args: argparse.Namespace) -> None:
                         json_mode=args.json_mode,
                     )
                     break
-                except (TimeoutError, urllib.error.URLError):
+                except (TimeoutError, urllib.error.URLError, ssl.SSLError):
                     if attempt == 2:
                         raise
                     time.sleep(2**attempt)
