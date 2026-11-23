@@ -277,3 +277,32 @@ Supporting Recall и F1 не ниже B1 на тех же 180 IDs. Primary answe
 paired token F1; Exact Match и supporting metrics вторичны. Полный набор 200
 может приводиться только как aggregate `20 tuning + 180 confirmation`, но не
 как независимая проверка.
+
+## Confirmation-180 result
+
+Реальный двухфазный extractor завершил 180/180 IDs: 147 valid query graphs,
+588 выбранных contexts, из них 510 valid; 768 новых Qwen calls и 614 193
+токена. Full-context extraction потребовал бы 1 980 calls
+(`180 × (1 query + 10 contexts)`), поэтому сокращение составляет 61,2%.
+
+| Метрика | B1 | Graph-aware | Δ |
+|---|---:|---:|---:|
+| Supporting Recall | 58,78% | **60,95%** | +2,18 п.п. |
+| Supporting F1 | 36,39% | **37,84%** | +1,45 п.п. |
+| Answer Exact Match | 52,22% | **53,89%** | +1,67 п.п. |
+| Answer token F1 | 61,97% | **64,13%** | +2,17 п.п. |
+
+Все 360 reader responses валидны; одинаковые evidence sets получены на
+91/180 примерах. Paired Answer F1: 7 improvements, 3 regressions, 170 ties;
+exact sign-flip `p=0,193`, bootstrap 95% CI для mean delta
+`[−0,74; +5,26]` п.п. Exact Match: 5 wins, 2 losses, 173 ties, exact
+`p=0,453`. Supporting F1: 19 improvements, 9 regressions, 152 ties,
+sign-flip `p=0,084`.
+
+Point estimates воспроизвели положительное направление feasibility и
+retrieval overhead реально снижен, но нулевая гипотеза на confirmation-180
+не отклоняется: доверительный интервал Answer F1 включает ноль. Корректный
+вывод — алгоритм перспективен, но статистически значимое улучшение пока не
+подтверждено. Параметры после этого результата не меняются. Следующий
+допустимый тест — один запуск на заранее отложенных evaluation-500; он должен
+рассматриваться как финальная проверка, а не как новый этап настройки.
