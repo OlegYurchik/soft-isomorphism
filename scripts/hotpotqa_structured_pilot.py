@@ -103,6 +103,41 @@ def normalized_label(value: str) -> str:
     return " ".join(value.casefold().split())
 
 
+def discovered_titles(
+    title: str,
+    grouped: dict[str, list[str]],
+    contexts: dict[str, dict],
+    graph: dict,
+    encoder: OnnxRelationEncoder,
+    excluded: set[str],
+) -> list[str]:
+    row = contexts.get(digest_paragraph(title, grouped[title]))
+    if row is None or not row["valid"]:
+        return []
+    title_by_label = {normalized_label(value): value for value in grouped}
+    labels = {node["id"]: node["label"] for node in graph["nodes"]}
+    query_texts = [query_edge_text(edge, labels) for edge in graph["edges"]]
+    candidates: dict[str, float] = {}
+    for triple in row["triples"]:
+        arcs = directed_arcs([triple])
+        score = max(
+            (
+                encoder.similarity(
+                    query_text,
+                    edge_text(arc["source"], arc["relation"], arc["target"]),
+                )
+                for query_text in query_texts
+                for arc in arcs
+            ),
+            default=0.0,
+        )
+        for endpoint in (triple["source"], triple["target"]):
+            candidate = title_by_label.get(normalized_label(endpoint))
+            if candidate is not None and candidate not in excluded:
+                candidates[candidate] = max(candidates.get(candidate, 0.0), score)
+    return sorted(candidates, key=lambda value: (-candidates[value], value))
+
+
 def graph_aware_titles(
     example: HotpotInput,
     contexts: dict[str, dict],
@@ -110,6 +145,8 @@ def graph_aware_titles(
     limit: int,
     encoder: OnnxRelationEncoder,
 ) -> list[str]:
+    if graph is None:
+        return []
     grouped: dict[str, list[str]] = {}
     for sentence in example.sentences:
         grouped.setdefault(sentence.title, []).append(sentence.text)
@@ -120,51 +157,19 @@ def graph_aware_titles(
             bm25_order.append(sentence.title)
 
     selected = []
-    if graph is not None:
-        query_labels = {
-            normalized_label(node["label"]) for node in graph["nodes"] if node["label"] != "?"
-        }
-        selected.extend(
-            sorted(title_by_label[label] for label in query_labels & title_by_label.keys())
-        )
+    query_labels = {
+        normalized_label(node["label"]) for node in graph["nodes"] if node["label"] != "?"
+    }
+    selected.extend(sorted(title_by_label[label] for label in query_labels & title_by_label.keys()))
     if not selected and bm25_order:
         selected.append(bm25_order[0])
     selected = selected[:limit]
 
-    query_texts = (
-        [
-            query_edge_text(edge, {node["id"]: node["label"] for node in graph["nodes"]})
-            for edge in graph["edges"]
-        ]
-        if graph is not None
-        else []
-    )
     frontier = 0
     while len(selected) < limit and frontier < len(selected):
         title = selected[frontier]
         frontier += 1
-        row = contexts.get(digest_paragraph(title, grouped[title]))
-        if row is None or not row["valid"]:
-            continue
-        candidates: dict[str, float] = {}
-        for triple in row["triples"]:
-            arcs = directed_arcs([triple])
-            score = max(
-                (
-                    encoder.similarity(
-                        query_text,
-                        edge_text(arc["source"], arc["relation"], arc["target"]),
-                    )
-                    for query_text in query_texts
-                    for arc in arcs
-                ),
-                default=0.0,
-            )
-            for endpoint in (triple["source"], triple["target"]):
-                candidate = title_by_label.get(normalized_label(endpoint))
-                if candidate is not None and candidate not in selected:
-                    candidates[candidate] = max(candidates.get(candidate, 0.0), score)
-        for candidate in sorted(candidates, key=lambda value: (-candidates[value], value)):
+        for candidate in discovered_titles(title, grouped, contexts, graph, encoder, set(selected)):
             selected.append(candidate)
             if len(selected) == limit:
                 break
@@ -212,7 +217,9 @@ def paragraph_triples(
 
 
 def run(args: argparse.Namespace) -> None:
-    inputs, gold = load_hotpot_split(args.parquet, args.split_file, "development", args.limit)
+    inputs, gold = load_hotpot_split(
+        args.parquet, args.split_file, "development", args.limit, args.offset
+    )
     args.out_dir.mkdir(parents=True, exist_ok=True)
     queries = {row["id"]: row for row in read_jsonl(args.graph_dir / "query-extractions.jsonl")}
     contexts = {
@@ -276,6 +283,7 @@ def run(args: argparse.Namespace) -> None:
     retrieval_summary = {
         "split": "development",
         "claims": len(inputs),
+        "offset": args.offset,
         "evidence_budget": args.evidence_budget,
         "paragraph_limit": args.paragraph_limit,
         "anchor_first": args.anchor_first,
@@ -364,6 +372,7 @@ def main() -> None:
     parser.add_argument("--parquet", type=Path, default=Path("data/hotpotqa/validation.parquet"))
     parser.add_argument("--split-file", type=Path, default=Path("configs/splits/hotpotqa-e1.json"))
     parser.add_argument("--limit", type=int, default=20)
+    parser.add_argument("--offset", type=int, default=0)
     parser.add_argument("--evidence-budget", type=int, default=5)
     parser.add_argument("--paragraph-limit", type=int)
     parser.add_argument("--anchor-first", action="store_true")
@@ -381,10 +390,11 @@ def main() -> None:
     args = parser.parse_args()
     if (
         args.limit < 1
+        or args.offset < 0
         or args.evidence_budget < 1
         or (args.paragraph_limit is not None and args.paragraph_limit < 1)
     ):
-        parser.error("limit, evidence-budget, and paragraph-limit must be positive")
+        parser.error("limits must be positive and offset must be non-negative")
     if args.graph_aware and args.paragraph_limit is None:
         parser.error("graph-aware retrieval requires paragraph-limit")
     run(args)

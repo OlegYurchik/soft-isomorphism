@@ -142,6 +142,67 @@ def append_jsonl(path: Path, row: dict) -> None:
         stream.write(json.dumps(row, ensure_ascii=False) + "\n")
 
 
+def extract_task(
+    args: argparse.Namespace,
+    key: str | None,
+    task: tuple[str, str, str, list[str] | None],
+) -> tuple[str, dict]:
+    kind, identifier, text, sentences = task
+    system, user = query_prompt(text) if kind == "query" else context_prompt(text, sentences or [])
+    for attempt in range(3):
+        try:
+            raw, usage, seconds = call_model(
+                args.server_url,
+                system,
+                user,
+                args.query_max_tokens if kind == "query" else args.context_max_tokens,
+                model=args.model,
+                api_key=key,
+                json_mode="object",
+            )
+            break
+        except (TimeoutError, urllib.error.URLError):
+            if attempt == 2:
+                raise
+            time.sleep(2**attempt)
+    error = None
+    if kind == "query":
+        try:
+            graph = merge_views([parse_view(raw, text)])
+            validate_query_graph(graph)
+        except (ValueError, KeyError, TypeError, json.JSONDecodeError) as exc:
+            graph = {"nodes": [], "edges": []}
+            error = f"{type(exc).__name__}: {exc}"
+        row = {
+            "id": identifier,
+            "question": text,
+            "graph": graph,
+            "valid": bool(graph["edges"]),
+            "raw": raw,
+            "usage": usage,
+            "seconds": seconds,
+            "error": error,
+        }
+    else:
+        try:
+            triples = parse_context_graph(raw, text, sentences or [])
+        except (ValueError, KeyError, TypeError, json.JSONDecodeError) as exc:
+            triples = []
+            error = f"{type(exc).__name__}: {exc}"
+        row = {
+            "digest": identifier,
+            "title": text,
+            "sentences": sentences,
+            "triples": triples,
+            "valid": bool(triples),
+            "raw": raw,
+            "usage": usage,
+            "seconds": seconds,
+            "error": error,
+        }
+    return kind, row
+
+
 def run(args: argparse.Namespace) -> None:
     inputs, _ = load_hotpot_split(args.parquet, args.split_file, "development", args.limit)
     args.out_dir.mkdir(parents=True, exist_ok=True)
@@ -174,66 +235,8 @@ def run(args: argparse.Namespace) -> None:
             ):
                 tasks.append(("context", identifier, title, texts))
 
-    def extract(task: tuple[str, str, str, list[str] | None]) -> tuple[str, dict]:
-        kind, identifier, text, sentences = task
-        system, user = (
-            query_prompt(text) if kind == "query" else context_prompt(text, sentences or [])
-        )
-        for attempt in range(3):
-            try:
-                raw, usage, seconds = call_model(
-                    args.server_url,
-                    system,
-                    user,
-                    args.query_max_tokens if kind == "query" else args.context_max_tokens,
-                    model=args.model,
-                    api_key=key,
-                    json_mode="object",
-                )
-                break
-            except (TimeoutError, urllib.error.URLError):
-                if attempt == 2:
-                    raise
-                time.sleep(2**attempt)
-        error = None
-        if kind == "query":
-            try:
-                graph = merge_views([parse_view(raw, text)])
-                validate_query_graph(graph)
-            except (ValueError, KeyError, TypeError, json.JSONDecodeError) as exc:
-                graph = {"nodes": [], "edges": []}
-                error = f"{type(exc).__name__}: {exc}"
-            row = {
-                "id": identifier,
-                "question": text,
-                "graph": graph,
-                "valid": bool(graph["edges"]),
-                "raw": raw,
-                "usage": usage,
-                "seconds": seconds,
-                "error": error,
-            }
-        else:
-            try:
-                triples = parse_context_graph(raw, text, sentences or [])
-            except (ValueError, KeyError, TypeError, json.JSONDecodeError) as exc:
-                triples = []
-                error = f"{type(exc).__name__}: {exc}"
-            row = {
-                "digest": identifier,
-                "title": text,
-                "sentences": sentences,
-                "triples": triples,
-                "valid": bool(triples),
-                "raw": raw,
-                "usage": usage,
-                "seconds": seconds,
-                "error": error,
-            }
-        return kind, row
-
     with ThreadPoolExecutor(max_workers=args.workers) as executor:
-        futures = [executor.submit(extract, task) for task in tasks]
+        futures = [executor.submit(extract_task, args, key, task) for task in tasks]
         for index, future in enumerate(as_completed(futures), start=1):
             kind, row = future.result()
             if kind == "query":

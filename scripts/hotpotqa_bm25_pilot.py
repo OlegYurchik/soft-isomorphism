@@ -38,7 +38,9 @@ def mean(records: list[dict], key: str) -> float:
 
 
 def run(args: argparse.Namespace) -> None:
-    inputs, gold = load_hotpot_split(args.parquet, args.split_file, args.split, args.limit)
+    inputs, gold = load_hotpot_split(
+        args.parquet, args.split_file, args.split, args.limit, args.offset
+    )
     args.out_dir.mkdir(parents=True, exist_ok=True)
     retrieval_path = args.out_dir / "bm25-retrieval.jsonl"
     retrieval_rows = []
@@ -116,6 +118,7 @@ def run(args: argparse.Namespace) -> None:
     summary = {
         "split": args.split,
         "claims": len(inputs),
+        "offset": args.offset,
         "evidence_budget": args.evidence_budget,
         "retrieval_seconds": retrieval_seconds,
         "answer_em": mean(answer_rows, "answer_em"),
@@ -141,6 +144,7 @@ def main() -> None:
     parser.add_argument("--split-file", type=Path, default=Path("configs/splits/hotpotqa-e1.json"))
     parser.add_argument("--split", choices=("development", "evaluation"), default="development")
     parser.add_argument("--limit", type=int, default=20)
+    parser.add_argument("--offset", type=int, default=0)
     parser.add_argument("--evidence-budget", type=int, default=5)
     parser.add_argument("--out-dir", type=Path, required=True)
     parser.add_argument("--server-url", default="https://api.duckduck.cloud")
@@ -151,6 +155,8 @@ def main() -> None:
     args = parser.parse_args()
     if args.limit < 1:
         parser.error("limit must be positive")
+    if args.offset < 0:
+        parser.error("offset must be non-negative")
     if args.evidence_budget < 1:
         parser.error("evidence-budget must be positive")
     run(args)

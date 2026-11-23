@@ -83,6 +83,7 @@ def load_hotpot_split(
     split_path: Path,
     split: str,
     limit: int | None = None,
+    offset: int = 0,
 ) -> tuple[list[HotpotInput], dict[str, HotpotGold]]:
     try:
         import pyarrow.parquet as pq
@@ -93,10 +94,14 @@ def load_hotpot_split(
     selected = json.loads(split_path.read_text()).get(split)
     if not isinstance(selected, list) or not all(isinstance(value, str) for value in selected):
         raise ValueError(f"split {split!r} is missing or invalid")
+    if offset < 0:
+        raise ValueError("offset must be non-negative")
     if limit is not None:
         if limit < 1:
             raise ValueError("limit must be positive")
-        selected = selected[:limit]
+        selected = selected[offset : offset + limit]
+    else:
+        selected = selected[offset:]
     if len(selected) != len(set(selected)):
         raise ValueError("split contains duplicate ids")
     wanted = set(selected)

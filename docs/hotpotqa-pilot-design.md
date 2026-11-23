@@ -238,7 +238,7 @@ Supporting Recall ≥ 53,75% и Supporting F1 ≥ 33,69% (не хуже B1). Е�
 
 | Метрика | B1 | Graph-aware | Δ |
 |---|---:|---:|---:|
-| Расчётные extraction calls | 220 | 100 | −54,5% |
+| Extraction calls (реализованный replay) | 220 | 84 | −61,8% |
 | Supporting Recall | 53,75% | **55,00%** | +1,25 п.п. |
 | Supporting F1 | 33,69% | **34,90%** | +1,21 п.п. |
 | Answer Exact Match | 35,00% | **40,00%** | +5,00 п.п. |
@@ -248,7 +248,9 @@ Reader завершил 20/20 ответов без invalid. Paired answer F1: 2
 1 ухудшение, 17 ties; Exact Match: 1 win, 0 losses, 19 ties. Paired
 supporting F1: 3 улучшения, 2 ухудшения, 15 ties. Эксперимент использовал
 ранее извлечённый cache, но selector читал triples только четырёх выбранных
-paragraphs; 100 calls — стоимость эквивалентного запуска без cache.
+paragraphs. Двухфазный replay выбрал те же titles для 16/16 валидных query,
+не извлекал context для четырёх query-fallback и потому требует 20 query +
+64 context = 84 calls; теоретический максимум при 20/20 valid равен 100.
 
 На диагностическом multi-answer примере selector восстановил переход
 `WrestleMania IX → Caesars Palace`, которого не было в lexical shortlist.
@@ -263,3 +265,15 @@ expansion, contextual proposal scoring, evidence budget 5. Нужен реаль
 двухфазный extractor, который сначала извлекает query/seed paragraphs, а
 затем только обнаруженные frontier paragraphs; после этого можно запускать
 development-200 без предварительно извлечённого полного context pool.
+
+## Confirmation-180 protocol
+
+Первые 20 development IDs уже использованы для выбора алгоритма и считаются
+tuning, поэтому они не входят в подтверждающую оценку. Замороженный arm
+запускается на следующих 180 IDs (`offset=20`) без изменения параметров.
+Сначала реальный resumable extractor выполняет только query + выбранный
+frontier. Затем считаются retrieval metrics. Reader вызывается только если
+Supporting Recall и F1 не ниже B1 на тех же 180 IDs. Primary answer metric —
+paired token F1; Exact Match и supporting metrics вторичны. Полный набор 200
+может приводиться только как aggregate `20 tuning + 180 confirmation`, но не
+как независимая проверка.
