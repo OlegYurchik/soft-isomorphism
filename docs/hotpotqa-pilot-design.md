@@ -306,3 +306,18 @@ retrieval overhead реально снижен, но нулевая гипоте
 подтверждено. Параметры после этого результата не меняются. Следующий
 допустимый тест — один запуск на заранее отложенных evaluation-500; он должен
 рассматриваться как финальная проверка, а не как новый этап настройки.
+
+## Evaluation-500 protocol
+
+До чтения evaluation labels фиксируется один финальный запуск на 500 IDs из
+split `evaluation`. Алгоритм полностью заморожен: Qwen3.8-27B, те же prompts
+и strict grounding, exact-title seed, graph-aware frontier budget 4,
+contextual full-edge proposal, evidence budget 5 и тот же reader. B1 —
+sentence BM25 с budget 5. Никакие thresholds или fallback rules после
+результата не меняются.
+
+Primary metric — paired Answer token F1. Подтверждение улучшения требует
+положительного mean delta и двустороннего paired sign-flip `p < 0,05`;
+bootstrap 95% CI приводится как оценка неопределённости. Answer EM,
+Supporting Recall/F1, число wins/losses и extraction cost — secondary.
+Evaluation-500 анализируется один раз и не используется для новой настройки.

@@ -70,7 +70,7 @@ def read_rows(path: Path) -> dict[str, dict]:
 
 def run(args: argparse.Namespace) -> None:
     inputs, gold = load_hotpot_split(
-        args.parquet, args.split_file, "development", args.limit, args.offset
+        args.parquet, args.split_file, args.split, args.limit, args.offset
     )
     b1_predictions = read_rows(args.b1_dir / "bm25-predictions.jsonl")
     graph_predictions = read_rows(args.graph_dir / "structured-predictions.jsonl")
@@ -97,6 +97,7 @@ def run(args: argparse.Namespace) -> None:
     em_counts = direction_counts(em_deltas)
     summary = {
         "claims": len(inputs),
+        "split": args.split,
         "offset": args.offset,
         "answer_f1": {
             "delta": mean(answer_deltas),
@@ -125,6 +126,7 @@ def main() -> None:
     parser.add_argument("--parquet", type=Path, default=Path("data/hotpotqa/validation.parquet"))
     parser.add_argument("--split-file", type=Path, default=Path("configs/splits/hotpotqa-e1.json"))
     parser.add_argument("--offset", type=int, default=20)
+    parser.add_argument("--split", choices=("development", "evaluation"), default="development")
     parser.add_argument("--limit", type=int, default=180)
     parser.add_argument("--b1-dir", type=Path, required=True)
     parser.add_argument("--graph-dir", type=Path, required=True)

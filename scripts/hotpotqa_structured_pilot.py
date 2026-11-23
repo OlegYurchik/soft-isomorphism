@@ -218,7 +218,7 @@ def paragraph_triples(
 
 def run(args: argparse.Namespace) -> None:
     inputs, gold = load_hotpot_split(
-        args.parquet, args.split_file, "development", args.limit, args.offset
+        args.parquet, args.split_file, args.split, args.limit, args.offset
     )
     args.out_dir.mkdir(parents=True, exist_ok=True)
     queries = {row["id"]: row for row in read_jsonl(args.graph_dir / "query-extractions.jsonl")}
@@ -281,7 +281,7 @@ def run(args: argparse.Namespace) -> None:
     )
 
     retrieval_summary = {
-        "split": "development",
+        "split": args.split,
         "claims": len(inputs),
         "offset": args.offset,
         "evidence_budget": args.evidence_budget,
@@ -372,6 +372,7 @@ def main() -> None:
     parser.add_argument("--parquet", type=Path, default=Path("data/hotpotqa/validation.parquet"))
     parser.add_argument("--split-file", type=Path, default=Path("configs/splits/hotpotqa-e1.json"))
     parser.add_argument("--limit", type=int, default=20)
+    parser.add_argument("--split", choices=("development", "evaluation"), default="development")
     parser.add_argument("--offset", type=int, default=0)
     parser.add_argument("--evidence-budget", type=int, default=5)
     parser.add_argument("--paragraph-limit", type=int)

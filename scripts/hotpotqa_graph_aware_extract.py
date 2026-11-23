@@ -61,7 +61,7 @@ def run_batch(
 
 def run(args: argparse.Namespace) -> None:
     inputs, _ = load_hotpot_split(
-        args.parquet, args.split_file, "development", args.limit, args.offset
+        args.parquet, args.split_file, args.split, args.limit, args.offset
     )
     args.out_dir.mkdir(parents=True, exist_ok=True)
     query_path = args.out_dir / "query-extractions.jsonl"
@@ -187,6 +187,7 @@ def run(args: argparse.Namespace) -> None:
     }
     summary = {
         "claims": len(inputs),
+        "split": args.split,
         "offset": args.offset,
         "paragraph_limit": args.paragraph_limit,
         "query_graphs_valid": sum(row["query_valid"] for row in selections),
@@ -208,6 +209,7 @@ def main() -> None:
     parser.add_argument("--parquet", type=Path, default=Path("data/hotpotqa/validation.parquet"))
     parser.add_argument("--split-file", type=Path, default=Path("configs/splits/hotpotqa-e1.json"))
     parser.add_argument("--limit", type=int, default=200)
+    parser.add_argument("--split", choices=("development", "evaluation"), default="development")
     parser.add_argument("--offset", type=int, default=0)
     parser.add_argument("--paragraph-limit", type=int, default=4)
     parser.add_argument("--out-dir", type=Path, required=True)
