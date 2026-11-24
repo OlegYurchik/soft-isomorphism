@@ -37,3 +37,21 @@ end-to-end result.
 
 Подробности: [`hotpotqa-pilot-design.md`](hotpotqa-pilot-design.md) и
 [`related-work-audit-2026-11-24.md`](related-work-audit-2026-11-24.md).
+
+## Следующая гипотеза после targeted audit
+
+Идея отображать одну query node в связное множество document nodes не может
+заявляться как новый общий вид matching: существуют many-to-many graph
+matching, graph-minor branch sets и path homomorphism; HyperPathsRAG,
+HEAR-RAG, ReGraphRAG и FlowRAG закрывают значительную часть n-ary,
+fragmentation, provenance и multi-granularity мотивации.
+
+Рабочий кандидат `H13-R` проверяет не новизну самой конструкции, а
+**устойчивость к representation granularity shift**: при неизменном текстовом
+evidence и контролируемых node split, node merge и relation reification
+bounded semantic branch-set matcher должен терять меньше качества, чем
+point-valued path matcher, top-k union и mention contraction при одинаковом
+evidence budget. До выполнения stop/go checks это не подтверждённый вклад.
+
+Подробности:
+[`targeted-literature-audit-fiber-matching-2026-11-24.md`](targeted-literature-audit-fiber-matching-2026-11-24.md).

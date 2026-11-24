@@ -34,6 +34,14 @@ graph matching, а как **лёгкую, training-free и provenance-preserving
 формулировка пока является рабочим позиционированием, а не доказанной
 публикационной новизной.
 
+Отдельный targeted audit следующей идеи — отображать query node в связное
+множество document nodes — показал, что generic node-to-set matching также
+не является новым: он пересекается с many-to-many graph matching и branch-set
+моделями графовых миноров. Проверяемым кандидатом остаётся более узкая
+гипотеза об устойчивости к контролируемым split/merge/reification
+преобразованиям. См.
+[`targeted-literature-audit-fiber-matching-2026-11-24.md`](targeted-literature-audit-fiber-matching-2026-11-24.md).
+
 ## Сравнение
 
 | Работа | Что именно сопоставляется | Допускает topology mismatch | Как сокращает поиск | Обучение | Данные | Пересечение с нами | Что остаётся отличием |
