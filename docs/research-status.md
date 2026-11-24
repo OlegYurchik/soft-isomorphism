@@ -55,3 +55,21 @@ evidence budget. До выполнения stop/go checks это не подтв
 
 Подробности:
 [`targeted-literature-audit-fiber-matching-2026-11-24.md`](targeted-literature-audit-fiber-matching-2026-11-24.md).
+
+## Новая основная гипотеза-кандидат: H14
+
+H13-R оставлен как диагностический benchmark, а не основной алгоритмический
+вклад. Более сильная гипотеза `H14` — **certified provenance-constrained soft
+matching**. Matcher должен возвращать не только evidence, но и sound
+сертификат того, что выбранные исходные предложения не изменятся при любом
+допустимом provenance-preserving исправлении extracted graph в пределах
+заданного edit radius. При отсутствии сертификата возвращается минимальный
+failure witness.
+
+Targeted search нашёл certified GNN, visual graph matching и обычный RAG, а
+также uncertain subgraph matching, но не точный аналог сертификации
+semantic evidence-chain retrieval под extraction-equivalent graph rewrites.
+Новизна предварительная; перед claim «first» нужен systematic review.
+
+Дизайн и falsification pilot:
+[`h14-certified-soft-matching-hypothesis.md`](h14-certified-soft-matching-hypothesis.md).
