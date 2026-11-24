@@ -321,3 +321,52 @@ Primary metric — paired Answer token F1. Подтверждение улучш
 bootstrap 95% CI приводится как оценка неопределённости. Answer EM,
 Supporting Recall/F1, число wins/losses и extraction cost — secondary.
 Evaluation-500 анализируется один раз и не используется для новой настройки.
+
+## Evaluation-500 result
+
+Финальная отложенная выборка обработана полностью: оба reader arm вернули
+500/500 валидных ответов. Graph-aware extractor построил 434 валидных query
+graphs; matcher использовал graph mode для 433 примеров и заранее
+определённый B1 fallback для 67.
+
+| Метрика | B1 sentence BM25 | Graph-aware | Δ |
+|---|---:|---:|---:|
+| Answer Exact Match | 50,80% | 51,00% | +0,20 п.п. |
+| Answer token F1 | 62,77% | 63,06% | +0,29 п.п. |
+| Supporting Precision | 28,20% | 30,44% | +2,24 п.п. |
+| Supporting Recall | 59,63% | 64,60% | +4,97 п.п. |
+| Supporting F1 | 37,71% | 40,78% | +3,06 п.п. |
+
+Primary paired Answer F1 дал 23 improvements, 25 regressions и 452 ties;
+двусторонний sign-flip `p=0,777`, bootstrap 95% CI для mean delta
+`[−1,71; +2,27]` п.п. Answer EM: 16 wins, 15 losses, 469 ties,
+exact `p=1,0`. Поэтому заранее зафиксированный критерий подтверждения
+**не выполнен**: малый положительный point estimate совместим и с нулевым,
+и с отрицательным эффектом.
+
+При этом retrieval-эффект подтверждён: Supporting F1 вырос на 3,06 п.п.;
+72 примера улучшились, 21 ухудшился, 407 не изменились, sign-flip
+`p≈1,0×10⁻⁵`. Одинаковые evidence sets получены на 244/500 примерах. Это
+разделяет два утверждения: структурный matcher достоверно лучше восстанавливает
+размеченные supporting sentences, но при evidence budget 5 и данном reader
+это **не переносится в улучшение качества конечного ответа**.
+
+Цена graph-aware retrieval высока: реальный resumable extractor выполнил
+2 230 новых Qwen calls, обработал 1 781 453 токена и занял 11 047,7 с model
+time. Было выбрано 1 735 paragraph contexts (1 730 уникальных), из которых
+1 493 прошли strict grounding. Дополнительно graph retrieval занял 162,38 с,
+тогда как B1 retrieval — 0,17 с. Reader cost сопоставим, поскольку оба arms
+имеют одинаковый evidence budget: 500 calls и около 184 тыс. токенов каждый.
+
+**Решение:** финальная гипотеза о повышении Answer F1 не подтверждена и этот
+evaluation split больше не используется для настройки. Положительный
+scientific result ограничен retrieval: bounded soft edge-to-path matching
+повышает supporting-fact recall/F1, но текущая LLM-extraction реализация не
+оправдывает overhead по end-to-end answer quality.
+
+После повторного поиска аналогов также снята широкая претензия на
+алгоритмическую новизну. SAFE уже реализует approximate query-edge-to-KG-path
+alignment, а MGRAG объединяет semantic path matching с lazy query-specific
+graph construction. Подробное сравнение и допустимая узкая формулировка
+вклада зафиксированы в
+[`related-work-audit-2026-11-24.md`](related-work-audit-2026-11-24.md).
