@@ -56,7 +56,7 @@ evidence budget. До выполнения stop/go checks это не подтв
 Подробности:
 [`targeted-literature-audit-fiber-matching-2026-11-24.md`](targeted-literature-audit-fiber-matching-2026-11-24.md).
 
-## Новая основная гипотеза-кандидат: H14
+## Проверенная гипотеза H14
 
 H13-R оставлен как диагностический benchmark, а не основной алгоритмический
 вклад. Более сильная гипотеза `H14` — **certified provenance-constrained soft
@@ -71,5 +71,15 @@ Targeted search нашёл certified GNN, visual graph matching и обычны�
 semantic evidence-chain retrieval под extraction-equivalent graph rewrites.
 Новизна предварительная; перед claim «first» нужен systematic review.
 
-Дизайн и falsification pilot:
-[`h14-certified-soft-matching-hypothesis.md`](h14-certified-soft-matching-hypothesis.md).
+Falsification pilot проведён на 100 eligible HotpotQA examples без новых LLM
+calls. Exact drop-one-triple certificate был sound относительно exhaustive
+oracle, но coverage составила только 14%. Certified subset имел Supporting F1
+0.2460 против 0.4168 у uncertified subset и 0.2945 у raw-margin control при
+той же coverage. Сертификат преимущественно выделял BM25-dominated outputs с
+меньшим числом graph-first sentences, то есть graph-independence, а не
+correctness.
+
+По заранее заданным stop/go criteria эмпирическая H14 не поддержана и не
+должна расширяться на более строгие perturbation sets. Дизайн и результат:
+[`h14-certified-soft-matching-hypothesis.md`](h14-certified-soft-matching-hypothesis.md),
+[`h14-certified-soft-matching-pilot.md`](h14-certified-soft-matching-pilot.md).

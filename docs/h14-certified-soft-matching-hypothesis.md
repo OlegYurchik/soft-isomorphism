@@ -1,7 +1,12 @@
 # H14: certified provenance-constrained soft matching
 
-Статус: новая основная гипотеза-кандидат после targeted audit. Дата:
-24.11.2026. Новизна предварительная, а не установленный приоритет.
+Статус на 25.11.2026: **эмпирическая часть не поддержана, направление
+остановлено**. На 100 HotpotQA examples certified coverage составила 14%, а
+Supporting F1 certified subset — 0.2460 против 0.4168 у uncertified и 0.2945
+у raw-margin control той же мощности. Полный результат:
+[`h14-certified-soft-matching-pilot.md`](h14-certified-soft-matching-pilot.md).
+
+Ниже сохранён исходный дизайн, сформулированный до эксперимента.
 
 ## 1. Научная проблема
 
