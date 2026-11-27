@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="680" viewBox="0 0 1100 680" role="img" aria-labelledby="title desc">
+  <title id="title">Парето-фронт вариантов поиска на HotpotQA feasibility-20</title>
+  <desc id="desc">Сравнение числа вызовов языковой модели для извлечения графов и F1 подтверждающих предложений. Недоминируемые варианты: текстовый поиск и графовый выбор четырёх документов.</desc>
+  <defs>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#173f38" flood-opacity="0.13"/>
+    </filter>
+    <style>
+      .title{font:700 27px system-ui,sans-serif;fill:#142d32}.subtitle{font:16px system-ui,sans-serif;fill:#587077}
+      .axis{stroke:#294d51;stroke-width:2}.grid{stroke:#dce7e3;stroke-width:1}.tick{font:14px system-ui,sans-serif;fill:#526a70}
+      .label{font:700 15px system-ui,sans-serif;fill:#233f44}.small{font:13px system-ui,sans-serif;fill:#60777c}
+      .front{fill:none;stroke:#087f6d;stroke-width:5;stroke-linecap:round;stroke-dasharray:10 8}
+      .pareto{fill:#087f6d;stroke:#fff;stroke-width:4}.pareto2{fill:#e96f37;stroke:#fff;stroke-width:4}
+      .dominated{fill:#9baba8;stroke:#fff;stroke-width:3;opacity:.82}.callout{fill:#fff;stroke:#cddbd7;stroke-width:1.5}
+    </style>
+  </defs>
+  <rect width="1100" height="680" rx="28" fill="#f5f8f5"/>
+  <text class="title" x="74" y="56">Парето-фронт: качество поиска против стоимости построения графа</text>
+  <text class="subtitle" x="74" y="84">HotpotQA feasibility-20 · одинаковый бюджет 5 предложений · выше и левее — лучше</text>
+
+  <!-- Plot area: x 100..950 = 0..220 calls; y 120..540 = F1 35.2..33.0 -->
+  <g>
+    <line class="grid" x1="100" y1="540" x2="950" y2="540"/><line class="grid" x1="100" y1="445" x2="950" y2="445"/>
+    <line class="grid" x1="100" y1="349" x2="950" y2="349"/><line class="grid" x1="100" y1="254" x2="950" y2="254"/>
+    <line class="grid" x1="100" y1="158" x2="950" y2="158"/><line class="grid" x1="100" y1="120" x2="950" y2="120"/>
+    <line class="grid" x1="100" y1="120" x2="100" y2="540"/><line class="grid" x1="293" y1="120" x2="293" y2="540"/>
+    <line class="grid" x1="486" y1="120" x2="486" y2="540"/><line class="grid" x1="679" y1="120" x2="679" y2="540"/>
+    <line class="grid" x1="872" y1="120" x2="872" y2="540"/><line class="grid" x1="950" y1="120" x2="950" y2="540"/>
+  </g>
+  <line class="axis" x1="100" y1="540" x2="970" y2="540"/><line class="axis" x1="100" y1="555" x2="100" y2="110"/>
+  <g class="tick" text-anchor="end">
+    <text x="88" y="545">33,0</text><text x="88" y="450">33,5</text><text x="88" y="354">34,0</text>
+    <text x="88" y="259">34,5</text><text x="88" y="163">35,0</text><text x="88" y="125">35,2</text>
+  </g>
+  <g class="tick" text-anchor="middle">
+    <text x="100" y="566">0</text><text x="293" y="566">50</text><text x="486" y="566">100</text>
+    <text x="679" y="566">150</text><text x="872" y="566">200</text><text x="950" y="566">220</text>
+  </g>
+  <text class="label" x="525" y="610" text-anchor="middle">Вызовы языковой модели для извлечения графов, меньше — лучше</text>
+  <text class="label" transform="translate(27 335) rotate(-90)" text-anchor="middle">F1 подтверждающих предложений, %, больше — лучше</text>
+
+  <!-- Pareto frontier -->
+  <path class="front" d="M100 408 L425 177"/>
+
+  <!-- Dominated configurations -->
+  <circle class="dominated" cx="409" cy="443" r="10"/><text class="small" x="392" y="468" text-anchor="end">Короткий список 3</text>
+  <circle class="dominated" cx="486" cy="443" r="10"/><text class="small" x="502" y="470">Короткий список 4</text>
+  <circle class="dominated" cx="950" cy="443" r="10"/><text class="small" x="936" y="470" text-anchor="end">Полный граф</text>
+  <circle class="dominated" cx="950" cy="204" r="10"/><text class="small" x="936" y="230" text-anchor="end">Полный граф + контекст отношений</text>
+
+  <!-- Non-dominated configurations -->
+  <circle class="pareto" cx="100" cy="408" r="14" filter="url(#shadow)"/>
+  <rect class="callout" x="124" y="355" width="238" height="70" rx="13" filter="url(#shadow)"/>
+  <text class="label" x="140" y="379">Текстовый поиск</text><text class="small" x="140" y="401">0 вызовов · F1 = 33,69%</text>
+
+  <circle class="pareto2" cx="425" cy="177" r="14" filter="url(#shadow)"/>
+  <rect class="callout" x="448" y="132" width="300" height="70" rx="13" filter="url(#shadow)"/>
+  <text class="label" x="464" y="156">Графовый выбор 4 документов</text><text class="small" x="464" y="178">84 вызова · F1 = 34,90%</text>
+
+  <g transform="translate(744 586)">
+    <circle class="pareto" cx="0" cy="0" r="8"/><text class="small" x="15" y="5">Парето-фронт</text>
+    <circle class="dominated" cx="140" cy="0" r="8"/><text class="small" x="155" y="5">Доминируемый вариант</text>
+  </g>
+  <text class="small" x="74" y="648">Стоимость генерации ответа исключена: она одинакова для вариантов. Граф учитывает только построение и выбор доказательств.</text>
+</svg>

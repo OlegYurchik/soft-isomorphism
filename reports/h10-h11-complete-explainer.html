@@ -1,0 +1,790 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Подробное и понятное объяснение алгоритмов H10 и H11 без внутренних обозначений промежуточных экспериментов.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='16' cy='20' r='8' fill='%23087f6d'/%3E%3Ccircle cx='48' cy='18' r='8' fill='%23e96f37'/%3E%3Ccircle cx='34' cy='48' r='8' fill='%23385f9f'/%3E%3Cpath d='M22 21 41 19M20 27l10 15m15-18L37 41' stroke='%23132a32' stroke-width='5'/%3E%3C/svg%3E">
+  <title>Как работают H10 и H11 — полное объяснение</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #132a32;
+      --muted: #526a70;
+      --paper: #f4f7f3;
+      --card: #ffffff;
+      --line: #d6e0dc;
+      --green: #087f6d;
+      --green-dark: #075b51;
+      --mint: #d8f3ea;
+      --orange: #e96f37;
+      --orange-soft: #fff0e5;
+      --blue: #385f9f;
+      --blue-soft: #e8effc;
+      --violet: #7153a6;
+      --red: #a64242;
+      --code: #10262d;
+      --shadow: 0 18px 50px rgba(22, 47, 54, .09);
+      --radius: 24px;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background:
+        radial-gradient(circle at 10% 3%, rgba(8,127,109,.11), transparent 27rem),
+        radial-gradient(circle at 92% 20%, rgba(233,111,55,.09), transparent 25rem),
+        var(--paper);
+      color: var(--ink);
+      font: 17px/1.65 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    a { color: inherit; }
+    button { font: inherit; }
+    .shell { width: min(1180px, calc(100% - 40px)); margin: 0 auto; }
+    .hero { padding: 76px 0 64px; }
+    .hero-grid { display: grid; grid-template-columns: 1.25fr .75fr; gap: 42px; align-items: center; }
+    .eyebrow, .kicker {
+      color: var(--green-dark);
+      font-size: .82rem;
+      font-weight: 850;
+      letter-spacing: .09em;
+      text-transform: uppercase;
+    }
+    h1, h2, h3 { margin-top: 0; line-height: 1.12; letter-spacing: -.025em; }
+    h1 { max-width: 900px; margin-bottom: 24px; font-size: clamp(3rem, 7vw, 6.7rem); }
+    h1 span { display: block; color: var(--green); }
+    h2 { margin-bottom: 18px; font-size: clamp(2.1rem, 4.6vw, 4.25rem); }
+    h3 { margin-bottom: 10px; font-size: 1.35rem; }
+    p { margin-top: 0; }
+    .lede { max-width: 760px; color: var(--muted); font-size: clamp(1.08rem, 2vw, 1.35rem); }
+    .hero-note {
+      padding: 26px;
+      border: 1px solid rgba(8,127,109,.2);
+      border-radius: var(--radius);
+      background: rgba(255,255,255,.86);
+      box-shadow: var(--shadow);
+    }
+    .hero-note b { display: block; margin-bottom: 8px; color: var(--green-dark); font-size: 1.2rem; }
+    .hero-note p { margin: 0; color: var(--muted); }
+    .jump { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 26px; }
+    .jump a {
+      padding: 8px 13px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(255,255,255,.7);
+      text-decoration: none;
+      font-size: .88rem;
+      font-weight: 750;
+    }
+    .jump a:hover { border-color: var(--green); color: var(--green-dark); }
+    section { padding: 72px 0; }
+    .section-head { display: grid; grid-template-columns: .3fr 1.7fr; gap: 16px 28px; margin-bottom: 32px; }
+    .section-head h2 { margin: 0; }
+    .section-head > p { grid-column: 2; max-width: 820px; margin: 0; color: var(--muted); font-size: 1.06rem; }
+    .card {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(255,255,255,.92);
+      box-shadow: var(--shadow);
+    }
+    .two { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .concept { padding: 30px; position: relative; overflow: hidden; }
+    .concept::after {
+      content: "";
+      position: absolute;
+      right: -50px;
+      bottom: -70px;
+      width: 190px;
+      height: 190px;
+      border-radius: 50%;
+      background: var(--mint);
+      opacity: .7;
+    }
+    .concept.orange::after { background: var(--orange-soft); }
+    .label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 18px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: var(--mint);
+      color: var(--green-dark);
+      font-size: .78rem;
+      font-weight: 850;
+    }
+    .orange .label { color: #8a3c18; background: var(--orange-soft); }
+    .concept p { position: relative; z-index: 1; color: var(--muted); }
+    .concept strong { color: var(--ink); }
+    .one-line {
+      margin-top: 20px;
+      padding: 22px 26px;
+      border-left: 5px solid var(--green);
+      border-radius: 6px 18px 18px 6px;
+      background: #eaf7f2;
+      font-size: 1.08rem;
+    }
+    .dictionary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    .term { padding: 20px; border: 1px solid var(--line); border-radius: 18px; background: var(--card); }
+    .term b { display: block; margin-bottom: 5px; color: var(--green-dark); }
+    .term span { color: var(--muted); font-size: .93rem; }
+    .pipeline {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 8px;
+      align-items: stretch;
+    }
+    .pipe {
+      position: relative;
+      min-height: 195px;
+      padding: 19px 16px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: var(--card);
+    }
+    .pipe:not(:last-child)::after {
+      content: "";
+      position: absolute;
+      z-index: 2;
+      top: 47%;
+      right: -11px;
+      width: 13px;
+      height: 13px;
+      border-top: 3px solid var(--green);
+      border-right: 3px solid var(--green);
+      transform: rotate(45deg);
+      background: var(--paper);
+    }
+    .pipe small { color: var(--green); font-weight: 850; }
+    .pipe b { display: block; margin: 9px 0; font-size: 1.02rem; line-height: 1.25; }
+    .pipe p { margin: 0; color: var(--muted); font-size: .86rem; line-height: 1.5; }
+    .pipe.gate { color: #713216; background: var(--orange-soft); border-color: #f4cbb6; }
+    .pipe.gate small { color: #9a481f; }
+    .step-list { display: grid; gap: 16px; counter-reset: algo; }
+    .step {
+      display: grid;
+      grid-template-columns: 74px 1fr;
+      gap: 20px;
+      padding: 26px;
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      background: var(--card);
+      counter-increment: algo;
+    }
+    .step::before {
+      content: counter(algo, decimal-leading-zero);
+      display: grid;
+      place-items: center;
+      width: 58px;
+      height: 58px;
+      border-radius: 18px;
+      background: var(--ink);
+      color: white;
+      font-weight: 900;
+      font-size: 1.08rem;
+    }
+    .step h3 { margin-bottom: 7px; }
+    .step p { max-width: 900px; margin-bottom: 10px; color: var(--muted); }
+    .step p:last-child { margin-bottom: 0; }
+    .graph-box { margin-top: 18px; padding: 18px; border-radius: 18px; background: #eef5f2; overflow-x: auto; }
+    .graph-box svg { display: block; width: 100%; min-width: 620px; height: auto; }
+    .edge { stroke: #73938c; stroke-width: 4; }
+    .edge.hot { stroke: var(--orange); stroke-width: 7; stroke-linecap: round; }
+    .edge.dash { stroke-dasharray: 9 8; }
+    .node { stroke: white; stroke-width: 5; filter: drop-shadow(0 5px 7px rgba(20,50,57,.16)); }
+    .node-label { fill: var(--ink); font: 750 16px system-ui; text-anchor: middle; }
+    .edge-label { fill: var(--green-dark); font: 750 14px system-ui; text-anchor: middle; }
+    .formula {
+      margin: 15px 0;
+      padding: 20px;
+      border-radius: 16px;
+      background: var(--code);
+      color: #dff7ef;
+      font: 700 .98rem/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      overflow-x: auto;
+    }
+    .formula em { color: #ffb78f; font-style: normal; }
+    details.code {
+      margin-top: 15px;
+      border: 1px solid #28434a;
+      border-radius: 17px;
+      background: var(--code);
+      color: #dfeceb;
+      overflow: hidden;
+    }
+    details.code summary { padding: 14px 18px; cursor: pointer; color: #8de0ca; font-weight: 800; }
+    pre { margin: 0; padding: 4px 20px 22px; overflow-x: auto; font: 14px/1.62 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .kw { color: #ffad7c; }.fn { color: #8de0ca; }.cm { color: #8aa1a4; }.st { color: #f4d58d; }
+    .callout { padding: 22px 25px; border-radius: 18px; background: var(--blue-soft); color: #274978; }
+    .callout b { color: #17345e; }
+    .demo {
+      display: grid;
+      grid-template-columns: 330px 1fr;
+      gap: 20px;
+      padding: 24px;
+    }
+    .step > *, .demo > *, .two > *, .dictionary > *, .result-grid > *, .limits > *, .branching > * { min-width: 0; }
+    .demo-nav { display: grid; gap: 9px; align-content: start; }
+    .demo-nav button {
+      width: 100%;
+      padding: 14px 15px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: #fff;
+      color: var(--muted);
+      text-align: left;
+      cursor: pointer;
+      font-weight: 750;
+    }
+    .demo-nav button.active { border-color: var(--green); background: var(--mint); color: var(--green-dark); }
+    .demo-stage { min-height: 460px; padding: 26px; border-radius: 19px; background: #eff5f2; }
+    .demo-pane { display: none; animation: appear .3s ease both; }
+    .demo-pane.active { display: block; }
+    .claim {
+      margin: 0 0 20px;
+      padding: 18px 20px;
+      border-left: 5px solid var(--orange);
+      border-radius: 5px 15px 15px 5px;
+      background: white;
+      font-size: 1.15rem;
+      font-weight: 750;
+    }
+    .triple-list { display: grid; gap: 8px; }
+    .triple {
+      padding: 11px 13px;
+      border: 1px solid #d5e0dc;
+      border-radius: 11px;
+      background: white;
+      font: 700 .86rem/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+    .triple.noise { opacity: .52; }
+    .verdict { display: inline-block; margin-top: 18px; padding: 8px 12px; border-radius: 999px; font-weight: 900; }
+    .verdict.unknown { color: #7b3719; background: #ffdfca; }
+    .verdict.true { color: #075b51; background: #cceee4; }
+    .parameters { width: 100%; border-collapse: separate; border-spacing: 0; overflow: hidden; border: 1px solid var(--line); border-radius: 18px; background: white; }
+    .parameters th, .parameters td { padding: 14px 16px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+    .parameters th { background: #eaf2ef; font-size: .82rem; text-transform: uppercase; letter-spacing: .04em; }
+    .parameters tr:last-child td { border-bottom: 0; }
+    .parameters td:first-child { width: 29%; font-weight: 800; }
+    .parameters td:nth-child(2) { width: 19%; color: var(--green-dark); font-weight: 850; }
+    .branching { display: grid; grid-template-columns: 1fr 90px 1fr; gap: 18px; align-items: center; }
+    .branch-card { min-height: 250px; padding: 28px; border: 1px solid var(--line); border-radius: 22px; background: white; }
+    .branch-card.stop { background: #e8f5ef; }
+    .branch-card.continue { background: var(--orange-soft); }
+    .diamond { display: grid; place-items: center; width: 82px; height: 82px; transform: rotate(45deg); border: 3px solid var(--orange); background: white; }
+    .diamond b { transform: rotate(-45deg); font-size: .74rem; text-align: center; }
+    .result-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
+    .result { padding: 24px; border-radius: 20px; background: white; border: 1px solid var(--line); }
+    .result b { display: block; color: var(--green); font-size: 2.2rem; line-height: 1; }
+    .result span { color: var(--muted); font-size: .86rem; }
+    .bars { display: grid; gap: 16px; margin-top: 22px; }
+    .bar-head { display: flex; justify-content: space-between; gap: 20px; }
+    .track { height: 17px; border-radius: 999px; background: #dfe8e4; overflow: hidden; }
+    .fill { height: 100%; border-radius: inherit; background: var(--green); transform-origin: left; animation: grow 1s ease both; }
+    .fill.base { background: #8ba39e; }
+    .limits { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .limits article { padding: 26px; border-radius: 20px; }
+    .limits .yes { background: #ddf2e9; }
+    .limits .no { background: #f7e5e5; }
+    .limits ul { margin-bottom: 0; padding-left: 21px; }
+    .limits li + li { margin-top: 7px; }
+    .footer { padding: 42px 0 70px; border-top: 1px solid var(--line); color: var(--muted); }
+    .footer-grid { display: flex; justify-content: space-between; gap: 22px; align-items: flex-start; }
+    .source-links { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+    .source-links a { padding: 7px 10px; border: 1px solid var(--line); border-radius: 999px; background: white; text-decoration: none; font-size: .83rem; }
+    @keyframes appear { from { opacity: 0; transform: translateY(7px); } to { opacity: 1; transform: none; } }
+    @keyframes grow { from { transform: scaleX(0); } }
+    @media (max-width: 980px) {
+      .hero-grid, .two, .demo { grid-template-columns: 1fr; }
+      .pipeline { grid-template-columns: repeat(3, 1fr); }
+      .pipe:nth-child(3)::after { display: none; }
+      .dictionary, .result-grid { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 680px) {
+      body { font-size: 16px; }
+      .shell { width: min(100% - 22px, 1180px); }
+      .hero { padding-top: 50px; }
+      .section-head { grid-template-columns: 1fr; }
+      .section-head > p { grid-column: 1; }
+      .pipeline, .dictionary, .result-grid, .limits { grid-template-columns: 1fr; }
+      .pipe:not(:last-child)::after { display: none; }
+      .step { grid-template-columns: 1fr; }
+      .branching { grid-template-columns: 1fr; }
+      .diamond { margin: 0 auto; }
+      .parameters { table-layout: fixed; font-size: .82rem; }
+      .parameters th, .parameters td { padding: 10px 7px; overflow-wrap: anywhere; }
+      .footer-grid { flex-direction: column; }
+      .source-links { justify-content: flex-start; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; animation: none !important; transition: none !important; }
+    }
+    @media print {
+      body { background: white; }
+      .jump, .demo-nav { display: none; }
+      .demo { display: block; }
+      .demo-pane { display: block; margin-bottom: 24px; }
+      .card, .step { box-shadow: none; break-inside: avoid; }
+      section { padding: 38px 0; }
+    }
+  </style>
+</head>
+<body>
+  <header class="hero shell">
+    <div class="hero-grid">
+      <div>
+        <div class="eyebrow">Полное объяснение алгоритма · 26 ноября 2026</div>
+        <h1>Как работают <span>H10 и H11</span></h1>
+        <p class="lede">От обычного текстового утверждения до ответа «истина», «ложь» или «неизвестно». Без скрытых ступеней, внутренних названий прошлых опытов и необъяснённых сокращений.</p>
+        <nav class="jump" aria-label="Содержание">
+          <a href="#summary">Суть за минуту</a>
+          <a href="#terms">Словарь</a>
+          <a href="#h10">Структурный поиск</a>
+          <a href="#example">Пример</a>
+          <a href="#h11">Условный запуск</a>
+          <a href="#results">Результаты</a>
+          <a href="#limits">Границы вывода</a>
+        </nav>
+      </div>
+      <aside class="hero-note">
+        <b>Как читать названия</b>
+        <p><strong>H10</strong> — исследовательское имя структурного поиска фактов. <strong>H11</strong> — исследовательское имя всей двухступенчатой схемы, которая запускает структурный поиск только после ответа «неизвестно». Дальше эти механизмы названы по смыслу.</p>
+      </aside>
+    </div>
+  </header>
+
+  <main>
+    <section class="shell" id="summary">
+      <div class="section-head">
+        <div class="kicker">Суть за минуту</div>
+        <h2>Это два разных уровня</h2>
+        <p>Первый механизм умеет находить связную цепочку фактов в графе знаний. Второй решает, когда вообще стоит тратить время на этот механизм.</p>
+      </div>
+      <div class="two">
+        <article class="concept card">
+          <div class="label">H10 · структурный поиск</div>
+          <h3>Ищет не похожие факты по отдельности, а связный путь</h3>
+          <p>Он превращает утверждение в маленький граф, связывает его вершины с объектами графа знаний, восстанавливает пропущенные конечные вершины и ищет путь из одного или двух рёбер, который выражает нужную связь.</p>
+          <p><strong>Результат:</strong> компактный набор реальных троек графа знаний.</p>
+        </article>
+        <article class="concept orange card">
+          <div class="label">H11 · условный запуск</div>
+          <h3>Сначала использует простой широкий поиск</h3>
+          <p>Если первая проверка уверенно отвечает «истина» или «ложь», ответ сразу сохраняется. Структурный поиск запускается только после «неизвестно» и получает шанс найти более связное основание.</p>
+          <p><strong>Результат:</strong> меньше лишних вычислений и сохранение уже данных уверенных ответов.</p>
+        </article>
+      </div>
+      <div class="one-line"><strong>В одной строке:</strong> сначала быстро собираем до двадцати похожих фактов; если их недостаточно, строим небольшой графовый аргумент и спрашиваем модель ещё раз.</div>
+    </section>
+
+    <section class="shell" id="terms">
+      <div class="section-head">
+        <div class="kicker">Словарь</div>
+        <h2>Шесть понятий, которых достаточно</h2>
+        <p>Все остальные технические детали ниже будут опираться только на эти определения.</p>
+      </div>
+      <div class="dictionary">
+        <article class="term"><b>Вершина</b><span>Объект: человек, фильм, город, дата или неизвестный ответ.</span></article>
+        <article class="term"><b>Ребро</b><span>Направленная связь между объектами: «снял», «родился в», «написал».</span></article>
+        <article class="term"><b>Тройка</b><span>Один факт вида «источник — отношение — цель».</span></article>
+        <article class="term"><b>Граф утверждения</b><span>Маленькая схема смысла проверяемой фразы, обычно из нескольких вершин и рёбер.</span></article>
+        <article class="term"><b>Граф знаний</b><span>Большая база фактов, где объекты — вершины, а отношения — рёбра.</span></article>
+        <article class="term"><b>Соответствие</b><span>Предположение о том, какой объект графа знаний соответствует каждой вершине утверждения.</span></article>
+      </div>
+    </section>
+
+    <section class="shell">
+      <div class="section-head">
+        <div class="kicker">Весь путь</div>
+        <h2>От текста до окончательного ответа</h2>
+        <p>Оранжевая развилка — единственное место, где двухступенчатая схема решает, нужен ли дорогой структурный поиск.</p>
+      </div>
+      <div class="pipeline" aria-label="Полная последовательность работы">
+        <article class="pipe"><small>1</small><b>Текст утверждения</b><p>Например: «Продюсер фильма родился в Санкт-Петербурге».</p></article>
+        <article class="pipe"><small>2</small><b>Извлечение структуры</b><p>Языковая модель строит небольшой граф утверждения.</p></article>
+        <article class="pipe"><small>3</small><b>Широкий поиск</b><p>Из локальной области графа знаний выбираются до 20 текстово близких фактов.</p></article>
+        <article class="pipe"><small>4</small><b>Первая проверка</b><p>Модель отвечает только по найденным фактам.</p></article>
+        <article class="pipe gate"><small>5</small><b>Ответ «неизвестно»?</b><p>Нет — остановка. Да — запускается структурный поиск.</p></article>
+        <article class="pipe"><small>6</small><b>Связный аргумент</b><p>Новый компактный набор фактов снова проверяется моделью.</p></article>
+      </div>
+    </section>
+
+    <section class="shell" id="h10">
+      <div class="section-head">
+        <div class="kicker">H10 подробно</div>
+        <h2>Как строится связный аргумент</h2>
+        <p>Ниже описана фактически выбранная упрощённая версия: одна новая конечная вершина на вершину утверждения, пути длины один–два, без отдельного штрафа за нового кандидата.</p>
+      </div>
+
+      <div class="step-list">
+        <article class="step">
+          <div>
+            <h3>Построить граф смысла утверждения</h3>
+            <p>Языковая модель извлекает явно сказанные сущности и отношения. Она обязана использовать названия из исходной фразы. Неизвестная сущность обозначается вопросительным знаком.</p>
+            <div class="graph-box">
+              <svg viewBox="0 0 900 220" role="img" aria-label="Граф утверждения: фильм связан с продюсером, продюсер связан с Санкт-Петербургом">
+                <line class="edge hot" x1="160" y1="105" x2="445" y2="105"/>
+                <line class="edge hot" x1="455" y1="105" x2="745" y2="105"/>
+                <circle class="node" cx="130" cy="105" r="52" fill="#d8f3ea"/>
+                <circle class="node" cx="450" cy="105" r="52" fill="#fff0e5"/>
+                <circle class="node" cx="770" cy="105" r="52" fill="#e8effc"/>
+                <text class="node-label" x="130" y="111">фильм</text>
+                <text class="node-label" x="450" y="111">?</text>
+                <text class="node-label" x="770" y="102">Санкт-</text>
+                <text class="node-label" x="770" y="123">Петербург</text>
+                <text class="edge-label" x="290" y="82">продюсер</text>
+                <text class="edge-label" x="610" y="82">родился в</text>
+              </svg>
+            </div>
+            <details class="code">
+              <summary>Упрощённый Python: представление графа утверждения</summary>
+              <pre><span class="cm"># Это не запрос к базе. Это структура смысла фразы.</span>
+graph = {
+    <span class="st">"vertices"</span>: [<span class="st">"film"</span>, <span class="st">"?"</span>, <span class="st">"Saint Petersburg"</span>],
+    <span class="st">"edges"</span>: [
+        (<span class="st">"film"</span>, <span class="st">"producer"</span>, <span class="st">"?"</span>),
+        (<span class="st">"?"</span>, <span class="st">"born in"</span>, <span class="st">"Saint Petersburg"</span>),
+    ],
+}</pre>
+            </details>
+          </div>
+        </article>
+
+        <article class="step">
+          <div>
+            <h3>Найти исходные соответствия по именам</h3>
+            <p>Для каждой известной вершины ищутся объекты графа знаний с таким же или близким названием. Проверяются прямые варианты идентификатора и полнотекстовый индекс. Для одной вершины сохраняется не более пяти исходных вариантов.</p>
+            <p>От найденных объектов строится локальная область глубины два. На каждом шаге берутся до тридцати фактов, наиболее близких к тексту утверждения; общий предел — две тысячи троек.</p>
+            <div class="callout"><b>Зачем локальная область?</b> Полный граф знаний слишком велик. Два перехода дают материал для короткой цепочки, но не позволяют поиску бесконтрольно уйти далеко от известных сущностей.</div>
+          </div>
+        </article>
+
+        <article class="step">
+          <div>
+            <h3>Предложить пропущенную конечную вершину</h3>
+            <p>Главная добавка алгоритма: если один конец ребра уже связан с объектом графа знаний, от него перебираются направленные пути длины один или два. Конец каждого пути становится возможным соответствием соседней вершины утверждения.</p>
+            <div class="graph-box">
+              <svg viewBox="0 0 900 270" role="img" aria-label="От известного фильма путь приводит к человеку, который предлагается как пропущенная вершина">
+                <line class="edge hot" x1="160" y1="135" x2="420" y2="75"/>
+                <line class="edge" x1="420" y1="75" x2="720" y2="135"/>
+                <line class="edge dash" x1="160" y1="135" x2="720" y2="135"/>
+                <circle class="node" cx="130" cy="135" r="48" fill="#d8f3ea"/>
+                <circle class="node" cx="430" cy="72" r="48" fill="#fff0e5"/>
+                <circle class="node" cx="750" cy="135" r="48" fill="#e8effc"/>
+                <text class="node-label" x="130" y="141">фильм</text>
+                <text class="node-label" x="430" y="68">найденный</text>
+                <text class="node-label" x="430" y="89">человек</text>
+                <text class="node-label" x="750" y="141">город</text>
+                <text class="edge-label" x="275" y="76">продюсер</text>
+                <text class="edge-label" x="580" y="78">родился в</text>
+                <text class="edge-label" x="440" y="165">ожидаемая связь из утверждения</text>
+              </svg>
+            </div>
+            <details class="code">
+              <summary>Упрощённый Python: как появляются предложения</summary>
+              <pre><span class="kw">for</span> edge <span class="kw">in</span> statement_graph.edges:
+    <span class="kw">for</span> known_object <span class="kw">in</span> candidates[edge.source]:
+        <span class="kw">for</span> path <span class="kw">in</span> <span class="fn">paths_from</span>(known_object, max_length=2):
+            proposed_object = path[-1].target
+            <span class="fn">remember_proposal</span>(
+                vertex=edge.target,
+                object=proposed_object,
+                path=path,
+            )</pre>
+            </details>
+          </div>
+        </article>
+
+        <article class="step">
+          <div>
+            <h3>Оценить каждое предложение</h3>
+            <p>Алгоритм проверяет две вещи: похожи ли отношения в найденном пути на отношение из утверждения и похоже ли имя конечного объекта на название вершины. Двухрёберный путь получает небольшой штраф, чтобы прямое ребро побеждало при равном качестве.</p>
+            <div class="formula">оценка = <em>0,7</em> × сходство отношений + <em>0,3</em> × сходство названий − <em>0,1</em> × (длина пути − 1)</div>
+            <p>Сходство отношений вычисляет замороженная небольшая языковая модель: она превращает текст отношения в числовой вектор, после чего сравнивается направление этих векторов. Генерирующая модель здесь не вызывается.</p>
+            <details class="code">
+              <summary>Упрощённый Python: формула предложения</summary>
+              <pre><span class="kw">def</span> <span class="fn">proposal_score</span>(relation_similarity, name_similarity, path_length):
+    length_penalty = 0.1 * (path_length - 1)
+    <span class="kw">return</span> (
+        0.7 * relation_similarity
+        + 0.3 * name_similarity
+        - length_penalty
+    )</pre>
+            </details>
+          </div>
+        </article>
+
+        <article class="step">
+          <div>
+            <h3>Оставить только одно лучшее новое соответствие</h3>
+            <p>Для каждой вершины утверждения варианты сортируются по оценке. К исходным соответствиям добавляется только один лучший новый объект. Это выбранная после разборки компонентов версия алгоритма.</p>
+            <div class="callout"><b>Что было удалено как лишнее:</b> второй новый объект на вершину и отдельный штраф за использование нового объекта. Их удаление не ухудшило качество на проверочных наборах.</div>
+          </div>
+        </article>
+
+        <article class="step">
+          <div>
+            <h3>Собрать полное соответствие графов</h3>
+            <p>Теперь выбирается не лучший путь для каждого ребра отдельно, а одно общее соответствие для всех вершин утверждения. Один объект графа знаний нельзя назначить двум разным вершинам. Сопоставлено должно быть не менее 80% вершин.</p>
+            <p>Все комбинации перебирать слишком дорого. Поэтому после добавления очередной вершины сохраняются только 64 лучших частичных варианта. Это ограниченный поиск: он быстрый, но не обещает математически найти абсолютный мировой минимум.</p>
+            <div class="formula">общая стоимость = <em>0,3</em> × ошибка вершин + <em>0,7</em> × ошибка рёбер</div>
+            <p>Для каждого ребра утверждения разрешён путь графа знаний длины один или два. Ошибка ребра равна единице минус смысловое сходство лучшего пути. Двухрёберный путь снова получает штраф 0,1.</p>
+            <details class="code">
+              <summary>Упрощённый Python: ограниченный совместный поиск</summary>
+              <pre>partial_mappings = [{}]
+
+<span class="kw">for</span> vertex <span class="kw">in</span> ordered_vertices:
+    expanded = []
+    <span class="kw">for</span> mapping <span class="kw">in</span> partial_mappings:
+        <span class="kw">for</span> object_id <span class="kw">in</span> candidates[vertex]:
+            <span class="kw">if</span> object_id <span class="kw">in</span> mapping.values():
+                <span class="kw">continue</span>  <span class="cm"># один объект нельзя использовать дважды</span>
+            new_mapping = mapping | {vertex: object_id}
+            expanded.append((<span class="fn">cost</span>(new_mapping), new_mapping))
+
+    partial_mappings = <span class="fn">take_best</span>(expanded, count=64)
+
+best_mapping = <span class="fn">minimum_cost</span>(partial_mappings)</pre>
+            </details>
+          </div>
+        </article>
+
+        <article class="step">
+          <div>
+            <h3>Вернуть только реальные факты выбранных путей</h3>
+            <p>Алгоритм ничего не дописывает от себя. Он берёт рёбра тех путей, которые победили, удаляет повторы и возвращает не более двадцати исходных троек графа знаний.</p>
+            <p>После этого языковая модель видит утверждение и только эти факты. Ей разрешено ответить «истина», «ложь» или «неизвестно». Отсутствие факта не считается доказательством ложности.</p>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="shell" id="example">
+      <div class="section-head">
+        <div class="kicker">Пошаговый пример</div>
+        <h2>Один и тот же случай глазами двух поисков</h2>
+        <p>Пример синтетический, но показывает реальный тип ошибки. Нажимайте этапы слева.</p>
+      </div>
+      <div class="demo card">
+        <div class="demo-nav" role="tablist" aria-label="Этапы примера">
+          <button class="active" type="button" role="tab" data-demo="0">1. Утверждение</button>
+          <button type="button" role="tab" data-demo="1">2. Широкий список</button>
+          <button type="button" role="tab" data-demo="2">3. Ответ «неизвестно»</button>
+          <button type="button" role="tab" data-demo="3">4. Связный путь</button>
+          <button type="button" role="tab" data-demo="4">5. Второй ответ</button>
+        </div>
+        <div class="demo-stage" aria-live="polite">
+          <article class="demo-pane active">
+            <h3>Нужно проверить утверждение</h3>
+            <blockquote class="claim">«Продюсер фильма “English Without Tears” родился в Санкт-Петербурге».</blockquote>
+            <p>Для доказательства нужны два связанных факта: кто продюсер фильма и где родился этот же человек.</p>
+          </article>
+          <article class="demo-pane">
+            <h3>Широкий поиск находит похожие факты по отдельности</h3>
+            <div class="triple-list">
+              <div class="triple">English Without Tears — продюсер → Anatole de Grunwald</div>
+              <div class="triple noise">English Without Tears — режиссёр → Harold French</div>
+              <div class="triple noise">Municipal Okrug — часть → Saint Petersburg</div>
+              <div class="triple noise">English Without Tears — дата выхода → 1944</div>
+            </div>
+            <p style="margin-top:16px">Нужные слова присутствуют, но список не показывает связную цепочку через одного человека.</p>
+          </article>
+          <article class="demo-pane">
+            <h3>Первая проверка не может сделать вывод</h3>
+            <p>Модель обязана использовать только переданные факты. В них нет явного места рождения найденного продюсера.</p>
+            <span class="verdict unknown">НЕИЗВЕСТНО</span>
+          </article>
+          <article class="demo-pane">
+            <h3>Структурный поиск связывает два шага</h3>
+            <div class="triple-list">
+              <div class="triple">English Without Tears — продюсер → Anatole de Grunwald</div>
+              <div class="triple">Anatole de Grunwald — место рождения → Saint Petersburg</div>
+            </div>
+            <div class="graph-box">
+              <svg viewBox="0 0 900 220" role="img" aria-label="Связный путь фильм — человек — город">
+                <line class="edge hot" x1="165" y1="105" x2="440" y2="105"/>
+                <line class="edge hot" x1="460" y1="105" x2="735" y2="105"/>
+                <circle class="node" cx="135" cy="105" r="48" fill="#d8f3ea"/>
+                <circle class="node" cx="450" cy="105" r="48" fill="#fff0e5"/>
+                <circle class="node" cx="765" cy="105" r="48" fill="#e8effc"/>
+                <text class="node-label" x="135" y="111">фильм</text>
+                <text class="node-label" x="450" y="101">Anatole de</text>
+                <text class="node-label" x="450" y="122">Grunwald</text>
+                <text class="node-label" x="765" y="101">Санкт-</text>
+                <text class="node-label" x="765" y="122">Петербург</text>
+                <text class="edge-label" x="292" y="82">продюсер</text>
+                <text class="edge-label" x="610" y="82">место рождения</text>
+              </svg>
+            </div>
+          </article>
+          <article class="demo-pane">
+            <h3>Вторая проверка получает короткое достаточное основание</h3>
+            <p>Обе тройки образуют одну цепочку, а промежуточная вершина — один и тот же человек.</p>
+            <span class="verdict true">ИСТИНА</span>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="shell">
+      <div class="section-head">
+        <div class="kicker">Точные настройки</div>
+        <h2>Какие ограничения зафиксированы</h2>
+        <p>Это не настраиваемые «по настроению» числа: выбранная версия была зафиксирована перед независимыми проверками.</p>
+      </div>
+      <table class="parameters">
+        <thead><tr><th>Часть</th><th>Значение</th><th>Зачем</th></tr></thead>
+        <tbody>
+          <tr><td>Глубина локальной области</td><td>2 перехода</td><td>Достаточно для короткого многошагового факта.</td></tr>
+          <tr><td>Общий предел области</td><td>2000 троек</td><td>Ограничивает память и время.</td></tr>
+          <tr><td>Новая конечная вершина</td><td>1 на вершину</td><td>Не даёт списку вариантов разрастись.</td></tr>
+          <tr><td>Длина найденного пути</td><td>1–2 ребра</td><td>Допускает промежуточный объект, но не длинное блуждание.</td></tr>
+          <tr><td>Вес названий</td><td>0,3</td><td>Проверяет соответствие самих объектов.</td></tr>
+          <tr><td>Вес отношений</td><td>0,7</td><td>Структура связи важнее похожести имён.</td></tr>
+          <tr><td>Штраф второго ребра</td><td>0,1</td><td>При равенстве предпочитается прямой факт.</td></tr>
+          <tr><td>Частичных вариантов</td><td>64</td><td>Ограничивает комбинаторный перебор.</td></tr>
+          <tr><td>Минимум связанных вершин</td><td>80%</td><td>Не позволяет объявить успех по одному удобному фрагменту.</td></tr>
+          <tr><td>Фактов для проверки</td><td>не более 20</td><td>Ограничивает контекст языковой модели.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="shell" id="h11">
+      <div class="section-head">
+        <div class="kicker">H11 подробно</div>
+        <h2>Когда запускается структурный поиск</h2>
+        <p>Это простое условие вокруг двух способов поиска. Оно использует только наблюдаемый ответ модели, а не правильную метку из набора данных.</p>
+      </div>
+      <div class="branching">
+        <article class="branch-card stop">
+          <h3>Первая проверка дала «истина» или «ложь»</h3>
+          <p>Ответ сохраняется без изменений. Структурный поиск и второй вызов языковой модели не выполняются.</p>
+          <strong>Завершить обработку</strong>
+        </article>
+        <div class="diamond" aria-hidden="true"><b>НЕИЗВЕСТНО?</b></div>
+        <article class="branch-card continue">
+          <h3>Первая проверка дала «неизвестно»</h3>
+          <p>Запускается структурный поиск, его компактные факты передаются той же модели. Новый ответ заменяет только «неизвестно».</p>
+          <strong>Попробовать связный аргумент</strong>
+        </article>
+      </div>
+      <details class="code" open style="margin-top:20px">
+        <summary>Почти полный Python-код условного запуска</summary>
+        <pre><span class="kw">def</span> <span class="fn">check_claim</span>(claim):
+    broad_facts = <span class="fn">retrieve_broad_facts</span>(claim, limit=20)
+    first_answer = <span class="fn">ask_model</span>(claim, broad_facts)
+
+    <span class="kw">if</span> first_answer <span class="kw">in</span> {<span class="st">"TRUE"</span>, <span class="st">"FALSE"</span>}:
+        <span class="kw">return</span> first_answer
+
+    <span class="cm"># Сюда попадаем только после ответа UNKNOWN.</span>
+    connected_facts = <span class="fn">retrieve_connected_path</span>(claim)
+    second_answer = <span class="fn">ask_model</span>(claim, connected_facts)
+    <span class="kw">return</span> second_answer</pre>
+      </details>
+      <div class="one-line"><strong>Почему схема не теряет уже правильные первые ответы:</strong> она вообще не имеет права менять «истина» или «ложь». Но это не значит, что первая проверка никогда не ошибается — её ошибочный уверенный ответ также будет сохранён.</div>
+    </section>
+
+    <section class="shell">
+      <div class="section-head">
+        <div class="kicker">Что делает модель</div>
+        <h2>Языковая модель используется в трёх разных ролях</h2>
+        <p>Важно не смешивать извлечение структуры, численное сравнение отношений и окончательную проверку.</p>
+      </div>
+      <div class="dictionary">
+        <article class="term"><b>Извлечение графа</b><span>Большая языковая модель один раз переводит утверждение в вершины и рёбра. Невалидный ответ можно повторить с большим пределом длины.</span></article>
+        <article class="term"><b>Сравнение связей</b><span>Небольшая замороженная модель вычисляет числовое сходство текстов. Она не генерирует факты и не отвечает на вопрос.</span></article>
+        <article class="term"><b>Проверка утверждения</b><span>Большая языковая модель видит только утверждение и выбранные реальные тройки, после чего возвращает один из трёх ответов.</span></article>
+      </div>
+    </section>
+
+    <section class="shell" id="results">
+      <div class="section-head">
+        <div class="kicker">Что получилось</div>
+        <h2>Результат на FactKG</h2>
+        <p>Ниже показана фиксированная тестовая выборка из 500 утверждений. Это проверка всей двухступенчатой схемы, а не отдельной формулы сходства.</p>
+      </div>
+      <div class="result-grid">
+        <article class="result"><b>58,6%</b><span>точность одного широкого поиска</span></article>
+        <article class="result"><b>65,0%</b><span>точность двухступенчатой схемы с полной исходной версией структурного поиска</span></article>
+        <article class="result"><b>65,4%</b><span>точность после безопасного упрощения структурного поиска</span></article>
+        <article class="result"><b>153 → 107</b><span>ответов «неизвестно» после упрощённой версии</span></article>
+        <article class="result"><b>34 / 0</b><span>правильных только у двухступенчатой схемы / только у широкого поиска</span></article>
+        <article class="result"><b>69,4%</b><span>утверждений, для которых графовый поиск можно полностью пропустить</span></article>
+      </div>
+      <div class="bars">
+        <div><div class="bar-head"><span>Только широкий поиск</span><b>58,6%</b></div><div class="track"><div class="fill base" style="width:58.6%"></div></div></div>
+        <div><div class="bar-head"><span>Условный запуск упрощённого структурного поиска</span><b>65,4%</b></div><div class="track"><div class="fill" style="width:65.4%"></div></div></div>
+      </div>
+      <div class="one-line"><strong>Независимое повторение полного рабочего конвейера:</strong> на новом срезе из 500 утверждений точность выросла с 62,4% до 68,0%; добавлено 28 правильных ответов, потеряно 0.</div>
+    </section>
+
+    <section class="shell" id="limits">
+      <div class="section-head">
+        <div class="kicker">Честные границы</div>
+        <h2>Что мы знаем и чего не знаем</h2>
+      </div>
+      <div class="limits">
+        <article class="yes">
+          <h3>Подтверждено</h3>
+          <ul>
+            <li>Восстановление конечной вершины и поиск пути дают пользу сверх плоского выбора тех же двухшаговых фактов.</li>
+            <li>Условный запуск после «неизвестно» улучшил широкий поиск на независимой проверочной и фиксированной тестовой выборках FactKG.</li>
+            <li>Второй новый кандидат и отдельный штраф нового кандидата можно удалить без потери качества.</li>
+            <li>Структурный поиск не требует дополнительных вызовов большой модели до этапа проверки ответа.</li>
+          </ul>
+        </article>
+        <article class="no">
+          <h3>Не подтверждено</h3>
+          <ul>
+            <li>Польза единого глобального соответствия всех вершин: независимый выбор пути для каждого ребра оказался почти таким же.</li>
+            <li>Превосходство над опубликованными системами при одинаковом наборе данных и протоколе.</li>
+            <li>Перенос результата на обычные вопросы: на HotpotQA графовый поиск улучшил поиск опорных предложений, но не дал значимого роста качества ответа.</li>
+            <li>Что любой уверенный первый ответ правильный: условие защищает его от замены, но не исправляет уверенные ошибки.</li>
+          </ul>
+        </article>
+      </div>
+    </section>
+
+    <section class="shell">
+      <div class="section-head">
+        <div class="kicker">Самопроверка</div>
+        <h2>Если вы поняли эти четыре пункта — алгоритм понятен</h2>
+      </div>
+      <div class="two">
+        <article class="concept card"><h3>Структурный поиск</h3><p>Начинает с известных объектов, проходит по реальным рёбрам на один–два шага, предлагает пропущенные конечные вершины и выбирает компактный связный набор фактов.</p></article>
+        <article class="concept orange card"><h3>Условная схема</h3><p>Не объединяет два списка фактов. Она делает вторую независимую попытку только тогда, когда первая попытка честно отказалась отвечать.</p></article>
+        <article class="concept card"><h3>Никаких придуманных рёбер</h3><p>Смысловое сходство используется только для выбора. В окончательное основание попадают реальные тройки из графа знаний.</p></article>
+        <article class="concept orange card"><h3>Главный практический эффект</h3><p>Широкий поиск хорошо работает в большинстве случаев; связный путь нужен для трудного меньшинства, где отдельные похожие факты не складываются в вывод.</p></article>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="shell footer-grid">
+      <div><strong>Soft Isomorphism · объяснение H10/H11</strong><br>Содержимое сверено с фактическим кодом и экспериментальными артефактами 26.11.2026.</div>
+      <div class="source-links">
+        <a href="../docs/endpoint-aware-edge-path-experiment.md">Протокол структурного поиска</a>
+        <a href="../docs/unknown-fallback-experiment.md">Протокол условного запуска</a>
+        <a href="../scripts/factkg_h10_endpoint_paths.py">Точный код поиска</a>
+        <a href="../scripts/factkg_h11_unknown_fallback.py">Точный код условия</a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    const buttons = [...document.querySelectorAll('[data-demo]')];
+    const panes = [...document.querySelectorAll('.demo-pane')];
+    function showDemo(index) {
+      buttons.forEach((button, number) => {
+        const active = number === index;
+        button.classList.toggle('active', active);
+        button.setAttribute('aria-selected', String(active));
+      });
+      panes.forEach((pane, number) => pane.classList.toggle('active', number === index));
+    }
+    buttons.forEach((button, index) => button.addEventListener('click', () => showDemo(index)));
+    showDemo(0);
+  </script>
+</body>
+</html>

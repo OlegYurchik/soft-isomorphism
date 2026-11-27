@@ -1,0 +1,451 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>НИР: мягкое сопоставление графа текста с графом знаний</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #172033;
+      --muted: #5e687a;
+      --paper: #f5f7fb;
+      --card: #ffffff;
+      --line: #dbe2ee;
+      --blue: #2457d6;
+      --blue-soft: #eaf0ff;
+      --green: #167653;
+      --green-soft: #e7f6ef;
+      --amber: #9a5b00;
+      --amber-soft: #fff4d8;
+      --red: #b23b3b;
+      --red-soft: #fdeaea;
+      --purple: #6b42c1;
+      --purple-soft: #f0eaff;
+      --shadow: 0 14px 40px rgba(31, 46, 78, .08);
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 8% 2%, rgba(36,87,214,.10), transparent 28rem),
+        radial-gradient(circle at 96% 8%, rgba(107,66,193,.08), transparent 26rem),
+        var(--paper);
+      font: 16px/1.55 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    a { color: var(--blue); }
+    code { font-family: "SFMono-Regular", Consolas, monospace; font-size: .9em; }
+    .page { width: min(1240px, calc(100% - 32px)); margin: 0 auto; }
+    .hero { padding: 56px 0 28px; }
+    .eyebrow { color: var(--blue); font-size: 13px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+    h1 { max-width: 980px; margin: 8px 0 14px; font-size: clamp(34px, 5vw, 66px); line-height: 1.04; letter-spacing: -.045em; }
+    .lead { max-width: 920px; margin: 0; color: var(--muted); font-size: clamp(18px, 2vw, 23px); }
+    .date { margin-top: 16px; color: var(--muted); font-size: 14px; }
+    .nav {
+      position: sticky; top: 0; z-index: 10; display: flex; gap: 8px; flex-wrap: wrap;
+      padding: 12px 0; background: rgba(245,247,251,.94); backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--line);
+    }
+    .nav a { padding: 7px 11px; border-radius: 999px; color: var(--ink); text-decoration: none; font-size: 13px; background: var(--card); border: 1px solid var(--line); }
+    section { padding: 42px 0 8px; scroll-margin-top: 72px; }
+    h2 { margin: 0 0 9px; font-size: clamp(26px, 3vw, 40px); line-height: 1.15; letter-spacing: -.03em; }
+    h3 { margin: 0 0 7px; font-size: 19px; line-height: 1.25; }
+    p { margin: 0 0 12px; }
+    .section-lead { max-width: 900px; color: var(--muted); font-size: 18px; }
+    .grid { display: grid; gap: 16px; }
+    .grid.cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .grid.cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .grid.cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .card { padding: 22px; background: var(--card); border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--shadow); }
+    .metric b { display: block; font-size: clamp(30px, 4vw, 48px); line-height: 1; letter-spacing: -.04em; }
+    .metric span { display: block; margin-top: 9px; color: var(--muted); }
+    .metric.primary { background: var(--blue); color: #fff; border-color: transparent; }
+    .metric.primary span { color: rgba(255,255,255,.78); }
+    .callout { padding: 20px 22px; border-left: 5px solid var(--blue); background: var(--blue-soft); border-radius: 0 16px 16px 0; }
+    .callout.warning { border-color: var(--amber); background: var(--amber-soft); }
+    .callout.negative { border-color: var(--red); background: var(--red-soft); }
+    .status { display: inline-flex; align-items: center; gap: 6px; padding: 4px 9px; border-radius: 999px; font-size: 12px; font-weight: 700; white-space: nowrap; }
+    .status.ok { color: var(--green); background: var(--green-soft); }
+    .status.no { color: var(--red); background: var(--red-soft); }
+    .status.mixed { color: var(--amber); background: var(--amber-soft); }
+    .status.open { color: var(--purple); background: var(--purple-soft); }
+    .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 16px; background: var(--card); box-shadow: var(--shadow); }
+    table { width: 100%; border-collapse: collapse; min-width: 760px; }
+    th, td { padding: 13px 15px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); }
+    th { color: var(--muted); font-size: 12px; letter-spacing: .04em; text-transform: uppercase; background: #f9fbff; }
+    tr:last-child td { border-bottom: 0; }
+    tr.highlight td { background: var(--green-soft); }
+    tr.caution td { background: var(--amber-soft); }
+    .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .diagram { margin-top: 20px; padding: 24px; background: var(--card); border: 1px solid var(--line); border-radius: 20px; box-shadow: var(--shadow); overflow: hidden; }
+    .flow { display: grid; grid-template-columns: repeat(7, minmax(120px, 1fr)); align-items: stretch; gap: 22px; }
+    .flow-step { position: relative; min-height: 150px; padding: 16px; border-radius: 15px; background: #f8faff; border: 1px solid var(--line); }
+    .flow-step:not(:last-child)::after { content: "→"; position: absolute; right: -19px; top: 50%; transform: translateY(-50%); color: var(--blue); font-size: 24px; font-weight: 700; }
+    .flow-step .n { display: inline-grid; place-items: center; width: 28px; height: 28px; margin-bottom: 10px; border-radius: 50%; background: var(--blue); color: #fff; font-weight: 700; }
+    .flow-step p { color: var(--muted); font-size: 13px; }
+    .gate { border: 2px solid var(--amber); background: var(--amber-soft); }
+    .graph-demo { display: grid; grid-template-columns: 1fr 90px 1fr; align-items: center; gap: 12px; }
+    .graph-box { min-height: 260px; padding: 18px; border-radius: 18px; background: #f8faff; border: 1px solid var(--line); }
+    .graph-box svg { width: 100%; height: 190px; overflow: visible; }
+    .arrow-big { text-align: center; color: var(--blue); font-size: 42px; }
+    .legend { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 14px; color: var(--muted); font-size: 13px; }
+    .dot { display: inline-block; width: 10px; height: 10px; margin-right: 5px; border-radius: 50%; background: var(--blue); }
+    .dot.purple { background: var(--purple); }
+    .dot.green { background: var(--green); }
+    .dot.gray { background: #91a0b8; }
+    .timeline { position: relative; margin-top: 24px; }
+    .timeline::before { content: ""; position: absolute; left: 23px; top: 12px; bottom: 12px; width: 3px; border-radius: 3px; background: var(--line); }
+    .hyp { position: relative; display: grid; grid-template-columns: 48px 1fr; gap: 14px; margin-bottom: 14px; }
+    .hyp-id { position: relative; z-index: 1; display: grid; place-items: center; width: 48px; height: 48px; border-radius: 50%; background: var(--ink); color: #fff; font-weight: 800; font-size: 13px; }
+    .hyp-body { padding: 18px 20px; background: var(--card); border: 1px solid var(--line); border-radius: 16px; }
+    .hyp-head { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; flex-wrap: wrap; }
+    .hyp-body p { color: var(--muted); }
+    .hyp-body .result { color: var(--ink); margin: 8px 0 0; }
+    .bars { display: grid; gap: 14px; }
+    .bar-head { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 5px; }
+    .track { height: 18px; border-radius: 999px; background: #e8edf5; overflow: hidden; }
+    .fill { height: 100%; border-radius: inherit; background: var(--blue); }
+    .fill.green { background: var(--green); }
+    .fill.purple { background: var(--purple); }
+    .fill.amber { background: var(--amber); }
+    .split-visual { display: grid; grid-template-columns: 1fr 70px 1fr; gap: 14px; align-items: center; }
+    .mini-graph { padding: 16px; min-height: 200px; border-radius: 16px; background: #f8faff; border: 1px solid var(--line); }
+    .mini-graph svg { width: 100%; height: 155px; }
+    .versus { text-align: center; font-weight: 800; color: var(--muted); }
+    .decision { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; background: var(--line); border: 1px solid var(--line); border-radius: 18px; overflow: hidden; }
+    .decision > div { padding: 22px; background: var(--card); }
+    .decision .yes { box-shadow: inset 0 5px var(--green); }
+    .decision .no { box-shadow: inset 0 5px var(--red); }
+    .decision .open { box-shadow: inset 0 5px var(--amber); }
+    .file-links { display: flex; flex-wrap: wrap; gap: 9px; }
+    .file-links a { padding: 8px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); text-decoration: none; font-size: 13px; }
+    .foot { padding: 45px 0 70px; color: var(--muted); font-size: 13px; }
+    @keyframes pulsePath { 0%,100% { stroke-dashoffset: 24; opacity: .55; } 50% { stroke-dashoffset: 0; opacity: 1; } }
+    .animated-path { stroke-dasharray: 8 7; animation: pulsePath 2.6s ease-in-out infinite; }
+    @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; animation: none !important; } }
+    @media (max-width: 1050px) { .flow { grid-template-columns: repeat(2, 1fr); } .flow-step:not(:last-child)::after { display: none; } .grid.cols-4 { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 760px) {
+      .grid.cols-2, .grid.cols-3, .grid.cols-4, .decision, .graph-demo, .split-visual { grid-template-columns: 1fr; }
+      .arrow-big, .versus { transform: rotate(90deg); }
+      .flow { grid-template-columns: 1fr; }
+      .page { width: min(100% - 20px, 1240px); }
+      .hero { padding-top: 34px; }
+    }
+    @media print {
+      body { background: #fff; }
+      .nav { position: static; }
+      .card, .diagram, .table-wrap { box-shadow: none; }
+      section { break-inside: avoid; }
+      a { color: inherit; text-decoration: none; }
+    }
+  </style>
+</head>
+<body>
+  <header class="hero page">
+    <div class="eyebrow">Отчёт по НИР · 19.11.2026</div>
+    <h1>Мягкое сопоставление графа текста с графом знаний</h1>
+    <p class="lead">Полная цепочка работы: от нерабочего взвешивания рёбер до подтверждённого UNKNOWN-gated fallback, упрощённого H10-lean и проверки, даёт ли что-то именно согласованное сопоставление всего графа.</p>
+    <p class="date">Основной benchmark: FactKG + DBpedia 2015 light. Второй benchmark: HotpotQA, перенос ещё не выполнен.</p>
+  </header>
+
+  <nav class="nav page" aria-label="Разделы отчёта">
+    <a href="#summary">Итог</a><a href="#question">Задача</a><a href="#pipeline">Алгоритм</a><a href="#hypotheses">Гипотезы</a><a href="#results">Результаты</a><a href="#ablations">Абляции</a><a href="#gap">Knowledge gap</a><a href="#next">План</a><a href="#artifacts">Артефакты</a>
+  </nav>
+
+  <main class="page">
+    <section id="summary">
+      <h2>Главный результат</h2>
+      <p class="section-lead">Мы нашли рабочий способ улучшить B1, но последняя ablation сузила научный вывод: прирост надёжно даёт селективный endpoint/path retrieval, а необходимость единого graph-level mapping пока не доказана.</p>
+      <div class="grid cols-4" style="margin-top:20px">
+        <article class="card metric primary"><b>66,8%</b><span>H11 Accuracy на независимом dev-500; B1 = 59,0%</span></article>
+        <article class="card metric"><b>65,0%</b><span>H11 Accuracy на замороженном test-500; B1 = 58,6%</span></article>
+        <article class="card metric"><b>65,4%</b><span>H10-lean на test-500: выше полного H10 на 0,4 п.п.</span></article>
+        <article class="card metric"><b>1 claim</b><span>Преимущество joint matching над independent edges на dev</span></article>
+      </div>
+      <div class="grid cols-3" style="margin-top:16px">
+        <div class="callout"><h3>Что подтверждено</h3><p>B1→H10 после UNKNOWN даёт +7,8 п.п. на independent dev и +6,4 п.п. на test. H11 прошла все preregistered gates.</p></div>
+        <div class="callout warning"><h3>Что упрощено</h3><p>B4/H8/H9 не нужны в production; в H10 не нужны второй endpoint-кандидат и provenance penalty.</p></div>
+        <div class="callout negative"><h3>Что не доказано</h3><p>Joint graph mapping дал 40 correct сверх B1, independent edges — 39. Этого недостаточно для заявления о пользе глобальной согласованности.</p></div>
+      </div>
+    </section>
+
+    <section id="question">
+      <h2>Постановка задачи и данные</h2>
+      <div class="grid cols-2">
+        <article class="card"><h3>Исследовательский вопрос</h3><p>Можно ли сопоставлять query graph из текста с KG при неточных entity links, перефразированных relations и топологическом разрыве «одно query edge ↔ два KG edges»?</p></article>
+        <article class="card"><h3>Задача benchmark</h3><p>FactKG fact verification. По claim и только найденным KG-тройкам reader возвращает <b>TRUE</b>, <b>FALSE</b> или <b>UNKNOWN</b>. UNKNOWN считается ошибкой в Accuracy.</p></article>
+        <article class="card"><h3>Данные и KG</h3><p>FactKG: 86 367 train, 13 266 dev, 9 041 test. DBpedia 2015 light: 9 913 189 entities; FTS/direct entity linking; KG pool радиуса 2.</p></article>
+        <article class="card"><h3>Защита от leakage</h3><p>Gold <code>Label</code>, author <code>Evidence</code> и gold entity sets не передаются extraction, linking, retrieval и matching; они доступны только evaluator.</p></article>
+      </div>
+      <div class="diagram">
+        <h3>Разбиения, использованные в цепочке гипотез</h3>
+        <svg viewBox="0 0 1100 175" role="img" aria-labelledby="split-title split-desc">
+          <title id="split-title">Шкала SHA-рангов FactKG</title><desc id="split-desc">Диагностика, независимое dev-подтверждение, test и новая confirmation-выборка.</desc>
+          <rect x="35" y="55" width="245" height="54" rx="12" fill="#fff4d8"/><text x="157" y="77" text-anchor="middle" font-weight="700" fill="#172033">dev 500–999</text><text x="157" y="98" text-anchor="middle" fill="#5e687a">diagnostic · H8–H11 design</text>
+          <rect x="292" y="55" width="245" height="54" rx="12" fill="#e7f6ef"/><text x="414" y="77" text-anchor="middle" font-weight="700" fill="#172033">dev 1000–1499</text><text x="414" y="98" text-anchor="middle" fill="#5e687a">H11 confirmation + ablations</text>
+          <rect x="549" y="55" width="245" height="54" rx="12" fill="#eaf0ff"/><text x="671" y="77" text-anchor="middle" font-weight="700" fill="#172033">test 0–499</text><text x="671" y="98" text-anchor="middle" fill="#5e687a">frozen test · H11 / lean</text>
+          <rect x="806" y="55" width="245" height="54" rx="12" fill="#f0eaff"/><text x="928" y="77" text-anchor="middle" font-weight="700" fill="#172033">dev 1500–1999</text><text x="928" y="98" text-anchor="middle" fill="#5e687a">H12 confirmation · in progress</text>
+          <path d="M280 82H292M537 82H549M794 82H806" stroke="#91a0b8" stroke-width="2" marker-end="url(#arr)"/>
+          <defs><marker id="arr" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0 0L7 3.5L0 7Z" fill="#91a0b8"/></marker></defs>
+          <text x="35" y="140" fill="#5e687a" font-size="13">Все claims сортируются по SHA-256 текста; срезы не пересекаются.</text>
+        </svg>
+      </div>
+    </section>
+
+    <section id="pipeline">
+      <h2>Как работает итоговый pipeline</h2>
+      <p class="section-lead">В production нет последовательного запуска B4→H8→H9→H10. Это были experimental controls. Рабочий путь: B1 для всех, затем H10-lean только после UNKNOWN.</p>
+      <div class="diagram">
+        <div class="flow" aria-label="Полная блок-схема">
+          <article class="flow-step"><span class="n">1</span><h3>Claim</h3><p>Текст FactKG; gold скрыт.</p></article>
+          <article class="flow-step"><span class="n">2</span><h3>Query graph</h3><p>1 вызов Qwen3.8-27B: nodes, directed edges, polarity, quote.</p></article>
+          <article class="flow-step"><span class="n">3</span><h3>KG pool</h3><p>Entity linking и DBpedia neighborhood; единый pool для всех arms.</p></article>
+          <article class="flow-step"><span class="n">4</span><h3>B1 evidence</h3><p>BM25 выбирает до 20 реальных KG-троек.</p></article>
+          <article class="flow-step"><span class="n">5</span><h3>B1 reader</h3><p>Qwen возвращает TRUE / FALSE / UNKNOWN.</p></article>
+          <article class="flow-step gate"><span class="n">?</span><h3>UNKNOWN gate</h3><p>TRUE/FALSE — стоп. UNKNOWN — запустить structural fallback.</p></article>
+          <article class="flow-step"><span class="n">6</span><h3>H10-lean</h3><p>1 endpoint/node, paths 1–2, soft match, compact evidence, второй reader.</p></article>
+        </div>
+      </div>
+
+      <div class="diagram">
+        <h3>Графическая инструкция: что H10-lean добавляет к B1</h3>
+        <div class="graph-demo">
+          <div class="graph-box">
+            <h3>B1: набор лексически близких фактов</h3>
+            <svg viewBox="0 0 430 190" role="img" aria-label="B1 выбирает разрозненные тройки">
+              <circle cx="70" cy="50" r="23" fill="#2457d6"/><circle cx="205" cy="52" r="23" fill="#91a0b8"/><circle cx="355" cy="52" r="23" fill="#91a0b8"/>
+              <path d="M93 50H180M228 52H330" stroke="#91a0b8" stroke-width="4"/><text x="135" y="40" text-anchor="middle" fill="#5e687a">BM25</text><text x="280" y="42" text-anchor="middle" fill="#5e687a">facts</text>
+              <circle cx="110" cy="142" r="19" fill="#91a0b8"/><circle cx="285" cy="142" r="19" fill="#91a0b8"/><path d="M129 142H266" stroke="#91a0b8" stroke-width="4"/>
+              <text x="70" y="55" text-anchor="middle" fill="white" font-size="13">anchor</text><text x="210" y="184" text-anchor="middle" fill="#5e687a">Нет единого mapping</text>
+            </svg>
+          </div>
+          <div class="arrow-big">➜</div>
+          <div class="graph-box">
+            <h3>H10-lean: путь восстанавливает endpoint</h3>
+            <svg viewBox="0 0 430 190" role="img" aria-label="H10 находит двухшаговый путь и новую вершину">
+              <circle cx="55" cy="100" r="25" fill="#2457d6"/><circle cx="205" cy="100" r="22" fill="#6b42c1"/><circle cx="365" cy="100" r="25" fill="#167653"/>
+              <path d="M80 100H183M227 100H340" stroke="#6b42c1" stroke-width="5" class="animated-path"/><text x="132" y="86" text-anchor="middle" fill="#5e687a">hop 1</text><text x="283" y="86" text-anchor="middle" fill="#5e687a">hop 2</text>
+              <text x="55" y="105" text-anchor="middle" fill="white" font-size="12">known</text><text x="205" y="105" text-anchor="middle" fill="white" font-size="12">bridge</text><text x="365" y="105" text-anchor="middle" fill="white" font-size="12">new</text>
+              <path d="M55 148Q210 185 365 148" stroke="#167653" stroke-width="3" fill="none" stroke-dasharray="7 6"/><text x="210" y="174" text-anchor="middle" fill="#167653">query edge ≈ KG path</text>
+            </svg>
+          </div>
+        </div>
+        <div class="legend"><span><i class="dot"></i>entity anchor</span><span><i class="dot purple"></i>intermediate KG node</span><span><i class="dot green"></i>recovered endpoint</span><span><i class="dot gray"></i>lexical evidence</span></div>
+      </div>
+
+      <div class="grid cols-3" style="margin-top:16px">
+        <article class="card"><h3>Модели</h3><p><b>Qwen3.8-27B</b>: graph extraction и KG-only reader. <b>all-MiniLM-L6-v2</b>: frozen CPU ONNX embeddings для edge/path similarity.</p></article>
+        <article class="card"><h3>Стоимость matching</h3><p>Node/edge weights 0,3/0,7; path length penalty 0,1; beam 64; не менее 80% query nodes mapped.</p></article>
+        <article class="card"><h3>Изменение H10-lean</h3><p>Добавляется только <b>1</b> лучший endpoint/node; provenance penalty 0,15 удалён.</p></article>
+      </div>
+    </section>
+
+    <section id="hypotheses">
+      <h2>Все гипотезы и решения</h2>
+      <p class="section-lead">Нумерация историческая: ранние гипотезы назывались E1/E4, затем H5–H12. B0–B4 — baselines, а не пропущенные H2–H4.</p>
+      <div class="timeline">
+        <article class="hyp"><div class="hyp-id">E1</div><div class="hyp-body"><div class="hyp-head"><h3>Веса надёжности извлечённых рёбер</h3><span class="status no">отклонена</span></div><p>Гипотеза: веса согласия нескольких LLM-extractions улучшат mapping.</p><p class="result"><b>Результ:</b> при одном extraction все веса = 1, поэтому E1 точно тождественна B3. В трёхпроходном dev-20 B3/E1 также не различались: Accuracy 3/20, UNKNOWN 17.</p></div></article>
+        <article class="hyp"><div class="hyp-id">E4</div><div class="hyp-body"><div class="hyp-head"><h3>Path-consistency reranking</h3><span class="status no">механизм не сработал</span></div><p>Гипотеза: штраф за незавершённые paths 2–3 переранжирует top-50 mappings.</p><p class="result"><b>Результ:</b> у path penalty не было вариации: B4 и E4 выбрали 0 разных mappings/evidence на dev-20 и test-20. Dev Accuracy B1/B4/E4 = 60%/5%/5%.</p></div></article>
+        <article class="hyp"><div class="hyp-id">H5</div><div class="hyp-body"><div class="hyp-head"><h3>Дополнение B1 связными residual paths</h3><span class="status mixed">вклад связности не выделен</span></div><p>Гипотеза: после 12 B1-троек дополнить budget связными paths 2–3.</p><p class="result"><b>Результ:</b> coverage 19/32→22/32, но flat-контроль восстановил те же paths. Reader: 10/20 Accuracy, 7 UNKNOWN.</p></div></article>
+        <article class="hyp"><div class="hyp-id">H6</div><div class="hyp-body"><div class="hyp-head"><h3>Flat semantic expansion B1</h3><span class="status no">отклонена</span></div><p>Гипотеза: заменить слабый хвост B1 независимо отобранными по cosine тройками.</p><p class="result"><b>Результ:</b> coverage выше (22/32 vs 19/32), но Accuracy 60%→55%, UNKNOWN 6→7. Retrieval coverage не гарантирует verdict quality.</p></div></article>
+        <article class="hyp"><div class="hyp-id">H7</div><div class="hyp-body"><div class="hyp-head"><h3>Contextual edge cost + широкое domain expansion</h3><span class="status no">expansion отклонён</span></div><p>Гипотеза: сравнивать полные edges и добавлять relation-guided neighbors в domains.</p><p class="result"><b>Результ:</b> на dev-20 B4 coverage 8/32, contextual fixed-domain C7 18/32, полная H7 16/32. Широкое expansion потеряло 2 paths.</p></div></article>
+        <article class="hyp"><div class="hyp-id">H8</div><div class="hyp-body"><div class="hyp-head"><h3>Contextual full-edge cost без expansion</h3><span class="status ok">пилот поддержан</span></div><p>Гипотеза: cosine между полными source–relation–target лучше relation-only distance.</p><p class="result"><b>Результ:</b> cumulative dev-100: Accuracy 2%→16%, UNKNOWN 98→83, coverage 8/134→35/134; H8-only/B4-only correct 14/0, p=0,000122.</p></div></article>
+        <article class="hyp"><div class="hyp-id">H9</div><div class="hyp-body"><div class="hyp-head"><h3>Query edge → KG path длины 1–2</h3><span class="status mixed">механизм работает, gate не пройден</span></div><p>Гипотеза: разрешить одному query edge сопоставляться с направленным KG path.</p><p class="result"><b>Результ:</b> diagnostic-500 coverage 219/767→239/767 (+2,61 п.п.), 8 двухшаговых gold paths; gate +5 п.п. не пройден.</p></div></article>
+        <article class="hyp"><div class="hyp-id">H10</div><div class="hyp-body"><div class="hyp-head"><h3>Path-guided endpoint recovery</h3><span class="status mixed">лучше H9, хуже B1</span></div><p>Гипотеза: путь от anchor может добавить пропущенный endpoint в candidate domain.</p><p class="result"><b>Результ:</b> H9→H10 retrieval 31,16%→41,85%, reader Accuracy 22,0%→52,2%; но B1 = 59,6%. H10-only/B1-only correct = 43/80.</p></div></article>
+        <article class="hyp"><div class="hyp-id">H11</div><div class="hyp-body"><div class="hyp-head"><h3>UNKNOWN-gated H10 fallback</h3><span class="status ok">подтверждена</span></div><p>Гипотеза: сохранять TRUE/FALSE B1 и вызывать H10 только после UNKNOWN.</p><p class="result"><b>Результ:</b> independent dev-500: Accuracy 59,0%→66,8%, Macro-F1 0,703→0,751, UNKNOWN 164→112; +39 correct, p=3,64e−12. Test-500: 58,6%→65,0%, +32 correct.</p></div></article>
+        <article class="hyp"><div class="hyp-id">Lean</div><div class="hyp-body"><div class="hyp-head"><h3>Какие компоненты H10 лишние?</h3><span class="status ok">упрощение поддержано</span></div><p>Проверены: 1-hop-only proposals, 1 candidate, no penalty, direct-only alignment и их комбинации.</p><p class="result"><b>Результ:</b> 1 candidate + no penalty дал 67,0% dev и 65,4% test, то есть не хуже полного H10. Двухшаговые proposals и alignments оставлены.</p></div></article>
+        <article class="hyp"><div class="hyp-id">H12</div><div class="hyp-body"><div class="hyp-head"><h3>Joint graph matching vs independent edges</h3><span class="status open">не подтверждена</span></div><p><b>Рабочее обозначение H12.</b> Гипотеза: единое инъективное mapping всего query graph должно быть лучше, чем выбор путей для рёбер по отдельности.</p><p class="result"><b>Результ:</b> dev-500 lean 67,0%, independent 66,8%; lean-only/independent-only correct = 6/5, 151/164 fallback verdicts совпали. Преимущество joint matching не доказано; новый срез 1500–1999 зафиксирован.</p></div></article>
+      </div>
+    </section>
+
+    <section id="results">
+      <h2>Ключевые экспериментальные результаты</h2>
+      <div class="grid cols-2">
+        <div class="diagram">
+          <h3>Independent dev-500 · ranks 1000–1499</h3>
+          <div class="bars">
+            <div><div class="bar-head"><span>B1</span><b>59,0%</b></div><div class="track"><div class="fill" style="width:59%"></div></div></div>
+            <div><div class="bar-head"><span>B1→H8</span><b>61,2%</b></div><div class="track"><div class="fill purple" style="width:61.2%"></div></div></div>
+            <div><div class="bar-head"><span>B1→H9</span><b>62,2%</b></div><div class="track"><div class="fill amber" style="width:62.2%"></div></div></div>
+            <div><div class="bar-head"><span>B1→H10 / H11</span><b>66,8%</b></div><div class="track"><div class="fill green" style="width:66.8%"></div></div></div>
+          </div>
+        </div>
+        <div class="diagram">
+          <h3>Frozen test-500 · ranks 0–499</h3>
+          <div class="bars">
+            <div><div class="bar-head"><span>B1</span><b>58,6%</b></div><div class="track"><div class="fill" style="width:58.6%"></div></div></div>
+            <div><div class="bar-head"><span>B1→H8</span><b>59,6%</b></div><div class="track"><div class="fill purple" style="width:59.6%"></div></div></div>
+            <div><div class="bar-head"><span>B1→H9</span><b>60,4%</b></div><div class="track"><div class="fill amber" style="width:60.4%"></div></div></div>
+            <div><div class="bar-head"><span>B1→H10 / H11</span><b>65,0%</b></div><div class="track"><div class="fill green" style="width:65%"></div></div></div>
+          </div>
+        </div>
+      </div>
+      <div class="table-wrap" style="margin-top:18px">
+        <table>
+          <thead><tr><th>Выборка</th><th>Метод</th><th class="num">Accuracy</th><th class="num">Macro-F1</th><th class="num">UNKNOWN</th><th class="num">Correct сверх B1</th><th>Парный контраст</th></tr></thead>
+          <tbody>
+            <tr><td rowspan="4">Independent dev-500</td><td>B1</td><td class="num">59,0%</td><td class="num">0,703</td><td class="num">164</td><td class="num">—</td><td>—</td></tr>
+            <tr><td>B1→H8</td><td class="num">61,2%</td><td class="num">0,720</td><td class="num">152</td><td class="num">+11</td><td>control</td></tr>
+            <tr><td>B1→H9</td><td class="num">62,2%</td><td class="num">0,725</td><td class="num">144</td><td class="num">+16</td><td>control</td></tr>
+            <tr class="highlight"><td><b>B1→H10</b></td><td class="num"><b>66,8%</b></td><td class="num"><b>0,751</b></td><td class="num"><b>112</b></td><td class="num"><b>+39</b></td><td>39/0; p=3,64e−12</td></tr>
+            <tr><td rowspan="4">Frozen test-500</td><td>B1</td><td class="num">58,6%</td><td class="num">0,6845</td><td class="num">153</td><td class="num">—</td><td>—</td></tr>
+            <tr><td>B1→H8</td><td class="num">59,6%</td><td class="num">0,6932</td><td class="num">148</td><td class="num">+5</td><td>control</td></tr>
+            <tr><td>B1→H9</td><td class="num">60,4%</td><td class="num">0,6986</td><td class="num">143</td><td class="num">+9</td><td>control</td></tr>
+            <tr class="highlight"><td><b>B1→H10</b></td><td class="num"><b>65,0%</b></td><td class="num"><b>0,7197</b></td><td class="num"><b>106</b></td><td class="num"><b>+32</b></td><td>32/0; p=4,66e−10</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="grid cols-3" style="margin-top:16px">
+        <article class="card"><h3>Dev gates H11</h3><p>+7,8 п.п. при gate +3; p&lt;0,05; F1 вырос; UNKNOWN −31,7%; +23 recoveries над H9; fallback 32,8%.</p><span class="status ok">6/6 gates</span></article>
+        <article class="card"><h3>Test gates H11</h3><p>+6,4 п.п.; Macro-F1 +0,0352; UNKNOWN 153→106; exact paired p=4,66e−10; fallback 30,6%.</p><span class="status ok">перенос подтверждён</span></article>
+        <article class="card"><h3>Что даёт gate</h3><p>По Accuracy fallback не может испортить B1-correct claim: он заменяет только UNKNOWN, уже считаемый ошибкой.</p></article>
+      </div>
+    </section>
+
+    <section id="ablations">
+      <h2>Что в H10 действительно нужно</h2>
+      <p class="section-lead">Абляции после H11 не меняют исходный confirmatory вывод. Их цель — найти минимальный рабочий механизм и проверить, что именно даёт прирост.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Dev-500 конфигурация</th><th class="num">Accuracy</th><th class="num">Macro-F1</th><th class="num">UNKNOWN</th><th class="num">Correct сверх B1</th><th>Вывод</th></tr></thead>
+          <tbody>
+            <tr><td>Полный H10</td><td class="num">66,8%</td><td class="num">0,751</td><td class="num">112</td><td class="num">+39</td><td>reference</td></tr>
+            <tr><td>Только 1-hop endpoint proposals</td><td class="num">66,6%</td><td class="num">0,748</td><td class="num">112</td><td class="num">+38</td><td>−1 correct</td></tr>
+            <tr><td>Один новый candidate/node</td><td class="num">67,0%</td><td class="num">0,753</td><td class="num">113</td><td class="num">+40</td><td>второй candidate не нужен</td></tr>
+            <tr><td>Без provenance penalty</td><td class="num">66,8%</td><td class="num">0,751</td><td class="num">112</td><td class="num">+39</td><td>penalty не нужен</td></tr>
+            <tr><td>Только direct edge alignments</td><td class="num">66,4%</td><td class="num">0,747</td><td class="num">113</td><td class="num">+37</td><td>2-hop alignment полезен</td></tr>
+            <tr class="highlight"><td><b>H10-lean: 1 candidate, no penalty</b></td><td class="num"><b>67,0%</b></td><td class="num"><b>0,752</b></td><td class="num"><b>112</b></td><td class="num"><b>+40</b></td><td><b>выбран по dev</b></td></tr>
+            <tr><td>Lean + 1-hop proposals</td><td class="num">66,6%</td><td class="num">0,750</td><td class="num">115</td><td class="num">+38</td><td>хуже lean</td></tr>
+            <tr><td>Minimal + direct-only alignments</td><td class="num">66,2%</td><td class="num">0,744</td><td class="num">114</td><td class="num">+36</td><td>слишком агрессивно</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="diagram">
+        <h3>Критическая ablation: нужен ли joint graph matching?</h3>
+        <div class="split-visual">
+          <div class="mini-graph">
+            <h3>H10-lean · один mapping</h3>
+            <svg viewBox="0 0 360 150" role="img" aria-label="Одна query-вершина имеет один KG-образ">
+              <circle cx="180" cy="75" r="25" fill="#2457d6"/><circle cx="65" cy="35" r="20" fill="#167653"/><circle cx="65" cy="120" r="20" fill="#167653"/><circle cx="300" cy="75" r="22" fill="#6b42c1"/>
+              <path d="M87 42L155 66M86 112L156 84M205 75H278" stroke="#167653" stroke-width="4"/><text x="180" y="80" text-anchor="middle" fill="white">X→A</text><text x="180" y="145" text-anchor="middle" fill="#5e687a">общая X везде одинакова</text>
+            </svg>
+          </div>
+          <div class="versus">VS</div>
+          <div class="mini-graph">
+            <h3>Independent edges · нет mapping</h3>
+            <svg viewBox="0 0 360 150" role="img" aria-label="Общая query-вершина может иметь разные KG-образы">
+              <circle cx="180" cy="45" r="23" fill="#2457d6"/><circle cx="180" cy="110" r="23" fill="#6b42c1"/><circle cx="60" cy="45" r="20" fill="#167653"/><circle cx="300" cy="45" r="20" fill="#167653"/><circle cx="60" cy="110" r="20" fill="#167653"/><circle cx="300" cy="110" r="20" fill="#167653"/>
+              <path d="M80 45H157M203 45H280M80 110H157M203 110H280" stroke="#91a0b8" stroke-width="4"/><text x="180" y="50" text-anchor="middle" fill="white">X→A</text><text x="180" y="115" text-anchor="middle" fill="white">X→B</text><text x="180" y="145" text-anchor="middle" fill="#5e687a">каждое edge выбирает X заново</text>
+            </svg>
+          </div>
+        </div>
+        <div class="grid cols-3" style="margin-top:15px">
+          <article class="card metric"><b>151/164</b><span>одинаковые fallback verdicts</span></article>
+          <article class="card metric"><b>6 : 5</b><span>lean-only : independent-only correct</span></article>
+          <article class="card metric"><b>+0,2 п.п.</b><span>lean Accuracy; недостаточно для вывода</span></article>
+        </div>
+      </div>
+
+      <div class="diagram">
+        <h3>Оверхед и безопасная оптимизация</h3>
+        <div class="grid cols-2">
+          <div class="bars">
+            <div><div class="bar-head"><span>B1 reader calls, test-500</span><b>488</b></div><div class="track"><div class="fill" style="width:97.6%"></div></div></div>
+            <div><div class="bar-head"><span>H10 reader calls только по UNKNOWN</span><b>141</b></div><div class="track"><div class="fill green" style="width:28.2%"></div></div></div>
+            <div><div class="bar-head"><span>Claims без graph retrieval</span><b>347/500</b></div><div class="track"><div class="fill purple" style="width:69.4%"></div></div></div>
+          </div>
+          <div>
+            <p><b>До оптимизации:</b> research pipeline считал B4/H8/H9/H10 для всех 500 claims.</p>
+            <p><b>После:</b> B1 выполняется для всех, H10 — только для 153 UNKNOWN. Структурные results дали 153/153 exact matches с полным pipeline.</p>
+            <p><b>Reader cost test:</b> 629 model calls, 343 736 tokens, 362,21 s summed reader time. Extraction считается отдельно.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="gap">
+      <h2>Аналоги, knowledge gap и граница заявления</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Работа / метод</th><th>Что извлекает</th><th>Как сопоставляет</th><th>Обучение</th><th>Релевантность</th></tr></thead>
+          <tbody>
+            <tr><td><b>SimGRAG</b></td><td>Query graph / KG subgraph</td><td>Graph-aware retrieval и similarity</td><td>LLM/embedding components</td><td>Ближайший референс по FactKG; авторский framework не перезапускался.</td></tr>
+            <tr><td><b>NGM-RAG</b></td><td>Neural graph representations</td><td>GNN-based graph matching/retrieval</td><td>Требует GNN</td><td>Соседняя работа и ориентир для HotpotQA; не baseline текущего FactKG-run.</td></tr>
+            <tr><td><b>SubgraphRAG</b></td><td>Relevant subgraph</td><td>Learned/retrieval scoring</td><td>Модель-зависимо</td><td>Показывает, что graph retrieval — уже занятое поле.</td></tr>
+            <tr class="highlight"><td><b>Наш H10-lean</b></td><td>1 recovered endpoint/node + paths 1–2</td><td>Frozen semantic path score; optional joint mapping</td><td>Без GNN training</td><td>Проверяет bounded endpoint recovery в UNKNOWN-gated pipeline.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="grid cols-2" style="margin-top:16px">
+        <div class="callout"><h3>Исходный gap</h3><p>Query edge может соответствовать KG path, но нужный endpoint отсутствует в entity candidates. H10 проверяет bounded recovery такого endpoint.</p></div>
+        <div class="callout warning"><h3>Актуальная граница</h3><p>Мы можем утверждать пользу selective endpoint/path fallback. Мы пока не можем утверждать, что прирост даёт именно graph-level consistency.</p></div>
+      </div>
+    </section>
+
+    <section id="conclusions">
+      <h2>Что в итоге доказано, опровергнуто и открыто</h2>
+      <div class="decision">
+        <div class="yes"><h3>Поддержано</h3><ul><li>H11 улучшает B1 на independent dev и test.</li><li>Endpoint recovery резко улучшает H9.</li><li>Paths 1–2 лучше direct-only.</li><li>Вызов fallback только по UNKNOWN сокращает работу на 69,4% test claims.</li></ul></div>
+        <div class="no"><h3>Отклонено / удалено</h3><ul><li>E1 в однопроходном режиме.</li><li>E4 constant path penalty.</li><li>Flat semantic expansion H6.</li><li>Широкое domain expansion H7.</li><li>Второй endpoint candidate и provenance penalty.</li><li>B4/H8/H9 как production-ступени.</li></ul></div>
+        <div class="open"><h3>Открыто</h3><ul><li>Даёт ли joint mapping воспроизводимый прирост над independent edges?</li><li>Переносится ли H11/lean на HotpotQA?</li><li>Какая часть прироста зависит от Qwen-reader?</li><li>Как сократить дорогой KG pool preprocessing?</li></ul></div>
+      </div>
+    </section>
+
+    <section id="next">
+      <h2>Текущий статус и следующие шаги</h2>
+      <div class="grid cols-3">
+        <article class="card"><span class="status ok">готово</span><h3 style="margin-top:10px">H11 и H10-lean</h3><p>Independent dev, frozen test, component ablations, lazy execution и exact-equivalence checks завершены.</p></article>
+        <article class="card"><span class="status open">в работе</span><h3 style="margin-top:10px">H12 confirmation</h3><p>Dev SHA-ranks 1500–1999 зафиксированы; 500/500 graph extractions готовы. Строится общий KG candidate pool.</p></article>
+        <article class="card"><span class="status mixed">после H12</span><h3 style="margin-top:10px">Второй benchmark</h3><p>Заморозить вывод по joint matching, затем перенести минимальный pipeline на HotpotQA.</p></article>
+      </div>
+      <div class="diagram">
+        <h3>План принятия решения</h3>
+        <svg viewBox="0 0 1100 260" role="img" aria-labelledby="plan-title plan-desc">
+          <title id="plan-title">План дальнейшей работы</title><desc id="plan-desc">Завершить H12, в зависимости от результа либо сохранить joint matching, либо переформулировать вклад.</desc>
+          <rect x="25" y="85" width="250" height="80" rx="16" fill="#f0eaff"/><text x="150" y="115" text-anchor="middle" font-weight="700">H12 · fresh dev-500</text><text x="150" y="140" text-anchor="middle" fill="#5e687a">lean vs independent edges</text>
+          <path d="M275 125H400" stroke="#91a0b8" stroke-width="3" marker-end="url(#arr2)"/>
+          <polygon points="500,55 600,125 500,195 400,125" fill="#fff4d8" stroke="#9a5b00" stroke-width="2"/><text x="500" y="116" text-anchor="middle" font-weight="700">Есть устойчивый</text><text x="500" y="139" text-anchor="middle" font-weight="700">joint gain?</text>
+          <path d="M573 105H720V63" stroke="#167653" stroke-width="3" fill="none" marker-end="url(#arrGreen)"/><text x="630" y="93" fill="#167653">yes</text>
+          <path d="M573 145H720V205" stroke="#b23b3b" stroke-width="3" fill="none" marker-end="url(#arrRed)"/><text x="630" y="164" fill="#b23b3b">no</text>
+          <rect x="720" y="23" width="350" height="80" rx="16" fill="#e7f6ef"/><text x="895" y="53" text-anchor="middle" font-weight="700">Оставить joint soft matching</text><text x="895" y="78" text-anchor="middle" fill="#5e687a">перенос на HotpotQA + error analysis</text>
+          <rect x="720" y="165" width="350" height="80" rx="16" fill="#fdeaea"/><text x="895" y="195" text-anchor="middle" font-weight="700">Убрать beam / joint mapping</text><text x="895" y="220" text-anchor="middle" fill="#5e687a">вклад = selective endpoint/path retrieval</text>
+          <defs><marker id="arr2" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#91a0b8"/></marker><marker id="arrGreen" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#167653"/></marker><marker id="arrRed" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#b23b3b"/></marker></defs>
+        </svg>
+      </div>
+    </section>
+
+    <section id="artifacts">
+      <h2>Артефакты и воспроизводимость</h2>
+      <p class="section-lead">Код, дизайны и отчёты связаны относительными ссылками; сырые DBpedia/FactKG и model outputs остаются в локальном <code>data/</code>.</p>
+      <div class="file-links">
+        <a href="../docs/experiment-design-v2.md">Experiment design</a>
+        <a href="../docs/e1-degeneracy-proof.md">E1 proof</a>
+        <a href="../docs/factkg-e4-diagnostic.md">E4</a>
+        <a href="../docs/residual-path-completion-experiment.md">H5</a>
+        <a href="../docs/semantic-b1-expansion-experiment.md">H6</a>
+        <a href="../docs/contextual-soft-matching-experiment.md">H7</a>
+        <a href="../docs/contextual-edge-cost-experiment.md">H8</a>
+        <a href="../docs/edge-to-path-soft-matching-experiment.md">H9</a>
+        <a href="../docs/endpoint-aware-edge-path-experiment.md">H10</a>
+        <a href="../docs/unknown-fallback-experiment.md">H11 / lean / H12</a>
+        <a href="h11-visual-explainer.html">H11 visual explainer</a>
+        <a href="../scripts/factkg_h10_endpoint_paths.py">H10 code</a>
+        <a href="../scripts/factkg_h10_component_ablation.py">Ablation code</a>
+        <a href="../scripts/factkg_h10_ablation_reader.py">Ablation reader</a>
+        <a href="../docs/dataset-selection.md">Dataset selection</a>
+        <a href="../docs/evaluation-protocol.md">Evaluation protocol</a>
+        <a href="https://aclanthology.org/2025.findings-acl.163/">SimGRAG</a>
+        <a href="https://arxiv.org/abs/2607.11159">NGM-RAG</a>
+      </div>
+      <div class="callout warning" style="margin-top:18px"><h3>Границы отчёта</h3><p>Нет прямого числового сравнения с SimGRAG/NGM-RAG на тождественных sample IDs, KG, reader и evidence budget. Результаты paper не выдаются за наш baseline.</p></div>
+    </section>
+  </main>
+
+  <footer class="foot page">
+    <p>Ветка эксперимента: <code>exp/issue-19-factkg-pilot</code>. Последний зафиксированный H12 commit: <code>95879f3</code>. Проверка кода перед отчётом: 61/61 tests.</p>
+  </footer>
+</body>
+</html>

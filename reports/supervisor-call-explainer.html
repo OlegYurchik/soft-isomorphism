@@ -1,0 +1,706 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Понятный разбор вопросов научного руководителя по мягкому сопоставлению query graph с графом знаний.">
+  <title>НИР без тумана — как работает наш алгоритм и что ещё надо доказать</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #102033;
+      --muted: #5d6a78;
+      --paper: #eef4f7;
+      --surface: #ffffff;
+      --surface-2: #f7fafc;
+      --line: #d7e1e7;
+      --navy: #123a5a;
+      --blue: #1769aa;
+      --blue-soft: #e5f2fb;
+      --cyan: #0b8793;
+      --cyan-soft: #e2f7f6;
+      --green: #19724d;
+      --green-soft: #e4f5ec;
+      --amber: #9b5c08;
+      --amber-soft: #fff2d8;
+      --red: #a93f48;
+      --red-soft: #fdebed;
+      --purple: #6750a4;
+      --purple-soft: #eee9fb;
+      --shadow: 0 16px 48px rgba(18, 58, 90, .09);
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 10% -5%, rgba(11, 135, 147, .16), transparent 30rem),
+        radial-gradient(circle at 95% 6%, rgba(23, 105, 170, .13), transparent 32rem),
+        var(--paper);
+      font: 17px/1.62 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    a { color: var(--blue); }
+    button { font: inherit; }
+    code {
+      padding: .08em .35em;
+      border-radius: .35em;
+      background: #edf2f6;
+      font: .9em/1.4 "SFMono-Regular", Consolas, monospace;
+    }
+    .page { width: min(1180px, calc(100% - 32px)); margin: 0 auto; }
+    .hero { padding: 64px 0 34px; }
+    .kicker {
+      color: var(--cyan); font-size: .82rem; font-weight: 800;
+      letter-spacing: .12em; text-transform: uppercase;
+    }
+    h1 {
+      max-width: 1050px; margin: 10px 0 18px;
+      font-size: clamp(2.4rem, 6vw, 5.2rem); line-height: .98;
+      letter-spacing: -.055em;
+    }
+    .hero .lead { max-width: 900px; margin: 0; color: var(--muted); font-size: clamp(1.1rem, 2.2vw, 1.42rem); }
+    .hero-meta { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 24px; }
+    .pill {
+      display: inline-flex; align-items: center; gap: 7px; padding: 7px 11px;
+      border: 1px solid var(--line); border-radius: 999px; background: rgba(255,255,255,.75);
+      color: var(--muted); font-size: .83rem; font-weight: 650;
+    }
+    .pill::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--cyan); }
+
+    .nav-shell {
+      position: sticky; top: 0; z-index: 20; border-block: 1px solid rgba(215,225,231,.9);
+      background: rgba(238,244,247,.93); backdrop-filter: blur(18px);
+    }
+    .nav { display: flex; gap: 8px; overflow-x: auto; padding: 11px 0; scrollbar-width: thin; }
+    .nav a {
+      flex: 0 0 auto; padding: 7px 11px; border: 1px solid var(--line); border-radius: 999px;
+      background: var(--surface); color: var(--ink); text-decoration: none; font-size: .82rem; font-weight: 650;
+    }
+    .nav a:hover, .nav a:focus-visible { border-color: var(--blue); color: var(--blue); outline: none; }
+
+    main { padding-bottom: 50px; }
+    section { padding: 54px 0 8px; scroll-margin-top: 76px; }
+    h2 { margin: 0 0 10px; font-size: clamp(1.8rem, 4vw, 3rem); line-height: 1.08; letter-spacing: -.035em; }
+    h3 { margin: 0 0 8px; font-size: 1.14rem; line-height: 1.3; }
+    p { margin: 0 0 13px; }
+    ul, ol { margin: 8px 0 0; padding-left: 1.25rem; }
+    li + li { margin-top: 7px; }
+    .section-lead { max-width: 900px; color: var(--muted); font-size: 1.08rem; }
+    .grid { display: grid; gap: 16px; }
+    .cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .card, .panel {
+      border: 1px solid var(--line); border-radius: 20px; background: var(--surface); box-shadow: var(--shadow);
+    }
+    .card { padding: 22px; }
+    .panel { padding: clamp(20px, 4vw, 34px); }
+    .soft { background: var(--surface-2); box-shadow: none; }
+    .eyebrow { color: var(--cyan); font-size: .76rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+    .muted { color: var(--muted); }
+    .big-number { display: block; font-size: clamp(2rem, 5vw, 3.8rem); line-height: 1; letter-spacing: -.04em; }
+    .metric small { display: block; margin-top: 9px; color: var(--muted); font-size: .88rem; }
+    .metric.primary { background: var(--navy); color: white; border-color: transparent; }
+    .metric.primary small { color: rgba(255,255,255,.72); }
+    .callout { padding: 20px 22px; border-left: 5px solid var(--blue); border-radius: 0 16px 16px 0; background: var(--blue-soft); }
+    .callout.good { border-color: var(--green); background: var(--green-soft); }
+    .callout.warn { border-color: var(--amber); background: var(--amber-soft); }
+    .callout.bad { border-color: var(--red); background: var(--red-soft); }
+    .callout p:last-child { margin-bottom: 0; }
+
+    .answer {
+      display: grid; grid-template-columns: minmax(180px, .33fr) minmax(0, 1fr); gap: 24px;
+      padding: 25px 0; border-top: 1px solid var(--line);
+    }
+    .answer:first-child { border-top: 0; padding-top: 0; }
+    .question { color: var(--navy); font-size: 1.08rem; font-weight: 800; line-height: 1.35; }
+    .answer-body > :last-child { margin-bottom: 0; }
+
+    .objects {
+      display: grid; grid-template-columns: 1fr 90px 1.2fr; align-items: stretch; gap: 14px; margin-top: 20px;
+    }
+    .object-box { padding: 20px; border: 1px solid var(--line); border-radius: 18px; background: var(--surface-2); }
+    .object-box svg { width: 100%; height: 250px; overflow: visible; }
+    .match-mark { display: grid; place-items: center; color: var(--blue); font-size: 2.4rem; font-weight: 900; }
+
+    .legend { display: flex; flex-wrap: wrap; gap: 13px; margin-top: 10px; color: var(--muted); font-size: .82rem; }
+    .dot { display: inline-block; width: 10px; height: 10px; margin-right: 5px; border-radius: 50%; vertical-align: 0; background: var(--blue); }
+    .dot.green { background: var(--green); }
+    .dot.purple { background: var(--purple); }
+    .dot.gray { background: #8c9ba9; }
+
+    .pipeline { display: grid; grid-template-columns: repeat(6, minmax(130px, 1fr)); gap: 24px; margin-top: 20px; }
+    .step {
+      position: relative; min-height: 198px; padding: 18px; border: 1px solid var(--line); border-radius: 18px;
+      background: var(--surface); box-shadow: var(--shadow); cursor: pointer; transition: transform .18s ease, border-color .18s ease;
+    }
+    .step:hover, .step:focus-visible, .step.active { transform: translateY(-3px); border-color: var(--blue); outline: none; }
+    .step:not(:last-child)::after {
+      content: ""; position: absolute; right: -18px; top: 50%; width: 11px; height: 11px;
+      border-top: 3px solid var(--blue); border-right: 3px solid var(--blue); transform: translateY(-50%) rotate(45deg);
+    }
+    .step-num { display: grid; place-items: center; width: 34px; height: 34px; margin-bottom: 14px; border-radius: 50%; background: var(--navy); color: white; font-weight: 800; }
+    .step p { color: var(--muted); font-size: .88rem; }
+    .step.gate { background: var(--amber-soft); border: 2px solid #d79635; }
+    .step.fallback { background: var(--cyan-soft); }
+    .detail-box { min-height: 150px; margin-top: 16px; padding: 22px; border: 1px solid var(--line); border-radius: 18px; background: var(--surface); }
+    .detail-box h3 { color: var(--blue); }
+
+    .tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 22px 0 14px; }
+    .tab {
+      padding: 9px 14px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--ink); cursor: pointer; font-weight: 750;
+    }
+    .tab:hover, .tab:focus-visible, .tab[aria-selected="true"] { border-color: var(--blue); background: var(--blue); color: white; outline: none; }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    .compare-visual { display: grid; grid-template-columns: 1fr 90px 1fr; gap: 16px; align-items: center; }
+    .graph-card { min-height: 370px; padding: 22px; border: 1px solid var(--line); border-radius: 20px; background: var(--surface-2); }
+    .graph-card svg { width: 100%; height: 250px; }
+    .versus { text-align: center; color: var(--muted); font-size: 1.2rem; font-weight: 900; }
+    .node-label { font-size: 12px; font-weight: 750; fill: white; text-anchor: middle; dominant-baseline: middle; }
+    .edge-label { font-size: 12px; font-weight: 700; fill: var(--muted); text-anchor: middle; }
+    .moving { stroke-dasharray: 10 8; animation: dash 2.4s linear infinite; }
+    @keyframes dash { to { stroke-dashoffset: -36; } }
+
+    .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 18px; background: var(--surface); box-shadow: var(--shadow); }
+    table { width: 100%; min-width: 730px; border-collapse: collapse; }
+    th, td { padding: 14px 16px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+    th { background: #f5f8fa; color: var(--muted); font-size: .74rem; letter-spacing: .05em; text-transform: uppercase; }
+    tr:last-child td { border-bottom: 0; }
+    tr.highlight td { background: var(--green-soft); }
+    .num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+    .tag { display: inline-flex; padding: 4px 9px; border-radius: 999px; font-size: .74rem; font-weight: 800; }
+    .tag.yes { background: var(--green-soft); color: var(--green); }
+    .tag.open { background: var(--amber-soft); color: var(--amber); }
+    .tag.no { background: var(--red-soft); color: var(--red); }
+
+    .bar-list { display: grid; gap: 15px; }
+    .bar-head { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 5px; }
+    .track { height: 20px; overflow: hidden; border-radius: 999px; background: #dfe8ed; }
+    .fill { height: 100%; border-radius: inherit; background: var(--blue); }
+    .fill.green { background: var(--green); }
+    .fill.cyan { background: var(--cyan); }
+
+    details { border-top: 1px solid var(--line); }
+    details:first-child { border-top: 0; }
+    summary { padding: 18px 2px; cursor: pointer; color: var(--navy); font-weight: 800; }
+    summary::marker { color: var(--cyan); }
+    details > div { padding: 0 0 20px 24px; color: var(--muted); }
+
+    .experiment {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 2px; margin-top: 22px;
+      overflow: hidden; border: 1px solid var(--line); border-radius: 20px; background: var(--line);
+    }
+    .experiment > article { min-height: 235px; padding: 22px; background: var(--surface); }
+    .experiment .control { box-shadow: inset 0 5px var(--amber); }
+    .experiment .candidate { box-shadow: inset 0 5px var(--purple); }
+    .experiment .method { box-shadow: inset 0 5px var(--cyan); }
+    .experiment .base { box-shadow: inset 0 5px var(--blue); }
+
+    .timeline { position: relative; margin-top: 22px; }
+    .timeline::before { content: ""; position: absolute; left: 21px; top: 10px; bottom: 10px; width: 3px; border-radius: 3px; background: var(--line); }
+    .task { position: relative; display: grid; grid-template-columns: 44px 1fr; gap: 14px; margin-bottom: 14px; }
+    .task-num { z-index: 1; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; background: var(--navy); color: white; font-weight: 850; }
+    .task-body { padding: 19px 21px; border: 1px solid var(--line); border-radius: 17px; background: var(--surface); }
+    .done-when { margin-top: 10px; color: var(--green); font-weight: 750; }
+
+    .oral { position: relative; padding: 28px; border-radius: 22px; background: var(--navy); color: white; box-shadow: var(--shadow); }
+    .oral::before { content: "“"; position: absolute; right: 24px; top: -13px; color: rgba(255,255,255,.12); font: 9rem/1 Georgia, serif; }
+    .oral p { position: relative; max-width: 970px; margin: 0; font-size: 1.08rem; }
+    footer { padding: 34px 0 70px; color: var(--muted); font-size: .82rem; }
+
+    @media (max-width: 1050px) {
+      .pipeline { grid-template-columns: repeat(3, 1fr); }
+      .step:nth-child(3)::after { display: none; }
+      .cols-4 { grid-template-columns: repeat(2, 1fr); }
+      .experiment { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 760px) {
+      body { font-size: 16px; }
+      .page { width: min(100% - 20px, 1180px); }
+      .hero { padding-top: 38px; }
+      .cols-2, .cols-3, .cols-4, .objects, .compare-visual, .answer, .experiment { grid-template-columns: 1fr; }
+      .match-mark, .versus { transform: rotate(90deg); min-height: 50px; }
+      .pipeline { grid-template-columns: 1fr; }
+      .step:not(:last-child)::after { display: none; }
+      .answer { gap: 8px; }
+      .graph-card { min-height: 320px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; animation: none !important; transition: none !important; }
+    }
+    @media print {
+      body { background: white; }
+      .nav-shell, .tabs { display: none; }
+      .card, .panel, .graph-card, .table-wrap { box-shadow: none; }
+      section { break-inside: avoid; }
+      .tab-panel { display: block; margin-top: 20px; }
+      .step { break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <header class="hero page">
+    <div class="kicker">Ответы по итогам созвона · 21 ноября 2026</div>
+    <h1>НИР без тумана</h1>
+    <p class="lead">Что именно мы сопоставляем, откуда берётся <code>UNKNOWN</code> и что показал свежий контроль: структурный поиск путей полезен, но преимущество единого глобального mapping пока не доказано.</p>
+    <div class="hero-meta">
+      <span class="pill">FactKG + DBpedia 2015 Light</span>
+      <span class="pill">Qwen3.8-27B + MiniLM</span>
+      <span class="pill">500 dev + 500 test</span>
+    </div>
+  </header>
+
+  <div class="nav-shell">
+    <nav class="nav page" aria-label="Навигация по странице">
+      <a href="#short">Суть</a>
+      <a href="#objects">Что сопоставляем</a>
+      <a href="#pipeline">Pipeline</a>
+      <a href="#example">Пример</a>
+      <a href="#terms">Термины</a>
+      <a href="#answers">Ответы</a>
+      <a href="#evidence">Что доказано</a>
+      <a href="#control">Контроль</a>
+      <a href="#plan">План</a>
+    </nav>
+  </div>
+
+  <main class="page">
+    <section id="short">
+      <h2>Если понять только одну вещь</h2>
+      <p class="section-lead">Наш алгоритм не «сравнивает два огромных графа целиком». Он сначала сильно сужает область поиска, а сложный графовый метод включает только тогда, когда простой поиск не дал достаточных доказательств.</p>
+      <div class="grid cols-3" style="margin-top:22px">
+        <article class="callout good">
+          <h3>Что уже работает</h3>
+          <p>B1 отвечает на большинство утверждений. Если reader говорит <code>UNKNOWN</code>, H10-lean ищет дополнительные связанные факты. Это повысило Accuracy на независимых выборках.</p>
+        </article>
+        <article class="callout warn">
+          <h3>Что пока неясно</h3>
+          <p>Плоский контроль уже исключил объяснение «достаточно любых семантически близких 2-hop фактов». Но единый joint mapping всё ещё не лучше независимого выбора пути для каждого ребра со статистической значимостью.</p>
+        </article>
+        <article class="callout bad">
+          <h3>Что нельзя заявлять</h3>
+          <p>Нельзя говорить, что мы уже решили дедупликацию сущностей, доказали промышленную масштабируемость или честно превзошли SimGRAG на полностью одинаковом протоколе.</p>
+        </article>
+      </div>
+      <div class="grid cols-4" style="margin-top:16px">
+        <article class="card metric"><strong class="big-number">59,0%</strong><small>B1 Accuracy · dev-500</small></article>
+        <article class="card metric primary"><strong class="big-number">67,0%</strong><small>B1 → H10-lean · dev-500</small></article>
+        <article class="card metric"><strong class="big-number">58,6%</strong><small>B1 Accuracy · test-500</small></article>
+        <article class="card metric"><strong class="big-number">65,4%</strong><small>B1 → H10-lean · test-500</small></article>
+      </div>
+      <div class="panel" style="margin-top:16px">
+        <h3>Свежий preregistered control · dev SHA ranks 1500–1999</h3>
+        <div class="grid cols-4" style="margin-top:16px">
+          <article class="card metric"><strong class="big-number">45,8%</strong><small>B1</small></article>
+          <article class="card metric"><strong class="big-number">48,8%</strong><small>Flat-2hop</small></article>
+          <article class="card metric"><strong class="big-number">50,2%</strong><small>Independent edges</small></article>
+          <article class="card metric primary"><strong class="big-number">51,0%</strong><small>H10-lean</small></article>
+        </div>
+        <p class="muted" style="margin-top:13px">Lean против Flat: 15 unique wins против 4, net +11 claims, exact p=0,0192. Lean против independent edges: 4 против 0, p=0,125.</p>
+      </div>
+      <div class="panel" style="margin-top:16px">
+        <h3>После исправления обрезанного extraction · post-hoc diagnostic</h3>
+        <div class="grid cols-3" style="margin-top:16px">
+          <article class="card metric"><strong class="big-number">58,2%</strong><small>Исправленный B1 · было 45,8%</small></article>
+          <article class="card metric primary"><strong class="big-number">64,2%</strong><small>B1 → H10-lean</small></article>
+          <article class="card metric"><strong class="big-number">23,2%</strong><small>UNKNOWN после lean · было 46,8%</small></article>
+        </div>
+        <p class="muted" style="margin-top:13px">Retry восстановил 100/122 пустых графов. Новый B1 получил +62 correct, H10-lean добавил ещё +30 correct (p≈1,9×10⁻⁹).</p>
+      </div>
+      <div class="panel" style="margin-top:16px">
+        <h3>H14: полный pipeline подтверждён на новых 500 claims</h3>
+        <div class="grid cols-4" style="margin-top:16px">
+          <article class="card metric"><strong class="big-number">89,7%</strong><small>Recovery невалидных extraction</small></article>
+          <article class="card metric"><strong class="big-number">62,4%</strong><small>Adaptive extraction → B1</small></article>
+          <article class="card metric primary"><strong class="big-number">68,0%</strong><small>B1 → H10-lean</small></article>
+          <article class="card metric"><strong class="big-number">29,4%</strong><small>Fallback rate</small></article>
+        </div>
+        <p class="muted" style="margin-top:13px">H10-lean добавил 28 correct, +5,6 п.п., p=7,45×10⁻⁹; Macro-F1 0,7177 → 0,7520. Все пять preregistered gates выполнены.</p>
+      </div>
+    </section>
+
+    <section id="objects">
+      <h2>Что именно мы сопоставляем</h2>
+      <p class="section-lead">Выражение «граф текста» действительно звучит мутно. Корректный объект — <b>query graph, извлечённый из входного утверждения</b>.</p>
+      <div class="objects">
+        <article class="object-box">
+          <span class="eyebrow">Маленький граф запроса</span>
+          <h3>Извлекается из одного claim</h3>
+          <svg viewBox="0 0 400 250" role="img" aria-label="Маленький query graph из трёх вершин">
+            <defs><marker id="arr-q" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#1769aa"/></marker></defs>
+            <circle cx="65" cy="125" r="42" fill="#1769aa"/><text class="node-label" x="65" y="119">Film A</text><text class="node-label" x="65" y="136">фильм</text>
+            <circle cx="200" cy="125" r="42" fill="#1769aa"/><text class="node-label" x="200" y="119">Person B</text><text class="node-label" x="200" y="136">режиссёр</text>
+            <circle cx="342" cy="125" r="42" fill="#1769aa"/><text class="node-label" x="342" y="119">Country D</text><text class="node-label" x="342" y="136">страна</text>
+            <path d="M108 125H155" stroke="#1769aa" stroke-width="4" marker-end="url(#arr-q)"/><text class="edge-label" x="132" y="108">directed by</text>
+            <path d="M243 125H297" stroke="#1769aa" stroke-width="4" marker-end="url(#arr-q)"/><text class="edge-label" x="270" y="108">born in</text>
+          </svg>
+          <p class="muted">Qwen выделяет сущности и отношения. Это не готовый KG и не ручная разметка.</p>
+        </article>
+        <div class="match-mark" aria-hidden="true">≈</div>
+        <article class="object-box">
+          <span class="eyebrow">Локальный фрагмент KG</span>
+          <h3>Выбирается из DBpedia</h3>
+          <svg viewBox="0 0 500 250" role="img" aria-label="Фрагмент графа знаний с промежуточной вершиной">
+            <defs><marker id="arr-k" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#19724d"/></marker></defs>
+            <circle cx="55" cy="125" r="38" fill="#19724d"/><text class="node-label" x="55" y="125">Film_A</text>
+            <circle cx="185" cy="125" r="38" fill="#19724d"/><text class="node-label" x="185" y="125">Person_B</text>
+            <circle cx="315" cy="125" r="38" fill="#6750a4"/><text class="node-label" x="315" y="125">City_C</text>
+            <circle cx="445" cy="125" r="38" fill="#19724d"/><text class="node-label" x="445" y="125">Country_D</text>
+            <path d="M94 125H141" stroke="#19724d" stroke-width="4" marker-end="url(#arr-k)"/><text class="edge-label" x="118" y="106">director</text>
+            <path d="M224 125H271" stroke="#6750a4" stroke-width="4" marker-end="url(#arr-k)"/><text class="edge-label" x="248" y="106">birthPlace</text>
+            <path d="M354 125H401" stroke="#6750a4" stroke-width="4" marker-end="url(#arr-k)"/><text class="edge-label" x="378" y="106">country</text>
+          </svg>
+          <p class="muted">Одно ребро query graph может соответствовать пути из двух KG-рёбер через промежуточную вершину.</p>
+        </article>
+      </div>
+      <div class="callout" style="margin-top:16px">
+        <h3>Почему это не строгий изоморфизм</h3>
+        <p>Строгий изоморфизм требует почти точного совпадения структуры. У нас названия могут отличаться, часть вершин может отсутствовать, а одно отношение может быть выражено путём. Поэтому точнее говорить <b>мягкое сопоставление графов для поиска KG evidence</b>.</p>
+      </div>
+    </section>
+
+    <section id="pipeline">
+      <h2>Полный pipeline по шагам</h2>
+      <p class="section-lead">Нажмите на шаг, чтобы увидеть, какие данные он получает, что делает и что возвращает.</p>
+      <div class="pipeline" role="list">
+        <article class="step active" tabindex="0" role="button" data-detail="claim" aria-label="Показать описание шага Claim">
+          <span class="step-num">1</span><h3>Claim</h3><p>Текстовое утверждение из FactKG.</p>
+        </article>
+        <article class="step" tabindex="0" role="button" data-detail="extract" aria-label="Показать описание извлечения графа">
+          <span class="step-num">2</span><h3>Query graph</h3><p>Qwen выделяет вершины и связи.</p>
+        </article>
+        <article class="step" tabindex="0" role="button" data-detail="pool" aria-label="Показать описание локального KG pool">
+          <span class="step-num">3</span><h3>KG pool</h3><p>Локальная окрестность вокруг найденных сущностей.</p>
+        </article>
+        <article class="step" tabindex="0" role="button" data-detail="b1" aria-label="Показать описание baseline B1">
+          <span class="step-num">4</span><h3>B1 + reader</h3><p>BM25-факты и первый вердикт.</p>
+        </article>
+        <article class="step gate" tabindex="0" role="button" data-detail="gate" aria-label="Показать описание UNKNOWN gate">
+          <span class="step-num">?</span><h3>UNKNOWN?</h3><p>Если нет — готово. Если да — fallback.</p>
+        </article>
+        <article class="step fallback" tabindex="0" role="button" data-detail="h10" aria-label="Показать описание H10 lean">
+          <span class="step-num">5</span><h3>H10-lean</h3><p>Пути 1–2, новое evidence и второй reader.</p>
+        </article>
+      </div>
+      <div class="detail-box" id="step-detail" aria-live="polite"></div>
+
+      <div class="callout warn" style="margin-top:18px">
+        <h3>Важно: B4 → H8 → H9 → H10 не выполняются цепочкой</h3>
+        <p>Это исторические варианты эксперимента. Рабочий путь в production — <b>B1 для всех claims, затем H10-lean только после B1=UNKNOWN</b>. Старые обозначения не являются дополнительными runtime-этапами.</p>
+      </div>
+    </section>
+
+    <section id="example">
+      <h2>Игрушечный пример: где появляется польза H10-lean</h2>
+      <p class="section-lead">Пример вымышленный и нужен только для объяснения механики. Claim: «Режиссёр фильма A родился в стране D».</p>
+      <div class="tabs" role="tablist" aria-label="Варианты обработки примера">
+        <button class="tab" role="tab" aria-selected="true" aria-controls="tab-b1" data-tab="tab-b1">Что видит B1</button>
+        <button class="tab" role="tab" aria-selected="false" aria-controls="tab-h10" data-tab="tab-h10">Что добавляет H10-lean</button>
+        <button class="tab" role="tab" aria-selected="false" aria-controls="tab-reader" data-tab="tab-reader">Почему меняется ответ</button>
+      </div>
+
+      <div class="tab-panel active panel" id="tab-b1" role="tabpanel">
+        <div class="compare-visual">
+          <article class="graph-card">
+            <h3>Query graph хочет связную цепочку</h3>
+            <svg viewBox="0 0 430 250" role="img" aria-label="Query graph с двумя связями">
+              <circle cx="58" cy="120" r="36" fill="#1769aa"/><text class="node-label" x="58" y="120">Film A</text>
+              <circle cx="215" cy="120" r="36" fill="#1769aa"/><text class="node-label" x="215" y="120">Person B</text>
+              <circle cx="372" cy="120" r="36" fill="#1769aa"/><text class="node-label" x="372" y="120">Country D</text>
+              <path d="M95 120H178" stroke="#1769aa" stroke-width="4"/><text class="edge-label" x="136" y="102">directed by</text>
+              <path d="M252 120H335" stroke="#1769aa" stroke-width="4"/><text class="edge-label" x="294" y="102">born in</text>
+              <text x="215" y="208" text-anchor="middle" fill="#5d6a78">Нужны оба смысловых фрагмента</text>
+            </svg>
+          </article>
+          <div class="versus">но</div>
+          <article class="graph-card">
+            <h3>B1 нашёл только лексически близкие тройки</h3>
+            <svg viewBox="0 0 430 250" role="img" aria-label="Разрозненные факты baseline B1">
+              <circle cx="65" cy="70" r="32" fill="#8c9ba9"/><text class="node-label" x="65" y="70">Film A</text>
+              <circle cx="245" cy="70" r="32" fill="#8c9ba9"/><text class="node-label" x="245" y="70">Person B</text>
+              <path d="M98 70H211" stroke="#8c9ba9" stroke-width="4"/><text class="edge-label" x="155" y="51">director</text>
+              <circle cx="120" cy="188" r="30" fill="#8c9ba9"/><text class="node-label" x="120" y="188">Other X</text>
+              <circle cx="330" cy="188" r="30" fill="#8c9ba9"/><text class="node-label" x="330" y="188">Country D</text>
+              <path d="M151 188H299" stroke="#8c9ba9" stroke-width="4"/><text class="edge-label" x="225" y="169">country</text>
+            </svg>
+            <p class="muted">Есть знакомые слова, но нет доказательной цепочки Person B → Country D. Reader разумно отвечает <code>UNKNOWN</code>.</p>
+          </article>
+        </div>
+      </div>
+
+      <div class="tab-panel panel" id="tab-h10" role="tabpanel">
+        <div class="compare-visual">
+          <article class="graph-card">
+            <h3>Шаг 1. Есть надёжный anchor</h3>
+            <svg viewBox="0 0 430 250" role="img" aria-label="Начальная связанная сущность">
+              <circle cx="90" cy="125" r="42" fill="#1769aa"/><text class="node-label" x="90" y="125">Person B</text>
+              <circle cx="330" cy="125" r="42" fill="#d7e1e7"/><text x="330" y="125" text-anchor="middle" dominant-baseline="middle" fill="#5d6a78" font-weight="800">?</text>
+              <path d="M133 125H285" stroke="#aebbc5" stroke-width="4" stroke-dasharray="8 7"/>
+              <text class="edge-label" x="210" y="105">ищем endpoint</text>
+            </svg>
+            <p class="muted">Entity linking уже привязал Person B к KG. Для Country D подходящего кандидата может не быть.</p>
+          </article>
+          <div class="versus">затем</div>
+          <article class="graph-card">
+            <h3>Шаг 2. Путь предлагает пропущенный endpoint</h3>
+            <svg viewBox="0 0 430 250" role="img" aria-label="Двухшаговый KG путь">
+              <circle cx="55" cy="125" r="35" fill="#1769aa"/><text class="node-label" x="55" y="125">Person B</text>
+              <circle cx="215" cy="125" r="35" fill="#6750a4"/><text class="node-label" x="215" y="125">City C</text>
+              <circle cx="375" cy="125" r="35" fill="#19724d"/><text class="node-label" x="375" y="125">Country D</text>
+              <path d="M91 125H179" stroke="#6750a4" stroke-width="5" class="moving"/><text class="edge-label" x="135" y="103">birthPlace</text>
+              <path d="M251 125H339" stroke="#6750a4" stroke-width="5" class="moving"/><text class="edge-label" x="295" y="103">country</text>
+              <text x="215" y="210" text-anchor="middle" fill="#19724d" font-weight="800">1 query edge ≈ 2 KG edges</text>
+            </svg>
+            <p class="muted">MiniLM оценивает смысл relation sequence. В lean-варианте добавляется только один лучший новый endpoint на query node.</p>
+          </article>
+        </div>
+      </div>
+
+      <div class="tab-panel panel" id="tab-reader" role="tabpanel">
+        <div class="grid cols-3">
+          <article class="card soft"><span class="eyebrow">До fallback</span><h3>Неполное evidence</h3><p><code>Film_A — director → Person_B</code></p><p class="muted">Этого недостаточно, чтобы доказать место рождения.</p></article>
+          <article class="card soft"><span class="eyebrow">После fallback</span><h3>Связанные факты</h3><p><code>Person_B — birthPlace → City_C</code><br><code>City_C — country → Country_D</code></p></article>
+          <article class="card soft"><span class="eyebrow">Тот же reader</span><h3>Новый вердикт</h3><p><code>UNKNOWN → TRUE</code></p><p class="muted">Модель не стала «умнее» — изменилось переданное ей evidence.</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section id="terms">
+      <h2>Словарь обозначений</h2>
+      <p class="section-lead">Главная путаница на созвоне возникла из-за смешения трёх разных уровней: retrieval выбирает факты, matching связывает структуры, reader принимает решение.</p>
+      <div class="table-wrap" style="margin-top:20px">
+        <table>
+          <thead><tr><th>Термин</th><th>Простыми словами</th><th>Чем не является</th></tr></thead>
+          <tbody>
+            <tr><td><b>Query graph</b></td><td>Маленький граф сущностей и отношений, который Qwen извлёк из claim.</td><td>Не весь документ, не готовый KG, не ручная разметка.</td></tr>
+            <tr><td><b>Knowledge graph / KG</b></td><td>Большая база фактов в виде троек «субъект — отношение — объект».</td><td>Не ответ LLM и не список похожих текстов.</td></tr>
+            <tr><td><b>Candidate pool</b></td><td>Ограниченный локальный кусок KG вокруг привязанных сущностей.</td><td>Не полный перебор миллионов сущностей DBpedia.</td></tr>
+            <tr><td><b>Evidence</b></td><td>Реальные KG-тройки, которые мы передаём reader как доказательства.</td><td>Не внутренний score и не придуманное моделью объяснение.</td></tr>
+            <tr><td><b>Mapping</b></td><td>Предположение, какой query node соответствует какой KG node.</td><td>Не финальный ответ TRUE/FALSE.</td></tr>
+            <tr><td><b>Endpoint proposal</b></td><td>Новый кандидат для вершины query graph, найденный как конец хорошего KG-пути.</td><td>Не новая вершина, добавленная в сам DBpedia.</td></tr>
+            <tr><td><b>Reader</b></td><td>Qwen, который видит claim и evidence и возвращает TRUE/FALSE/UNKNOWN.</td><td>Не graph matcher и не entity linker.</td></tr>
+            <tr><td><b>UNKNOWN</b></td><td>Reader не может обосновать TRUE или FALSE только по данным тройкам.</td><td>Не gold label, не «ошибка сервера», не результат изоморфизма.</td></tr>
+            <tr><td><b>Fallback</b></td><td>Более дорогой способ поиска evidence, который включается только после UNKNOWN.</td><td>Не последовательный запуск всех исторических гипотез.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="grid cols-3" style="margin-top:16px">
+        <article class="card"><span class="eyebrow">Retrieval</span><h3>Какие факты показать?</h3><p>B1 использует BM25; H10-lean ищет структурно и семантически подходящие пути.</p></article>
+        <article class="card"><span class="eyebrow">Matching</span><h3>Как связать вершины?</h3><p>H10-lean строит согласованное отображение query nodes в KG candidates.</p></article>
+        <article class="card"><span class="eyebrow">Reading</span><h3>Какой вердикт следует?</h3><p>Один и тот же Qwen-reader оценивает claim только по выбранным KG-тройкам.</p></article>
+      </div>
+    </section>
+
+    <section id="answers">
+      <h2>Прямые ответы на вопросы руководителя</h2>
+      <div class="panel" style="margin-top:20px">
+        <article class="answer">
+          <div class="question">Каково направление работы?</div>
+          <div class="answer-body"><p><b>Мягкое сопоставление query graph, извлечённого из утверждения, с графом знаний для поиска evidence.</b> Это approximate graph matching / graph-based retrieval, а не строгий изоморфизм и пока не обновление KG.</p></div>
+        </article>
+        <article class="answer">
+          <div class="question">Что такое «граф текста»?</div>
+          <div class="answer-body"><p>Лучше отказаться от этого названия. В нашем FactKG-эксперименте есть конкретный claim. Qwen превращает его в маленький query graph: вершины — сущности, рёбра — отношения. Поэтому корректное название — <b>граф утверждения, извлечённый из текста</b>.</p></div>
+        </article>
+        <article class="answer">
+          <div class="question">Откуда берётся UNKNOWN?</div>
+          <div class="answer-body"><p>Его выдаёт финальный Qwen-reader. Prompt требует использовать только переданные KG-тройки и не считать отсутствие факта доказательством ложности. Если evidence недостаточно, reader выбирает UNKNOWN. Пустое evidence и невалидный ответ модели тоже нормализуются в UNKNOWN.</p></div>
+        </article>
+        <article class="answer">
+          <div class="question">Что такое B0, B1 и B4?</div>
+          <div class="answer-body">
+            <ul>
+              <li><b>B0:</b> BM25-kNN только по текстам train claims; KG не использует.</li>
+              <li><b>B1:</b> BM25 по текстам локальных KG-троек; до 20 фактов отправляются reader.</li>
+              <li><b>B4:</b> старый relation-only soft graph matcher с единым инъективным mapping. Сейчас это экспериментальный control, не production-этап.</li>
+            </ul>
+          </div>
+        </article>
+        <article class="answer">
+          <div class="question">Поиск полнотекстовый или векторный?</div>
+          <div class="answer-body"><p><b>Оба, но в разных местах.</b> B1 и ограничение incident triples используют BM25. В H10-lean MiniLM строит embeddings, а cosine similarity оценивает близость query relations, KG edges и relation sequences. Qwen не перебирает графовые пути.</p></div>
+        </article>
+        <article class="answer">
+          <div class="question">Что такое all-MiniLM-L6-v2?</div>
+          <div class="answer-body"><p>Лёгкая frozen sentence-embedding модель примерно на 22,7 млн параметров. Она запускается через ONNX на CPU и превращает текст в вектор. Это не генеративная LLM: она не пишет ответ и не возвращает TRUE/FALSE.</p></div>
+        </article>
+        <article class="answer">
+          <div class="question">Что гарантирует UNKNOWN-gate?</div>
+          <div class="answer-body"><p>В нашей метрике UNKNOWN всегда считается ошибкой. Мы не меняем ответы B1=TRUE/FALSE, поэтому fallback по конструкции не может испортить уже правильный B1-ответ. Но это <b>не</b> гарантирует, что все TRUE/FALSE B1 правильны, и не гарантирует заранее величину прироста.</p></div>
+        </article>
+        <article class="answer">
+          <div class="question">Решили ли мы дубликаты сущностей?</div>
+          <div class="answer-body"><p><b>Нет.</b> H10 может восстановить пропущенного кандидата через соседний путь, но не канонизирует весь KG, не объединяет «Олег Юрчик» и «мой студент» и не строит иерархию сущностей. Entity clustering — отдельное возможное направление.</p></div>
+        </article>
+        <article class="answer">
+          <div class="question">Почему поиск не взрывается на всём DBpedia?</div>
+          <div class="answer-body"><p>Мы заранее строим локальный pool: не более 5 linked candidates на именованную вершину, глубина обхода до 2, до 30 BM25-ranked incident triples на посещённую вершину, общий cap 2000 triples и beam width 64. Это эвристическое ограничение, а не доказанная промышленная масштабируемость.</p></div>
+        </article>
+      </div>
+    </section>
+
+    <section id="evidence">
+      <h2>Что эксперименты действительно доказали</h2>
+      <div class="grid cols-3" style="margin-top:20px">
+        <article class="card"><span class="tag yes">подтверждено</span><h3 style="margin-top:12px">Fallback улучшает B1</h3><p>На confirmatory dev-500: 59,0% → 66,8% для полного H10 и 67,0% для lean. На frozen test-500: 58,6% → 65,0% и 65,4% соответственно.</p></article>
+        <article class="card"><span class="tag yes">подтверждено</span><h3 style="margin-top:12px">Алгоритм можно упростить</h3><p>Второй endpoint candidate и provenance penalty не нужны. B4, H8 и H9 тоже не нужны в production runtime.</p></article>
+        <article class="card"><span class="tag open">не доказано</span><h3 style="margin-top:12px">Нужен ли joint mapping</h3><p>На свежем срезе lean дал 51,0%, independent edges — 50,2%: 4 unique wins против 0, но p=0,125. Этого всё ещё недостаточно для сильного вывода о глобальной согласованности.</p></article>
+      </div>
+
+      <div class="panel" style="margin-top:16px">
+        <h3>Accuracy на двух независимых срезах</h3>
+        <div class="grid cols-2" style="margin-top:18px">
+          <div class="bar-list">
+            <div><div class="bar-head"><span>Dev · B1</span><b>59,0%</b></div><div class="track"><div class="fill" style="width:59%"></div></div></div>
+            <div><div class="bar-head"><span>Dev · B1 → H10-lean</span><b>67,0%</b></div><div class="track"><div class="fill green" style="width:67%"></div></div></div>
+          </div>
+          <div class="bar-list">
+            <div><div class="bar-head"><span>Test · B1</span><b>58,6%</b></div><div class="track"><div class="fill" style="width:58.6%"></div></div></div>
+            <div><div class="bar-head"><span>Test · B1 → H10-lean</span><b>65,4%</b></div><div class="track"><div class="fill green" style="width:65.4%"></div></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel" style="margin-top:16px">
+        <h3>Цена прироста на test-500 — что уже измерено</h3>
+        <div class="table-wrap" style="margin-top:14px; box-shadow:none">
+          <table>
+            <thead><tr><th>Компонент</th><th class="num">Вызовы Qwen</th><th class="num">Токены</th><th class="num">Суммарное reader time</th></tr></thead>
+            <tbody>
+              <tr><td>B1 reader</td><td class="num">488</td><td class="num">323 651</td><td class="num">281,44 с</td></tr>
+              <tr><td>H10-lean reader только по UNKNOWN</td><td class="num">141</td><td class="num">19 499</td><td class="num">79,38 с</td></tr>
+              <tr class="highlight"><td><b>Итого для reader</b></td><td class="num"><b>629</b></td><td class="num"><b>343 150</b></td><td class="num"><b>360,82 с</b></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="muted" style="margin-top:13px">Fallback вызван для 153/500 claims, то есть 30,6%. Для 69,4% graph fallback полностью пропущен. Lean matcher обработал 153 fallback claims за 125,32 с в сохранённом запуске. Полный cost report ещё должен отдельно учесть extraction, pool construction, CPU time и peak RSS.</p>
+      </div>
+
+      <div class="panel" style="margin-top:16px">
+        <h3>Почему результат ещё не равен научному объяснению</h3>
+        <details open><summary>Мы знаем, что дополнительные evidence помогают</summary><div>H10-lean исправляет часть B1=UNKNOWN и устойчиво повышает Accuracy. Это воспроизвелось на confirmatory dev и frozen test.</div></details>
+        <details><summary>Мы знаем, что плоского доступа к 2-hop фактам недостаточно</summary><div>При одинаковом pool и evidence budget H10-lean получил 51,0%, Flat-2hop — 48,8%. Парное сравнение: 15 unique wins против 4, p=0,0192. Значит, query-edge/path structure действительно помогает выбирать evidence.</div></details>
+        <details><summary>Но минимальная необходимая структура ещё уже</summary><div>Independent edges почти не уступают joint mapping: 50,2% против 51,0%, p=0,125. Подтверждён endpoint/path retrieval, но не общая инъективная карта и beam search.</div></details>
+        <details open><summary>Extraction output limit уже исправлен диагностически</summary><div>На свежем срезе 122/500 query graphs были пусты. Retry только этих строк с лимитом 512 восстановил 100 графов; среди 107 обрезанных — 99. Все 378 исходно валидных строк остались точно неизменными. Осталось 22 строгих validation failures.</div></details>
+      </div>
+    </section>
+
+    <section id="control">
+      <h2>Решающий контроль Flat-2hop: завершён</h2>
+      <p class="section-lead">Мы дали той же модели отдельные факты из той же двухшаговой окрестности, выбранные по текстовой близости, с тем же количеством evidence. Так изолирован вклад структурного выбора путей.</p>
+      <div class="experiment">
+        <article class="base"><span class="eyebrow">Baseline</span><h3>B1</h3><p>До 20 KG-троек по BM25. Если reader ответил TRUE/FALSE — останавливаемся.</p></article>
+        <article class="control"><span class="eyebrow">Новый простой контроль</span><h3>Flat-2hop</h3><p>После UNKNOWN берём отдельные тройки из того же 2-hop pool по текстовой близости. Никакого общего mapping и beam search.</p></article>
+        <article class="candidate"><span class="eyebrow">Промежуточный контроль</span><h3>Independent edges</h3><p>Каждое query edge выбирает лучший KG path отдельно. Общая query node может получить разные KG-образы.</p></article>
+        <article class="method"><span class="eyebrow">Наш полный механизм</span><h3>H10-lean</h3><p>Endpoint recovery + paths 1–2 + единый инъективный mapping всего query graph.</p></article>
+      </div>
+
+      <div class="grid cols-3" style="margin-top:16px">
+        <article class="callout good"><h3>Полученный результат</h3><p>H10-lean лучше Flat-2hop на 2,2 п.п.; net +11 correct, p=0,0192. Простого доступа к тем же дополнительным фактам недостаточно.</p></article>
+        <article class="callout warn"><h3>Что именно подтверждено</h3><p>Endpoint recovery и сопоставление query edge с KG path выбирают более полезное evidence, чем плоский ranking полных троек.</p></article>
+        <article class="callout bad"><h3>Что не подтверждено</h3><p>Joint mapping против independent edges: net +4, p=0,125. Нельзя приписывать результат общей инъективной карте или beam search.</p></article>
+      </div>
+
+      <div class="callout" style="margin-top:16px">
+        <h3>Как сделать сравнение честным</h3>
+        <p>Одинаковые B1=UNKNOWN claims, query graphs, entity anchors, KG pools, MiniLM, reader и per-claim evidence budget. Менялся только способ выбора evidence. Параметры и decision rule были зафиксированы до получения reader verdicts.</p>
+      </div>
+
+      <div class="table-wrap" style="margin-top:16px">
+        <table>
+          <thead><tr><th>Arm</th><th class="num">Accuracy</th><th class="num">Macro-F1</th><th class="num">UNKNOWN</th><th>Интерпретация</th></tr></thead>
+          <tbody>
+            <tr><td>B1</td><td class="num">45,8%</td><td class="num">0,5957</td><td class="num">234</td><td>Простой lexical baseline.</td></tr>
+            <tr><td>Flat-2hop</td><td class="num">48,8%</td><td class="num">0,6087</td><td class="num">203</td><td>Дополнительные факты без query-graph structure.</td></tr>
+            <tr><td>Independent edges</td><td class="num">50,2%</td><td class="num">0,6259</td><td class="num">201</td><td>Структурные пути, но без общего mapping.</td></tr>
+            <tr class="highlight"><td><b>H10-lean</b></td><td class="num"><b>51,0%</b></td><td class="num"><b>0,6337</b></td><td class="num"><b>199</b></td><td><b>Структурные пути + joint mapping.</b></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="plan">
+      <h2>Что делаем дальше</h2>
+      <div class="timeline">
+        <article class="task"><div class="task-num">1</div><div class="task-body"><h3>Устаканить определения</h3><p>В отчёте заменить «граф текста» на query graph и явно разделить extraction, candidate generation, matching, evidence и reader.</p><p class="done-when">Готово, когда: алгоритм можно объяснить без обозначений H10/H11.</p></div></article>
+        <article class="task"><div class="task-num">2</div><div class="task-body"><h3>Готово: Flat-2hop зафиксирован и запущен</h3><p>Ranking, budget, выборка и decision rule зафиксированы заранее; добавлены resumable cache и unit tests.</p><p class="done-when">Результат: lean 51,0% против flat 48,8%, p=0,0192.</p></div></article>
+        <article class="task"><div class="task-num">3</div><div class="task-body"><h3>Готово: сравнение четырёх arms</h3><p>Получены paired Accuracy, Macro-F1, UNKNOWN и wins/losses на новых 500 claims.</p><p class="done-when">Вывод: структурные пути полезны; joint mapping не подтверждён.</p></div></article>
+        <article class="task"><div class="task-num">4</div><div class="task-body"><h3>Готово: adaptive pipeline подтверждён</h3><p>На новых 500 claims recovery 89,7%, B1 62,4%, H10-lean 68,0%, fallback rate 29,4%. Все пять gates выполнены.</p><p class="done-when">Результат подтверждён без настройки на H14.</p></div></article>
+        <article class="task"><div class="task-num">5</div><div class="task-body"><h3>Упростить научный claim и runtime</h3><p>Описывать новизну как structured endpoint/path retrieval. Отдельно проверить, можно ли убрать joint beam без статистически значимой потери.</p><p class="done-when">Готово, когда: минимальный production matcher заморожен.</p></div></article>
+        <article class="task"><div class="task-num">6</div><div class="task-body"><h3>Следующий научный этап — второй benchmark</h3><p>FactKG pipeline теперь заморожен и независимо подтверждён. Можно переносить его на HotpotQA, заранее определив query graph, target и метрики.</p><p class="done-when">Перенос проверяет междатасетную обобщаемость, а не продолжает настройку по FactKG.</p></div></article>
+      </div>
+    </section>
+
+    <section id="oral">
+      <h2>Ответ руководителю за одну минуту</h2>
+      <div class="oral" style="margin-top:20px">
+        <p>Я завершил независимую проверку всего замороженного pipeline на новых 500 FactKG claims. Adaptive retry восстановил 113 из 126 невалидных extraction — 89,7%. B1 получил 62,4% Accuracy и fallback rate 29,4%. H10-lean, запущенный только для 147 UNKNOWN, достиг 68,0%: +28 correct, +5,6 п.п., p=7,45×10⁻⁹; Macro-F1 вырос с 0,7177 до 0,7520. Все пять заранее заданных gates выполнены. Отдельный Flat-2hop control ранее показал, что структурный endpoint/path retrieval лучше плоского доступа к тем же фактам, но преимущество joint mapping над independent edges всё ещё не доказано. Поэтому честный научный claim — структурный selective path retrieval с adaptive extraction, а следующий этап — перенос замороженного метода на HotpotQA.</p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="page">
+    <p>Основано на транскрипции созвона и сохранённых артефактах экспериментов в ветке <code>exp/issue-19-factkg-pilot</code>. Все численные выводы относятся к текущему FactKG-протоколу.</p>
+  </footer>
+
+  <script>
+    const details = {
+      claim: {
+        title: "1. Claim — исходное утверждение",
+        html: "Вход — обычная строка текста из FactKG. Например: «Режиссёр фильма A родился в стране D». Gold label существует только для evaluator и не передаётся extraction, retrieval, matching или reader."
+      },
+      extract: {
+        title: "2. Query graph — структурное представление claim",
+        html: "Qwen3.8-27B вызывается один раз и возвращает сущности и направленные отношения. Получается маленький граф запроса. Он может быть неточным: модель может перефразировать relation или пропустить сущность — именно поэтому нужен мягкий matching."
+      },
+      pool: {
+        title: "3. KG pool — локальная область поиска",
+        html: "Entity linking даёт до пяти кандидатов для именованной query node. От них строится окрестность глубины до двух; на каждой вершине остаются до 30 BM25-ranked incident triples, общий предел — 2000 троек. Поэтому мы не сравниваем query graph со всем DBpedia."
+      },
+      b1: {
+        title: "4. B1 — сильный простой baseline",
+        html: "B1 ранжирует тексты KG-троек по BM25 относительно claim и передаёт reader до 20 реальных фактов. Reader — тот же Qwen3.8-27B с жёстким правилом использовать только эти факты. Он возвращает TRUE, FALSE или UNKNOWN."
+      },
+      gate: {
+        title: "UNKNOWN gate — селективный запуск дорогого метода",
+        html: "Если B1-reader сказал TRUE или FALSE, результат фиксируется. Если сказал UNKNOWN, это уже ошибка в FactKG Accuracy, поэтому можно безопасно попробовать заменить её fallback-ответом. Gate наблюдаем во время inference и не использует gold label."
+      },
+      h10: {
+        title: "5. H10-lean — структурный fallback",
+        html: "От известных anchors перебираются направленные KG-пути длины 1–2. Лучший конец пути добавляется как один новый candidate для query node. MiniLM оценивает смысл edges и paths, beam search выбирает согласованное инъективное mapping, после чего найденные KG-тройки получает второй запуск того же reader."
+      }
+    };
+
+    const detailBox = document.getElementById("step-detail");
+    function showStep(key) {
+      const value = details[key];
+      detailBox.innerHTML = `<h3>${value.title}</h3><p>${value.html}</p>`;
+      document.querySelectorAll(".step").forEach(step => step.classList.toggle("active", step.dataset.detail === key));
+    }
+    document.querySelectorAll(".step").forEach(step => {
+      step.addEventListener("click", () => showStep(step.dataset.detail));
+      step.addEventListener("keydown", event => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          showStep(step.dataset.detail);
+        }
+      });
+    });
+    showStep("claim");
+
+    document.querySelectorAll(".tab").forEach(tab => {
+      tab.addEventListener("click", () => {
+        document.querySelectorAll(".tab").forEach(item => item.setAttribute("aria-selected", "false"));
+        document.querySelectorAll(".tab-panel").forEach(panel => panel.classList.remove("active"));
+        tab.setAttribute("aria-selected", "true");
+        document.getElementById(tab.dataset.tab).classList.add("active");
+      });
+    });
+  </script>
+</body>
+</html>
